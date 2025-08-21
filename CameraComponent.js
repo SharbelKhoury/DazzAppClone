@@ -1,15 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Alert, Image } from 'react-native';
-import { Camera, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
-import { launchImageLibrary } from 'react-native-image-picker';
+import React, {useState, useRef, useEffect} from 'react';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Alert,
+  Image,
+} from 'react-native';
+import {
+  Camera,
+  useCameraDevices,
+  useCameraPermission,
+} from 'react-native-vision-camera';
+import {launchImageLibrary} from 'react-native-image-picker';
 
-const CameraComponent = ({ navigation }) => {
-  const { hasPermission, requestPermission } = useCameraPermission();
+const CameraComponent = ({navigation}) => {
+  const {hasPermission, requestPermission} = useCameraPermission();
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const cameraRef = useRef(null);
   const devices = useCameraDevices();
-  const device = devices?.back || devices?.front || Object.values(devices || {})[0];
+  const device =
+    devices?.back || devices?.front || Object.values(devices || {})[0];
 
   useEffect(() => {
     if (!hasPermission) {
@@ -34,7 +46,7 @@ const CameraComponent = ({ navigation }) => {
         qualityPrioritization: 'quality',
         flash: 'off',
       });
-      
+
       Alert.alert('Photo taken!', `Photo saved to: ${photo.path}`);
     } catch (error) {
       Alert.alert('Error', 'Failed to take photo');
@@ -49,7 +61,7 @@ const CameraComponent = ({ navigation }) => {
       includeBase64: false,
     };
 
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.error) {
@@ -71,13 +83,12 @@ const CameraComponent = ({ navigation }) => {
     return (
       <View style={styles.permissionContainer}>
         <Text style={styles.permissionText}>Camera permission is required</Text>
-        <TouchableOpacity 
-          style={styles.permissionButton} 
-          onPress={requestPermission}
-        >
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={requestPermission}>
           <Text style={styles.permissionButtonText}>Grant Permission</Text>
         </TouchableOpacity>
-        <Text style={[styles.permissionText, { fontSize: 14, marginTop: 20 }]}>
+        <Text style={[styles.permissionText, {fontSize: 14, marginTop: 20}]}>
           Permission status: {hasPermission ? 'Granted' : 'Not granted'}
         </Text>
       </View>
@@ -88,7 +99,7 @@ const CameraComponent = ({ navigation }) => {
     return (
       <View style={styles.permissionContainer}>
         <Text style={styles.permissionText}>Loading camera...</Text>
-        <Text style={[styles.permissionText, { fontSize: 14, marginTop: 10 }]}>
+        <Text style={[styles.permissionText, {fontSize: 14, marginTop: 10}]}>
           Devices: {JSON.stringify(Object.keys(devices || {}))}
         </Text>
       </View>
@@ -105,20 +116,19 @@ const CameraComponent = ({ navigation }) => {
         photo={true}
         onInitialized={() => setIsCameraReady(true)}
       />
-      
+
       {/* Selected Image Preview */}
       {selectedImage && (
         <View style={styles.imagePreviewContainer}>
-          <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
-          <TouchableOpacity 
+          <Image source={{uri: selectedImage}} style={styles.imagePreview} />
+          <TouchableOpacity
             style={styles.clearImageButton}
-            onPress={() => setSelectedImage(null)}
-          >
+            onPress={() => setSelectedImage(null)}>
             <Text style={styles.clearImageText}>✕</Text>
           </TouchableOpacity>
         </View>
       )}
-      
+
       {/* Camera Controls */}
       <View style={styles.controlsContainer}>
         {/* Gallery Button (Left) */}
@@ -130,11 +140,10 @@ const CameraComponent = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Shutter Button (Center) */}
-        <TouchableOpacity 
-          style={styles.shutterButton} 
+        <TouchableOpacity
+          style={styles.shutterButton}
           onPress={takePicture}
-          disabled={!isCameraReady}
-        >
+          disabled={!isCameraReady}>
           <View style={styles.shutterInner} />
         </TouchableOpacity>
 

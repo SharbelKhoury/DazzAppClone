@@ -1,5 +1,7 @@
 PODS:
   - boost (1.83.0)
+  - BVLinearGradient (2.8.3):
+    - React-Core
   - DoubleConversion (1.1.6)
   - FBLazyVector (0.74.0)
   - fmt (9.1.0)
@@ -935,7 +937,7 @@ PODS:
   - React-Mapbuffer (0.74.0):
     - glog
     - React-debug
-  - react-native-image-picker (8.2.1):
+  - react-native-image-picker (7.1.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -956,7 +958,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context (5.6.1):
+  - react-native-safe-area-context (5.1.0):
     - React-Core
   - React-nativeconfig (0.74.0)
   - React-NativeModulesApple (0.74.0):
@@ -1186,7 +1188,7 @@ PODS:
     - React-logger (= 0.74.0)
     - React-perflogger (= 0.74.0)
     - React-utils (= 0.74.0)
-  - RNGestureHandler (2.28.0):
+  - RNGestureHandler (2.21.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1207,7 +1209,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNScreens (4.15.0):
+  - RNScreens (4.5.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1230,16 +1232,17 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - SocketRocket (0.7.0)
-  - VisionCamera (4.7.1):
-    - VisionCamera/Core (= 4.7.1)
-    - VisionCamera/React (= 4.7.1)
-  - VisionCamera/Core (4.7.1)
-  - VisionCamera/React (4.7.1):
+  - VisionCamera (4.4.0):
+    - VisionCamera/Core (= 4.4.0)
+    - VisionCamera/React (= 4.4.0)
+  - VisionCamera/Core (4.4.0)
+  - VisionCamera/React (4.4.0):
     - React-Core
   - Yoga (0.0.0)
 
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
+  - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
@@ -1308,6 +1311,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   boost:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
+  BVLinearGradient:
+    :path: "../node_modules/react-native-linear-gradient"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
   FBLazyVector:
@@ -1428,6 +1433,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   boost: d3f49c53809116a5d38da093a8aa78bf551aed09
+  BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: 76ab83afb40bddeeee456813d9c04f67f78771b5
   FBLazyVector: 026c8f4ae67b06e088ae01baa2271ef8a26c0e8c
   fmt: 4c2741a687cc09f0634a2e2c72a838b99f1ff120
@@ -1457,8 +1463,8 @@ SPEC CHECKSUMS:
   React-jsitracing: d30048b056e8c9673dfbe67813bdb874c03558a5
   React-logger: 5ae0978955199c132e71e8cf7797f619a6d17164
   React-Mapbuffer: 3b85b3778e447cd1f06d353b8e967af50f272829
-  react-native-image-picker: 7abd47bc29c5100aec221b4afdc9e2970c063fe9
-  react-native-safe-area-context: 2243039f43d10cb1ea30ec5ac57fc6d1448413f4
+  react-native-image-picker: 6f7695f6e5aa43dc6275cbb3198cfa066a2f5be4
+  react-native-safe-area-context: e134b241010ebe2aacdcea013565963d13826faa
   React-nativeconfig: 951ec32f632e81cbd7d40aebb3211313251c092e
   React-NativeModulesApple: c8963908368d05a75af1eef7451ff86efc9b6517
   React-perflogger: 271f1111779fef70f9502d1d38da5132e5585230
@@ -1482,10 +1488,10 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 5ae8dc5d3195a1582ad076493ab6d9d3fd7c1287
   React-utils: c2c26076afce4fcf8d3d81dd75f8099a5a988383
   ReactCommon: b1dfa365018c636c73437981ee235c1a35f0e34f
-  RNGestureHandler: eb1839bf183a333a8cf9bb16d26d41cb17850a4d
-  RNScreens: 1329217c1861d42e4a0a273336f1665406bc90c0
+  RNGestureHandler: 53ddf541713cc94e6408e483bfd516fde774d111
+  RNScreens: c7148190b2cb849bc2acc76c226d59abcfc32821
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
-  VisionCamera: 9a8f98ae344fe5d148f84bb45829f9e4caab9d2f
+  VisionCamera: 4a8d5604e560c96e119249170fb5f8c1c943c78b
   Yoga: 56f906bf6c11c931588191dde1229fd3e4e3d557
 
 PODFILE CHECKSUM: f5e65e6b062bda36321e12bff4b6d0b707b49e66
