@@ -13,50 +13,53 @@ import LinearGradient from 'react-native-linear-gradient';
 const FilterControl = ({navigation}) => {
   const [selectedCamera, setSelectedCamera] = useState(null);
 
+  const openCamerasScreen = () => {
+    navigation.navigate('CamerasScreen');
+  };
+
   // Camera modes based on the photos
   const cameraModes = [
     // First row
-
-    {id: 'DCR', name: 'Original V', icon: '📱', fallback: '📱'},
-    {id: 'VHS', name: 'V Classic', icon: '📹', fallback: '📹'},
-    {id: '8mm', name: 'V Classic', icon: '📹', fallback: '📹'},
-    {id: 'originalV', name: 'Glow', icon: '✨', fallback: '✨'},
-    {id: 'vClassic', name: 'Inst SS', icon: '📷', fallback: '📷'},
-    {id: 'Glow', name: 'V FunS', icon: '🎥', fallback: '🎥'},
-    {id: 'instSS', name: 'Original V', icon: '📱', fallback: '📱'},
-    {id: 'vFunS', name: 'V Classic', icon: '📹', fallback: '📹'},
-    {id: 'Kino', name: 'Glow', icon: '✨', fallback: '✨'},
-    {id: 'Slide P', name: 'Inst SS', icon: '📷', fallback: '📷'},
-    {id: '16mm', name: 'V FunS', icon: '🎥', fallback: '🎥'},
+    {id: 'dcr', name: 'DCR', icon: '📱', fallback: '📱'},
+    {id: 'vhs', name: 'VHS', icon: '📹', fallback: '📹'},
+    {id: '8mm', name: '8mm', icon: '📹', fallback: '📹'},
+    {id: 'originalv', name: 'originalV', icon: '✨', fallback: '✨'},
+    {id: 'vclassic', name: 'vClassic', icon: '📷', fallback: '📷'},
+    {id: 'glow', name: 'Glow', icon: '🎥', fallback: '🎥'},
+    {id: 'instss', name: 'instSS', icon: '📱', fallback: '📱'},
+    {id: 'vfuns', name: 'vFunS', icon: '📹', fallback: '📹'},
+    {id: 'kino', name: 'Kino', icon: '✨', fallback: '✨'},
+    {id: 'slidep', name: 'Slide P', icon: '📷', fallback: '📷'},
+    {id: '16mm', name: '16mm', icon: '🎥', fallback: '🎥'},
     // Second row
-    {id: 'NT16', name: 'KV88', icon: '📷', fallback: '📷'},
-    {id: 'IR', name: 'FXN R', icon: '📷', fallback: '📷'},
-    {id: 'D Half', name: 'FQS R', icon: '📷', fallback: '📷'},
-    {id: 'Inst SQC', name: 'PAF R', icon: '📷', fallback: '📷'},
-    {id: 'D Slide', name: 'Inst C', icon: '📷', fallback: '📷'},
-    {id: 'CT2F', name: 'KV88', icon: '📷', fallback: '📷'},
-    {id: '135NE', name: 'FXN R', icon: '📷', fallback: '📷'},
-    {id: 'S 67', name: 'FQS R', icon: '📷', fallback: '📷'},
-    {id: 'D3D', name: 'PAF R', icon: '📷', fallback: '📷'},
-    {id: 'D FunS', name: 'Inst C', icon: '📷', fallback: '📷'},
-    {id: 'Classic U', name: 'KV88', icon: '📷', fallback: '📷'},
-    {id: 'DQS', name: 'FXN R', icon: '📷', fallback: '📷'},
-    {id: 'Collage', name: 'FQS R', icon: '📷', fallback: '📷'},
-    {id: 'CCD R', name: 'PAF R', icon: '📷', fallback: '📷'},
-    {id: 'HOGA', name: 'Inst C', icon: '📷', fallback: '📷'},
-    {id: 'Golf', name: 'KV88', icon: '📷', fallback: '📷'},
-    {id: 'GR F', name: 'FXN R', icon: '📷', fallback: '📷'},
-    {id: 'GRD R', name: 'FQS R', icon: '📷', fallback: '📷'},
-    {id: '135 SR', name: 'PAF R', icon: '📷', fallback: '📷'},
-    {id: 'CPM35', name: 'Inst C', icon: '📷', fallback: '📷'},
-    {id: 'KV88', name: 'KV88', icon: '📷', fallback: '📷'},
-    {id: 'FXNR', name: 'FXN R', icon: '📷', fallback: '📷'},
-    {id: 'FQS R', name: 'FQS R', icon: '📷', fallback: '📷'},
-    {id: 'PAFR', name: 'PAF R', icon: '📷', fallback: '📷'},
-    {id: 'Inst C', name: 'Inst C', icon: '📷', fallback: '📷'},
-    {id: 'D Classic', name: 'FQS R', icon: '📷', fallback: '📷'},
-    {id: 'Original', name: 'PAF R', icon: '📷', fallback: '📷'},
-    {id: 'S Classic', name: 'Inst C', icon: '📷', fallback: '📷'},
+    {id: 'nt16', name: 'NT16', icon: '📷', fallback: '📷'},
+    {id: 'ir', name: 'IR', icon: '📷', fallback: '📷'},
+    {id: 'dhalf', name: 'D Half', icon: '📷', fallback: '📷'},
+    {id: 'instsqc', name: 'Inst SQC', icon: '📷', fallback: '📷'},
+    {id: 'dslide', name: 'D Slide', icon: '📷', fallback: '📷'},
+    {id: 'ct2f', name: 'CT2F', icon: '📷', fallback: '📷'},
+    {id: '135ne', name: '135NE', icon: '📷', fallback: '📷'},
+    {id: 's67', name: 'S 67', icon: '📷', fallback: '📷'},
+    {id: 'd3d', name: 'D3D', icon: '📷', fallback: '📷'},
+    {id: 'dfuns', name: 'D FunS', icon: '📷', fallback: '📷'},
+    {id: 'classicu', name: 'Classic U', icon: '📷', fallback: '📷'},
+    {id: 'dqs', name: 'DQS', icon: '📷', fallback: '📷'},
+    {id: 'collage', name: 'Collage', icon: '📷', fallback: '📷'},
+    {id: 'ccdr', name: 'CCD R', icon: '📷', fallback: '📷'},
+    {id: 'hoga', name: 'HOGA', icon: '📷', fallback: '📷'},
+    {id: 'golf', name: 'Golf', icon: '📷', fallback: '📷'},
+    {id: 'grf', name: 'GR F', icon: '📷', fallback: '📷'},
+    {id: 'grdr', name: 'GRD R', icon: '📷', fallback: '📷'},
+    {id: '135sr', name: '135 SR', icon: '📷', fallback: '📷'},
+    {id: 'cpm35', name: 'CPM35', icon: '📷', fallback: '📷'},
+    {id: 'kv88', name: 'KV88', icon: '📷', fallback: '📷'},
+    {id: 'fxnr', name: 'FXNR', icon: '📷', fallback: '📷'},
+    {id: 'fqsr', name: 'FQS R', icon: '📷', fallback: '📷'},
+    {id: 'pafr', name: 'PAFR', icon: '📷', fallback: '📷'},
+    {id: 'instc', name: 'Inst C', icon: '📷', fallback: '📷'},
+    {id: 'dclassic', name: 'D Classic', icon: '📷', fallback: '📷'},
+    {id: 'original', name: 'Original', icon: '📷', fallback: '📷'},
+    {id: 'sclassic', name: 'S Classic', icon: '📷', fallback: '📷'},
   ];
 
   const renderCameraItem = (item, isSelected, onPress) => (
@@ -73,17 +76,21 @@ const FilterControl = ({navigation}) => {
           <Image source={item.icon} style={styles.cameraIconImage} />
         )}
       </View>
-      <Text
-        style={[styles.cameraName, isSelected && styles.selectedCameraName]}>
-        {item.name}
-      </Text>
+      <View style={styles.cameraNameContainer}>
+        <Text
+          style={[styles.cameraName, isSelected && styles.selectedCameraName]}>
+          {item.name}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Banner */}
-      <TouchableOpacity style={styles.banner}>
+      <TouchableOpacity
+        style={styles.banner}
+        onPress={() => navigation.navigate('CamerasScreen')}>
         <LinearGradient
           colors={['#007AFF', '#FF3B30']}
           start={{x: 0, y: 0}}
@@ -92,7 +99,7 @@ const FilterControl = ({navigation}) => {
           <View style={styles.bannerContent}>
             <View style={styles.bannerLeft}>
               <Image
-                source={require('./src/assets/icons/logo-main.png')}
+                source={require('../src/assets/icons/logo-main.png')}
                 style={styles.bannerLogo}
               />
               <View style={styles.bannerText}>
@@ -116,12 +123,12 @@ const FilterControl = ({navigation}) => {
           <Text style={styles.sampleText}>SAMPLE</Text>
         </TouchableOpacity>
         <View style={styles.menuIcons}>
-          <TouchableOpacity style={styles.menuIcon}>
+          <TouchableOpacity style={styles.menuIcon} onPress={openCamerasScreen}>
             <Text style={styles.menuIconText}>☰</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.heartIcon}>
             <Image
-              source={require('./src/assets/icons/Liit.png')}
+              source={require('../src/assets/icons/Liit.png')}
               style={styles.liitIcon}
             />
           </TouchableOpacity>
@@ -204,7 +211,7 @@ const FilterControl = ({navigation}) => {
             <TouchableOpacity
               style={[styles.circleButton, styles.circleButton3]}>
               <Image
-                source={require('./src/assets/icons/tripleC.png')}
+                source={require('../src/assets/icons/tripleC.png')}
                 style={styles.tripleCIcon}
               />
             </TouchableOpacity>
@@ -305,6 +312,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginLeft: 180,
     alignItems: 'center',
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgb(53, 53, 53)',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    marginRight: 15,
   },
   sampleIcon: {
     fontSize: 16,
@@ -327,7 +340,7 @@ const styles = StyleSheet.create({
     height: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingTop: 2,
   },
   menuIconText: {
@@ -525,6 +538,13 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '700',
     marginTop: -5,
+  },
+  cameraNameContainer: {
+    borderWidth: 1,
+    borderColor: 'rgb(53, 53, 53)',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
   },
 });
 
