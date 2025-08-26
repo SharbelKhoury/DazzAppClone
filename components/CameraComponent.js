@@ -6,9 +6,12 @@ import {
   Text,
   Alert,
   Image,
+  StatusBar,
 } from 'react-native';
+
 import {
   Camera,
+  useCameraDevice,
   useCameraDevices,
   useCameraPermission,
 } from 'react-native-vision-camera';
@@ -43,23 +46,144 @@ const CameraComponent = ({navigation}) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Camera position state - using the simpler approach like your friend
+  const [cameraPosition, setCameraPosition] = useState('front');
+  const [flashMode, setFlashMode] = useState('off');
+  const [showGrid, setShowGrid] = useState(false);
+  const [timerMode, setTimerMode] = useState('off');
+  const [latestMedia, setLatestMedia] = useState(null);
   const cameraRef = useRef(null);
+
   const devices = useCameraDevices();
-  const device =
-    devices?.back || devices?.front || Object.values(devices || {})[0];
+
+  // Manual device selection function that was working for front camera
+  const getDevice = () => {
+    if (!devices) return null;
+
+    const deviceArray = Object.values(devices);
+    // console.log(
+    //   'Available devices:',
+    //   deviceArray.map(d => `${d.name} (${d.position})`),
+    // );
+
+    if (cameraPosition === 'front') {
+      // For front camera, prefer "Front Camera" over "Front TrueDepth Camera"
+      const frontCamera = deviceArray.find(
+        d => d.position === 'front' && d.name === 'Front Camera',
+      );
+      if (frontCamera) {
+        // console.log('Using Front Camera');
+        return frontCamera;
+      }
+      // Fallback to any front camera
+      const anyFrontCamera = deviceArray.find(d => d.position === 'front');
+      if (anyFrontCamera) {
+        // console.log('Using fallback front camera:', anyFrontCamera.name);
+        return anyFrontCamera;
+      }
+    } else {
+      // For back camera, try different camera types to avoid AVFoundation errors
+      const ultraWideCamera = deviceArray.find(
+        d => d.position === 'back' && d.name === 'Back Ultra Wide Camera',
+      );
+      if (ultraWideCamera) {
+        // console.log('Using Back Ultra Wide Camera');
+        return ultraWideCamera;
+      }
+
+      const dualWideCamera = deviceArray.find(
+        d => d.position === 'back' && d.name === 'Back Dual Wide Camera',
+      );
+      if (dualWideCamera) {
+        // console.log('Using Back Dual Wide Camera');
+        return dualWideCamera;
+      }
+
+      // Last resort: any back camera
+      const anyBackCamera = deviceArray.find(d => d.position === 'back');
+      if (anyBackCamera) {
+        // console.log('Using fallback back camera:', anyBackCamera.name);
+        return anyBackCamera;
+      }
+    }
+
+    return null;
+  };
+
+  const device = getDevice();
+
+  // Effect to log camera position changes
+  useEffect(() => {
+    //console.log('Camera position changed to:', cameraPosition);
+    //console.log('Current device:', device);
+  }, [cameraPosition, device]);
+
+  // Cleanup effect for camera switching
+  useEffect(() => {
+    return () => {
+      // Cleanup when component unmounts or camera position changes
+      if (cameraRef.current) {
+        // Ensure camera is properly cleaned up
+        setIsCameraReady(false);
+      }
+    };
+  }, [cameraPosition]);
+
+  // Add camera initialization safety
+  useEffect(() => {
+    // Only initialize camera after permission is granted
+    if (hasPermission === true && device) {
+      // Add a longer delay to ensure proper AVFoundation initialization
+      const timer = setTimeout(() => {
+        try {
+          setIsCameraReady(true);
+        } catch (error) {
+          console.error('Camera initialization error:', error);
+          setIsCameraReady(false);
+        }
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasPermission, device]);
 
   useEffect(() => {
+    /* console.log('=== CAMERA DEBUG ===');
     console.log('Camera permission status:', hasPermission);
     console.log('Available devices:', devices);
-    console.log('Selected device:', device);
+    console.log('Front camera:', devices?.front);
+    console.log('Back camera:', devices?.back);
+    console.log('Current device:', device);
+    console.log('Camera position:', cameraPosition); */
+
+    // Detailed device analysis
+    if (devices) {
+      // console.log('=== DETAILED DEVICE ANALYSIS ===');
+      // console.log('All device keys:', Object.keys(devices));
+      // console.log('Device values:', Object.values(devices));
+
+      Object.entries(devices).forEach(([key, device]) => {
+        /* console.log(`Device ${key}:`, {
+          id: device?.id,
+          name: device?.name,
+          position: device?.position,
+          hasFlash: device?.hasFlash,
+          hardwareLevel: device?.hardwareLevel,
+          isMultiCam: device?.isMultiCam,
+          physicalDevices: device?.physicalDevices,
+        }); */
+      });
+      //console.log('=== END DEVICE ANALYSIS ===');
+    }
+    //console.log('===================');
 
     if (!hasPermission) {
-      console.log('Requesting camera permission...');
+      //console.log('Requesting camera permission...');
       requestPermission();
     }
-  }, [hasPermission, requestPermission, devices, device]);
+  }, [hasPermission, requestPermission, devices, device, cameraPosition]);
 
-  // Load active filters from global state
+  // Load active filters and camera selection from global state
   useEffect(() => {
     console.log(
       'Loading active filters from global state:',
@@ -68,9 +192,26 @@ const CameraComponent = ({navigation}) => {
     if (global.activeFilters) {
       setActiveFilters(global.activeFilters);
     }
+
+    // Initialize camera selection if not already set
+    if (!global.selectedCameraId) {
+      // For first app run, select the first camera from 2nd row (DIGITAL section)
+      const defaultCamera = 'original'; // First camera from DIGITAL section
+      console.log('Setting default camera for first run:', defaultCamera);
+      global.selectedCameraId = defaultCamera;
+      global.activeFilters = [defaultCamera];
+      setActiveFilters([defaultCamera]);
+    } else {
+      console.log('Using saved camera selection:', global.selectedCameraId);
+      // Ensure the saved camera is also set as active filter
+      if (!global.activeFilters || global.activeFilters.length === 0) {
+        global.activeFilters = [global.selectedCameraId];
+        setActiveFilters([global.selectedCameraId]);
+      }
+    }
   }, []);
 
-  // Listen for filter changes
+  // Listen for filter and camera selection changes
   useEffect(() => {
     const checkFilters = () => {
       if (
@@ -82,29 +223,52 @@ const CameraComponent = ({navigation}) => {
       }
     };
 
-    const interval = setInterval(checkFilters, 500);
+    const checkCameraSelection = () => {
+      // Also check if selectedCameraId has changed
+      if (
+        global.selectedCameraId &&
+        (!activeFilters.length || activeFilters[0] !== global.selectedCameraId)
+      ) {
+        console.log('Camera selection updated:', global.selectedCameraId);
+        setActiveFilters([global.selectedCameraId]);
+      }
+    };
+
+    const interval = setInterval(() => {
+      checkFilters();
+      checkCameraSelection();
+    }, 500);
     return () => clearInterval(interval);
   }, [activeFilters]);
 
-  // Check CameraRoll availability
-  useEffect(() => {
-    console.log('CameraRoll available:', !!CameraRoll);
-    console.log('ImageManipulator available:', !!ImageManipulator);
+  // Fetch latest media for gallery preview
+  const fetchLatestMedia = async () => {
+    try {
+      const result = await CameraRoll.getPhotos({
+        first: 1,
+        assetType: 'All',
+        sortBy: ['creationTime'],
+      });
 
-    // Test filter system
-    console.log('=== FILTER SYSTEM TEST ===');
-    console.log('Simple filter configs:', Object.keys(simpleFilterConfigs));
-    console.log('Flash C filter:', simpleFilterConfigs.flashc);
-    console.log('ND Filter:', simpleFilterConfigs.ndfilter);
+      if (result.edges && result.edges.length > 0) {
+        const latestItem = result.edges[0].node;
+        setLatestMedia({
+          uri: latestItem.image.uri,
+          type: latestItem.type,
+          filename: latestItem.image.filename,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching latest media:', error);
+    }
+  };
+
+  // Load latest media on component mount
+  useEffect(() => {
+    fetchLatestMedia();
   }, []);
 
-  useEffect(() => {
-    //console.log('Devices:', devices);
-    //console.log('Selected device:', device);
-    //console.log('Has permission:', hasPermission);
-  }, [devices, device, hasPermission]);
-
-    // Function to get combined filter effects for ImageFilter
+  // Function to get combined filter effects for ImageFilter
   const getCombinedFilters = () => {
     const allEffects = [];
 
@@ -113,25 +277,26 @@ const CameraComponent = ({navigation}) => {
 
     activeFilters.forEach(filterId => {
       console.log('Processing filter ID:', filterId);
-      
+
       // Check if it's a 2nd row camera (Skia effects)
       const skiaConfig = skiaFilterEffects[filterId];
       if (skiaConfig && skiaConfig.effects) {
         console.log('Using Skia filter config:', skiaConfig);
         // Convert Skia effects to ImageFilter format
-        const { brightness, contrast, saturation, hue, gamma } = skiaConfig.effects;
-        
+        const {brightness, contrast, saturation, hue, gamma} =
+          skiaConfig.effects;
+
         if (brightness !== undefined) {
-          allEffects.push({ name: 'Brightness', value: brightness });
+          allEffects.push({name: 'Brightness', value: brightness});
         }
         if (contrast !== undefined) {
-          allEffects.push({ name: 'Contrast', value: contrast });
+          allEffects.push({name: 'Contrast', value: contrast});
         }
         if (saturation !== undefined) {
-          allEffects.push({ name: 'Saturation', value: saturation });
+          allEffects.push({name: 'Saturation', value: saturation});
         }
         if (hue !== undefined) {
-          allEffects.push({ name: 'Hue', value: hue });
+          allEffects.push({name: 'Hue', value: hue});
         }
       } else {
         // Check if it's OpenGL effects (fallback)
@@ -159,7 +324,7 @@ const CameraComponent = ({navigation}) => {
     return allEffects;
   };
 
-    // Function to get filter overlay style for live preview
+  // Function to get filter overlay style for live preview
   const getFilterOverlayStyle = () => {
     if (activeFilters.length === 0) return {};
 
@@ -169,7 +334,7 @@ const CameraComponent = ({navigation}) => {
     // Check if it's a 2nd row camera (Skia effects)
     const skiaOverlay = getSkiaFilterOverlay(filterId);
     console.log('Skia overlay result:', skiaOverlay);
-    
+
     if (Object.keys(skiaOverlay).length > 0) {
       console.log('Using Skia overlay for:', filterId);
       return skiaOverlay;
@@ -178,7 +343,7 @@ const CameraComponent = ({navigation}) => {
     // Check if it's OpenGL effects (fallback)
     const openglOverlay = getOpenGLFilterOverlay(filterId);
     console.log('OpenGL overlay result:', openglOverlay);
-    
+
     if (Object.keys(openglOverlay).length > 0) {
       console.log('Using OpenGL overlay for:', filterId);
       return openglOverlay;
@@ -235,12 +400,12 @@ const CameraComponent = ({navigation}) => {
             // Convert overlay style to ImageManipulator actions
             const actions = [];
 
-                        // Get the actual filter effects for the current filter
+            // Get the actual filter effects for the current filter
             const filterId = activeFilters[0];
             const skiaConfig = skiaFilterEffects[filterId];
             const openglConfig = openglFilterEffects[filterId];
             const simpleConfig = simpleFilterConfigs[filterId];
-            
+
             // Use Skia effects if available, otherwise fallback to OpenGL or simple effects
             const filterConfig = skiaConfig || openglConfig || simpleConfig;
 
@@ -402,7 +567,7 @@ const CameraComponent = ({navigation}) => {
 
       const photo = await cameraRef.current.takePhoto({
         qualityPrioritization: 'quality',
-        flash: 'off',
+        flash: flashMode,
       });
 
       console.log('Photo captured:', photo.path);
@@ -415,6 +580,9 @@ const CameraComponent = ({navigation}) => {
 
       // Show success message
       if (result.saved) {
+        // Refresh latest media after saving
+        fetchLatestMedia();
+
         if (activeFilters.length > 0) {
           const filterNames = activeFilters
             .map(id => simpleFilterConfigs[id]?.name)
@@ -443,7 +611,7 @@ const CameraComponent = ({navigation}) => {
 
   const openGallery = () => {
     const options = {
-      mediaType: 'photo',
+      mediaType: 'mixed', // Allow both photos and videos
       quality: 1,
       includeBase64: false,
     };
@@ -455,9 +623,9 @@ const CameraComponent = ({navigation}) => {
         console.log('ImagePicker Error: ', response.error);
         Alert.alert('Error', 'Failed to open gallery');
       } else if (response.assets && response.assets[0]) {
-        const image = response.assets[0];
-        setSelectedImage(image.uri);
-        Alert.alert('Image Selected', `Selected: ${image.fileName || 'Image'}`);
+        const item = response.assets[0];
+        // Navigate to GalleryItemPreview with the selected item
+        navigation.navigate('GalleryItemPreview', {item});
       }
     });
   };
@@ -465,203 +633,153 @@ const CameraComponent = ({navigation}) => {
   const openFilterControl = () => {
     navigation.navigate('FilterControl');
   };
-
-  // Test function to verify filter system
-  const testFilterSystem = () => {
-    console.log('=== TESTING FILTER SYSTEM ===');
-    console.log('Active filters:', activeFilters);
-    console.log('Global active filters:', global.activeFilters);
-    console.log(
-      'Simple filter configs available:',
-      Object.keys(simpleFilterConfigs),
-    );
-
-    if (activeFilters.length > 0) {
-      const filterId = activeFilters[0];
-      const config = simpleFilterConfigs[filterId];
-      console.log('Current filter config:', config);
-      console.log('Filter effects:', config?.filters);
-
-      // Test the overlay style
-      const overlayStyle = getFilterOverlayStyle();
-      console.log('Overlay style:', overlayStyle);
-
-      Alert.alert(
-        'Filter Test',
-        `Active: ${activeFilters.join(
-          ', ',
-        )}\nGlobal: ${global.activeFilters?.join(', ')}\nConfig: ${
-          config?.name || 'None'
-        }`,
-      );
-    } else {
-      console.log('No active filters');
-      Alert.alert('Filter Test', 'No active filters found!');
+  // Flip camera using the official react-native-vision-camera approach
+  const flipCamera = () => {
+    // Prevent rapid camera switching
+    if (!isCameraReady) {
+      return; // Don't allow switching if camera is not ready
     }
+    // console.log('Flipping camera from:', cameraPosition);
+    // Force camera to be inactive during switch
+    setIsCameraReady(false);
+
+    setTimeout(() => {
+      setCameraPosition(prevPosition => {
+        const newPosition = prevPosition === 'back' ? 'front' : 'back';
+        // console.log('Flipping camera to:', newPosition);
+        return newPosition;
+      });
+    }, 100);
+    setIsCameraReady(true);
   };
 
-  // Function to manually set a filter for testing
-  const setTestFilter = () => {
-    const testFilter = 'flashc';
-    console.log('Setting test filter:', testFilter);
-    setActiveFilters([testFilter]);
-    global.activeFilters = [testFilter];
-
-    // Test the overlay immediately
-    const overlayStyle = getSimpleFilterOverlay(testFilter);
-    console.log('Flash C overlay style:', overlayStyle);
-
-    Alert.alert(
-      'Flash C Filter Set',
-      `✅ Flash C filter activated!\n\nYou should now see a REDDISH overlay on the camera screen.\n\nThe captured photo will have enhanced red tones with increased saturation and contrast.`,
-    );
-  };
-
-  // Function to test ImageManipulator directly
-  const testImageManipulator = async () => {
-    try {
-      console.log('=== TESTING IMAGEMANIPULATOR ===');
-      console.log('ImageManipulator available:', !!ImageManipulator);
-
-      if (!ImageManipulator) {
-        Alert.alert('Error', 'ImageManipulator is not available!');
-        return;
-      }
-
-      // Test with a simple local image or create a test image
-      const testUri = 'https://picsum.photos/200/300';
-
-      console.log('Testing with URI:', testUri);
-
-      const result = await ImageManipulator.process(
-        testUri,
-        [{brightness: 0.3}],
-        {compress: 0.8, format: 'jpeg'},
-      );
-
-      console.log('Test successful:', result.uri);
-      Alert.alert(
-        'Success',
-        'ImageManipulator is working!\n\nTest processed image successfully.',
-      );
-    } catch (error) {
-      console.error('ImageManipulator test failed:', error);
-      Alert.alert('Error', `ImageManipulator test failed:\n${error.message}`);
+  const takePhoto = async () => {
+    if (!cameraRef.current || !isCameraReady) {
+      console.log('Camera not ready for photo capture');
+      return;
     }
-  };
 
-  // Function to test with a real captured photo
-  const testWithRealPhoto = async () => {
     try {
-      console.log('=== TESTING WITH REAL PHOTO ===');
-
-      if (!device) {
-        Alert.alert('Error', 'No camera device available');
-        return;
-      }
-
-      if (!cameraRef.current) {
-        Alert.alert('Error', 'Camera not ready');
-        return;
-      }
-
-      console.log('Taking test photo...');
+      setIsProcessing(true);
       const photo = await cameraRef.current.takePhoto({
-        qualityPrioritization: 'quality',
-        flash: 'off',
+        flash: flashMode,
+        qualityPrioritization: 'balanced',
       });
 
-      console.log('Test photo captured:', photo.path);
+      console.log('Photo captured:', photo.path);
 
-      // Test processing the real photo
-      if (ImageManipulator) {
-        try {
-          const processed = await ImageManipulator.process(
-            photo.path,
-            [{brightness: 0.3}],
-            {compress: 0.8, format: 'jpeg'},
-          );
+      // Save to camera roll
+      await CameraRoll.save(`file://${photo.path}`, {
+        type: 'photo',
+        album: 'DazzAppClone',
+      });
 
-          console.log('Real photo processing successful:', processed.uri);
-          Alert.alert(
-            'Success',
-            'Real photo processing works!\n\nPhoto processed and saved successfully.',
-          );
-
-          // Save the processed test photo
-          await savePhotoToGallery(processed.uri);
-        } catch (processError) {
-          console.error('Real photo processing failed:', processError);
-          Alert.alert(
-            'Error',
-            `Real photo processing failed:\n${processError.message}`,
-          );
-        }
-      }
+      console.log('Photo saved to camera roll');
     } catch (error) {
-      console.error('Test with real photo failed:', error);
-      Alert.alert('Error', `Test failed:\n${error.message}`);
+      console.error('Error taking photo:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // Function to test OpenGL filter effects (2nd row cameras)
-  const setOpenGLTestFilter = () => {
-    const testFilter = 'grdr';
-    console.log('Setting OpenGL test filter:', testFilter);
-    setActiveFilters([testFilter]);
-    global.activeFilters = [testFilter];
-
-    // Test the overlay immediately
-    const overlayStyle = getFilterOverlayStyle();
-    console.log('GR DR overlay style:', overlayStyle);
-
-    Alert.alert(
-      'OpenGL Filter Set',
-      `✅ GR DR filter activated!\n\nYou should now see a DARK overlay on the camera screen.\n\nThe captured photo will have high contrast black & white effect with reduced saturation.`,
-    );
+  const toggleFlash = () => {
+    const flashModes = ['off', 'on', 'auto'];
+    const currentIndex = flashModes.indexOf(flashMode);
+    const nextIndex = (currentIndex + 1) % flashModes.length;
+    setFlashMode(flashModes[nextIndex]);
   };
 
-  // Function to test GR F filter specifically
-  const setGRFTestFilter = () => {
-    const testFilter = 'grf';
-    console.log('Setting GR F test filter:', testFilter);
-    setActiveFilters([testFilter]);
-    global.activeFilters = [testFilter];
-
-    // Test the overlay immediately
-    const overlayStyle = getFilterOverlayStyle();
-    console.log('GR F overlay style:', overlayStyle);
-
-    Alert.alert(
-      'GR F Filter Set',
-      `✅ GR F filter activated!\n\nYou should now see a GRAY overlay on the camera screen.\n\nThe captured photo will be BLACK AND WHITE with high contrast.`,
-    );
+  const toggleGrid = () => {
+    setShowGrid(!showGrid);
   };
 
-  // Function to test Skia filter effects
-  const setSkiaTestFilter = () => {
-    const testFilter = 'grdr';
-    console.log('Setting Skia test filter:', testFilter);
-    setActiveFilters([testFilter]);
-    global.activeFilters = [testFilter];
-
-    // Test the overlay immediately
-    const overlayStyle = getFilterOverlayStyle();
-    console.log('Skia GR DR overlay style:', overlayStyle);
-
-    Alert.alert(
-      'Skia Filter Set',
-      `✅ Skia GR DR filter activated!\n\nYou should now see a DARK overlay on the camera screen.\n\nThe captured photo will use Skia GPU-accelerated effects.`,
-    );
+  const toggleTimer = () => {
+    const timerModes = ['off', '3s', '10s'];
+    const currentIndex = timerModes.indexOf(timerMode);
+    const nextIndex = (currentIndex + 1) % timerModes.length;
+    setTimerMode(timerModes[nextIndex]);
   };
 
-  // For emulator testing - only bypass if no device is available
-  const isEmulator = !device;
+  // Function to get the selected camera icon
+  const getSelectedCameraIcon = () => {
+    // If no camera selected globally, use the first active filter
+    const cameraId =
+      global.selectedCameraId ||
+      (activeFilters.length > 0 ? activeFilters[0] : null);
+    if (!cameraId) return null;
+
+    // Import all camera icons
+    const cameraIcons = {
+      // DIGITAL
+      original: require('../src/assets/cameras/original.png'),
+      grdr: require('../src/assets/cameras/grdr.png'),
+      ccdr: require('../src/assets/cameras/ccdr.png'),
+      collage: require('../src/assets/cameras/collage.png'),
+      puli: require('../src/assets/cameras/puli.png'),
+      fxnr: require('../src/assets/cameras/fxnr.png'),
+
+      // VIDEO
+      vclassic: require('../src/assets/cameras/vclassic.png'),
+      originalv: require('../src/assets/cameras/originalv.png'),
+      dam: require('../src/assets/cameras/dam.png'),
+      '16mm': require('../src/assets/cameras/16mm.png'),
+      '8mm': require('../src/assets/cameras/8mm.png'),
+      vhs: require('../src/assets/cameras/vhs.png'),
+      kino: require('../src/assets/cameras/kino.png'),
+      instss: require('../src/assets/cameras/instss.png'),
+      vfuns: require('../src/assets/cameras/vfuns.png'),
+      dcr: require('../src/assets/cameras/dcr.png'),
+      glow: require('../src/assets/cameras/glow.png'),
+      slidep: require('../src/assets/cameras/slidep.png'),
+
+      // VINTAGE 120
+      sclassic: require('../src/assets/cameras/sclassic.png'),
+      hoga: require('../src/assets/cameras/hoga.png'),
+      s67: require('../src/assets/cameras/s67.png'),
+      kv88: require('../src/assets/cameras/kv88.png'),
+
+      // INST COLLECTION
+      instc: require('../src/assets/cameras/instc.png'),
+      instsq: require('../src/assets/cameras/instsq.png'),
+      instsqc: require('../src/assets/cameras/instsqc.png'),
+      pafr: require('../src/assets/cameras/pafr.png'),
+
+      // VINTAGE 135
+      dclassic: require('../src/assets/cameras/dclassic.png'),
+      grf: require('../src/assets/cameras/grf.png'),
+      ct2f: require('../src/assets/cameras/ct2f.png'),
+      dexp: require('../src/assets/cameras/dexp.png'),
+      nt16: require('../src/assets/cameras/nt16.png'),
+      d3d: require('../src/assets/cameras/d3d.png'),
+      '135ne': require('../src/assets/cameras/135ne.png'),
+      dfuns: require('../src/assets/cameras/dfuns.png'),
+      ir: require('../src/assets/cameras/ir.png'),
+      classicu: require('../src/assets/cameras/classicu.png'),
+      dqs: require('../src/assets/cameras/dqs.png'),
+      fqsr: require('../src/assets/cameras/fqsr.png'),
+      golf: require('../src/assets/cameras/golf.png'),
+      cpm35: require('../src/assets/cameras/cmp35.png'),
+      '135sr': require('../src/assets/cameras/135sr.png'),
+      dhalf: require('../src/assets/cameras/dhalf.png'),
+      dslide: require('../src/assets/cameras/dslide.png'),
+
+      // ACCESSORY
+      ndfilter: require('../src/assets/accessory/ndfilter.png'),
+      fisheyef: require('../src/assets/accessory/fisheyef.png'),
+      fisheyew: require('../src/assets/accessory/fisheyew.png'),
+      prism: require('../src/assets/accessory/prism.png'),
+      flashc: require('../src/assets/accessory/flashc.png'),
+      star: require('../src/assets/accessory/star.png'),
+    };
+
+    return cameraIcons[cameraId] || null;
+  };
 
   // Show permission request screen if permission is denied
   if (hasPermission === false) {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionText}>
             Camera permission is required to use this feature.
@@ -680,6 +798,7 @@ const CameraComponent = ({navigation}) => {
   if (hasPermission === null) {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionText}>
             Requesting camera permission...
@@ -689,174 +808,237 @@ const CameraComponent = ({navigation}) => {
     );
   }
 
-  if (isEmulator) {
-    // Show camera UI without actual camera functionality
-    return (
-      <View style={styles.container}>
-        {/* Placeholder camera view */}
-        <View style={styles.cameraPlaceholder}>
-          <Text style={styles.placeholderText}>📷</Text>
-          <Text style={styles.placeholderSubtext}>Camera Preview</Text>
-          <Text style={styles.placeholderSubtext}>(Emulator Mode)</Text>
-        </View>
-
-        {/* Selected Image Preview */}
-        {selectedImage && (
-          <View style={styles.imagePreviewContainer}>
-            <Image source={{uri: selectedImage}} style={styles.imagePreview} />
-            <TouchableOpacity
-              style={styles.clearImageButton}
-              onPress={() => setSelectedImage(null)}>
-              <Text style={styles.clearImageText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Camera Controls */}
-        <View style={styles.controlsContainer}>
-          {/* Gallery Button (Left) */}
-          <TouchableOpacity style={styles.sideButton} onPress={openGallery}>
-            <View style={styles.galleryIcon}>
-              <Text style={styles.buttonText}>📷</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Gallery</Text>
-          </TouchableOpacity>
-
-          {/* Shutter Button (Center) */}
-          <TouchableOpacity
-            style={styles.shutterButton}
-            onPress={() =>
-              Alert.alert('Emulator', 'Camera not available in emulator')
-            }
-            disabled={false}>
-            <View style={styles.shutterInner} />
-          </TouchableOpacity>
-
-          {/* Retro Camera Button (Right) */}
-          <TouchableOpacity
-            style={styles.sideButton}
-            onPress={openFilterControl}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>🎞️</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Retro</Text>
-          </TouchableOpacity>
-
-          {/* Test Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={testFilterSystem}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>🧪</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Test</Text>
-          </TouchableOpacity>
-
-          {/* Set Filter Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={setTestFilter}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>⚡</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Red Flash</Text>
-          </TouchableOpacity>
-
-          {/* Test ImageManipulator Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={testImageManipulator}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>🔧</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Test IM</Text>
-          </TouchableOpacity>
-
-          {/* Test Real Photo Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={testWithRealPhoto}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>📸</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Test Photo</Text>
-          </TouchableOpacity>
-
-          {/* OpenGL Test Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={setOpenGLTestFilter}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>🎨</Text>
-            </View>
-            <Text style={styles.buttonLabel}>OpenGL GR DR</Text>
-          </TouchableOpacity>
-
-          {/* GR F Test Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={setGRFTestFilter}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>⚫</Text>
-            </View>
-            <Text style={styles.buttonLabel}>GR F B&W</Text>
-          </TouchableOpacity>
-
-          {/* Skia Test Button */}
-          <TouchableOpacity
-            style={[styles.sideButton, {marginTop: 10}]}
-            onPress={setSkiaTestFilter}>
-            <View style={styles.retroIcon}>
-              <Text style={styles.buttonText}>🎨</Text>
-            </View>
-            <Text style={styles.buttonLabel}>Skia GR DR</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        device={device}
-        isActive={true}
-        photo={true}
-        onInitialized={() => setIsCameraReady(true)}
-      />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <View style={styles.cameraFrameInside} />
+      {/* Camera View with Frame */}
+      <View style={styles.cameraFrame}>
+        {device ? (
+          <Camera
+            key={`${device.id}-${cameraPosition}-${Date.now()}`}
+            ref={cameraRef}
+            style={styles.camera}
+            device={device}
+            isActive={isCameraReady && !!device}
+            photo={true}
+            onInitialized={() => {
+              // console.log('Camera initialized successfully');
+              // Don't set ready immediately, let the useEffect handle it
+            }}
+            onError={error => {
+              // console.error('Camera error:', error);
+              // console.error('Error details:', {
+              //   message: error.message,
+              //   code: error.code,
+              //   domain: error.domain,
+              //   userInfo: error.userInfo,
+              // });
+              setIsCameraReady(false);
+
+              // If it's an AVFoundation error, try switching to a different device
+              if (
+                error.code === -11800 ||
+                error.domain === 'AVFoundationErrorDomain'
+              ) {
+                // console.log(
+                //   'AVFoundation error detected, this device might be problematic',
+                // );
+              }
+
+              // Log the error but don't prevent future attempts
+              // console.log('Camera error occurred, but allowing retry');
+            }}
+          />
+        ) : (
+          <View
+            style={[
+              styles.camera,
+              {
+                backgroundColor: '#000',
+                justifyContent: 'center',
+                alignItems: 'center',
+              },
+            ]}>
+            <Text style={{color: '#fff', fontSize: 16}}>
+              Camera not available
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Live Filter Overlay */}
       {activeFilters.length > 0 && (
         <View style={[styles.filterOverlay, getFilterOverlayStyle()]} />
       )}
 
-      {/* Filter Preview Overlay */}
-      {activeFilters.length > 0 && (
-        <View style={styles.filterPreviewOverlay}>
-          <Text style={styles.filterPreviewText}>
-            Active Filter:{' '}
-            {activeFilters
-              .map(id => {
-                console.log('Getting name for filter ID:', id);
-                const skiaConfig = skiaFilterEffects[id];
-                const openglConfig = openglFilterEffects[id];
-                const simpleConfig = simpleFilterConfigs[id];
-                const name = skiaConfig?.name || openglConfig?.name || simpleConfig?.name || id;
-                console.log('Filter name result:', name);
-                return name;
-              })
-              .join(', ')}
-          </Text>
-          <Text style={styles.filterPreviewSubtext}>
-            Live preview - effects shown on camera
-          </Text>
+      {/* Grid Overlay - Inside Camera Frame */}
+      {showGrid && (
+        <View style={styles.gridOverlay}>
+          {/* Vertical lines */}
+          <View style={styles.gridVerticalLine1} />
+          <View style={styles.gridVerticalLine2} />
+          {/* Horizontal lines */}
+          <View style={styles.gridHorizontalLine1} />
+          <View style={styles.gridHorizontalLine2} />
         </View>
       )}
 
+      {/* Top Section */}
+      <View style={styles.topSection}>
+        {/* More Options Button */}
+        <TouchableOpacity style={styles.moreOptionsButton}>
+          <View style={styles.moreOptionsDots}>
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Focal Length Indicator */}
+      <View style={styles.focalLengthContainer}>
+        <Text style={styles.focalLengthText}>35mm</Text>
+      </View>
+
+      {/* Middle Control Bar */}
+      <View style={styles.middleControlBar}>
+        <View style={styles.controlItem}>
+          <Text style={styles.tempIcon}>🌡️</Text>
+          <Text style={styles.controlValue}>35</Text>
+        </View>
+        <View style={styles.controlItem}>
+          <Text style={styles.brightnessIcon}>☀️</Text>
+          <Text style={styles.controlValue}>0</Text>
+        </View>
+      </View>
+
+      {/* Bottom Control Bar */}
+      <View style={styles.bottomControlBar}>
+        {/* Left Side - Gallery Preview */}
+        <TouchableOpacity style={styles.galleryPreview} onPress={openGallery}>
+          {latestMedia ? (
+            <Image
+              source={{uri: latestMedia.uri}}
+              style={styles.galleryImage}
+            />
+          ) : (
+            <View style={styles.galleryPlaceholder}>
+              <Text style={styles.galleryIcon}>📷</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Center Controls */}
+        <View style={styles.centerControls}>
+          {/* Top Row Controls */}
+          <View style={styles.topControls}>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={openGallery}>
+              <View style={styles.galleryButtonIcon}>
+                {/* <View style={styles.cameraOutline} /> */}
+                <Image
+                  source={require('../src/assets/icons/gallery-plus.png')}
+                  style={styles.galleryPlus}
+                />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlButton} onPress={toggleGrid}>
+              <View style={styles.gridIcon}>
+                <View style={styles.gridSquare1} />
+                <View style={styles.gridSquare2} />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={toggleTimer}>
+              <Image
+                source={require('../src/assets/icons/clock.png')}
+                style={styles.clock}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={toggleFlash}>
+              <Text style={styles.flashIcon}>
+                {flashMode === 'off' ? (
+                  <Image
+                    source={require('../src/assets/icons/flash-off.png')}
+                    style={styles.flashIcon2}
+                  />
+                ) : flashMode === 'on' ? (
+                  <Image
+                    source={require('../src/assets/icons/flash-off.png')}
+                    style={styles.flashIcon3}
+                  />
+                ) : (
+                  <Image
+                    source={require('../src/assets/icons/flash-off.png')}
+                    style={styles.flashIcon4}
+                  />
+                )}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlButton} onPress={flipCamera}>
+              <Image
+                style={styles.cameraSwitchArrow}
+                source={require('../src/assets/icons/flip-camera.png')}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Shutter Button */}
+          <TouchableOpacity
+            style={[
+              styles.shutterButton,
+              isProcessing && styles.shutterButtonProcessing,
+            ]}
+            onPress={takePhoto}
+            disabled={!isCameraReady || isProcessing}>
+            <View style={styles.shutterInner} />
+            {isProcessing && (
+              <View style={styles.processingIndicator}>
+                <Text style={styles.processingText}>...</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Right Side - Selected Camera Icon */}
+        <TouchableOpacity
+          style={styles.selectedCameraContainer}
+          onPress={openFilterControl}>
+          {getSelectedCameraIcon() ? (
+            <Image
+              source={getSelectedCameraIcon()}
+              style={styles.selectedCameraIcon}
+            />
+          ) : (
+            <View style={styles.defaultCameraIcon}>
+              <View style={styles.cameraOutline} />
+              <View style={styles.infoBadge}>
+                <Text style={styles.infoText}>i</Text>
+              </View>
+            </View>
+          )}
+          <View
+            style={{
+              marginTop: 15,
+              width: 40,
+              borderRadius: 30,
+              height: 15,
+              zIndex: 10,
+              borderWidth: 1.5,
+              borderColor: 'gray',
+            }}>
+            <View style={styles.selectedIndicator} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
       {/* Selected Image Preview */}
-      {selectedImage && (
+      {/* {selectedImage && (
         <View style={styles.imagePreviewContainer}>
           <ImageFilter
             source={{uri: selectedImage}}
@@ -869,42 +1051,7 @@ const CameraComponent = ({navigation}) => {
             <Text style={styles.clearImageText}>✕</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {/* Camera Controls */}
-      <View style={styles.controlsContainer}>
-        {/* Gallery Button (Left) */}
-        <TouchableOpacity style={styles.sideButton} onPress={openGallery}>
-          <View style={styles.galleryIcon}>
-            <Text style={styles.buttonText}>📷</Text>
-          </View>
-          <Text style={styles.buttonLabel}>Gallery</Text>
-        </TouchableOpacity>
-
-        {/* Shutter Button (Center) */}
-        <TouchableOpacity
-          style={[
-            styles.shutterButton,
-            isProcessing && styles.shutterButtonProcessing,
-          ]}
-          onPress={takePicture}
-          disabled={!isCameraReady || isProcessing}>
-          <View style={styles.shutterInner} />
-          {isProcessing && (
-            <View style={styles.processingIndicator}>
-              <Text style={styles.processingText}>...</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Retro Camera Button (Right) */}
-        <TouchableOpacity style={styles.sideButton} onPress={openFilterControl}>
-          <View style={styles.retroIcon}>
-            <Text style={styles.buttonText}>🎞️</Text>
-          </View>
-          <Text style={styles.buttonLabel}>Retro</Text>
-        </TouchableOpacity>
-      </View>
+      )} */}
     </View>
   );
 };
@@ -914,8 +1061,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  galleryPlus: {
+    tintColor: '#fff',
+    width: 30,
+    height: 30,
+  },
+  cameraFrame: {
+    flex: 1,
+    margin: 30,
+    marginVertical: 200,
+    marginTop: 160,
+    borderRadius: 8,
+    overflow: 'hidden',
+    //borderWidth: 2,
+    //borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  cameraFrameInside: {
+    position: 'absolute',
+    top: 250,
+    left: 100,
+    right: 100,
+    bottom: 300,
+    borderWidth: 2,
+    zIndex: 10,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
   camera: {
     flex: 1,
+    transform: [{rotateY: '0deg'}], // Add rotate(Y) functionality
   },
   filterOverlay: {
     position: 'absolute',
@@ -923,12 +1096,387 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    pointerEvents: 'none', // Allow touches to pass through
+    pointerEvents: 'none',
     zIndex: 1,
+  },
+  gridOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    pointerEvents: 'none',
+    zIndex: 2,
+  },
+  gridVerticalLine1: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: '33.33%',
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  gridVerticalLine2: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: '66.66%',
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  gridHorizontalLine1: {
+    position: 'absolute',
+    top: '33.33%',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  gridHorizontalLine2: {
+    position: 'absolute',
+    top: '66.66%',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  topSection: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 10,
+  },
+  moreOptionsButton: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreOptionsDots: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 20,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#fff',
+  },
+  focalLengthContainer: {
+    position: 'absolute',
+    top: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  focalLengthText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  middleControlBar: {
+    position: 'absolute',
+    top: '71%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  controlItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 30,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  controlIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  tempIcon: {
+    fontSize: 14,
+    marginRight: 8,
+    color: '#FF3B30',
+  },
+  brightnessIcon: {
+    fontSize: 14,
+    marginRight: 8,
+    color: '#FF9500',
+  },
+  controlValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bottomControlBar: {
+    position: 'absolute',
+    bottom: 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 30,
+    zIndex: 10,
+  },
+  galleryPreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  galleryPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryIcon: {
+    fontSize: 24,
+    color: '#fff',
+  },
+  centerControls: {
+    alignItems: 'center',
+  },
+  topControls: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    marginLeft: -50,
+  },
+  controlButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    //backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 11,
+  },
+  controlButtonIcon: {
+    fontSize: 18,
+    color: '#fff',
+  },
+  cameraOutline: {
+    width: 20,
+    height: 16,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    borderRadius: 2,
+    position: 'relative',
+  },
+  timerIcon: {
+    fontSize: 18,
+    color: '#FF3B30',
+  },
+  flashIcon: {
+    fontSize: 18,
+    color: '#FF9500',
+  },
+  flashIcon2: {
+    width: 30,
+    marginTop: -6,
+    height: 30,
+    tintColor: '#fff',
+  },
+  flashIcon3: {
+    width: 30,
+    marginTop: -6,
+    height: 30,
+    tintColor: 'orange',
+  },
+  flashIcon4: {
+    width: 30,
+    marginTop: -6,
+    height: 30,
+    tintColor: 'yellow',
+  },
+  cameraSwitchArrow: {
+    width: 30,
+    height: 30,
+    tintColor: '#fff',
+    fontSize: 18,
+    color: '#fff',
+  },
+  galleryButtonIcon: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusIcon: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  cameraSwitchIcon: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchArrows: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowText: {
+    fontSize: 8,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  gridIcon: {
+    width: 20,
+    height: 20,
+    position: 'relative',
+  },
+  gridSquare1: {
+    position: 'absolute',
+    width: 17,
+    height: 17,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    borderRadius: 2,
+    top: -3,
+    left: 0,
+  },
+  gridSquare2: {
+    position: 'absolute',
+    width: 17,
+    height: 17,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    borderRadius: 2,
+    top: 4,
+    left: 6,
+  },
+  clock: {
+    width: 26,
+    height: 26,
+    tintColor: '#fff',
+  },
+  shutterButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#fff',
+    marginLeft: -50,
+    marginBottom: -15,
+  },
+  shutterButtonProcessing: {
+    backgroundColor: 'rgba(200, 200, 200, 0.3)',
+    borderColor: '#ccc',
+  },
+  processingIndicator: {
+    position: 'absolute',
+    top: -30,
+    alignItems: 'center',
+  },
+  processingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  shutterInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff',
+  },
+  selectedCameraContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    //backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    marginLeft: -50,
+    marginBottom: -17,
+    //shadowColor: '#8A2BE2',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  selectedCameraIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    resizeMode: 'contain',
+  },
+  defaultCameraIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  defaultCameraText: {
+    fontSize: 20,
+    color: '#fff',
+  },
+  infoBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: {
+    fontSize: 8,
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    bottom: 5,
+    left: '50%',
+    zIndex: 10,
+    marginLeft: -7.5,
+    width: 16,
+    height: 2,
+    backgroundColor: '#fff',
+    borderRadius: 1,
   },
   imagePreviewContainer: {
     position: 'absolute',
-    top: 50,
+    top: 100,
     right: 20,
     width: 80,
     height: 80,
@@ -955,114 +1503,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
-  },
-  filterPreviewOverlay: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 10,
-    borderRadius: 8,
-    zIndex: 10,
-  },
-  filterPreviewText: {
-    color: '#fff',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  filterPreviewSubtext: {
-    color: '#fff',
-    fontSize: 10,
-    textAlign: 'center',
-    opacity: 0.8,
-    marginTop: 2,
-  },
-  controlsContainer: {
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  sideButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  galleryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  retroIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  buttonText: {
-    fontSize: 24,
-  },
-  buttonLabel: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  shutterButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
-  },
-  shutterButtonProcessing: {
-    backgroundColor: 'rgba(200, 200, 200, 0.3)',
-    borderColor: '#ccc',
-  },
-  processingIndicator: {
-    position: 'absolute',
-    top: -30,
-    alignItems: 'center',
-  },
-  processingText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  shutterInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
-  },
-  cameraPlaceholder: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 80,
-    marginBottom: 20,
-  },
-  placeholderSubtext: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 5,
   },
   permissionContainer: {
     flex: 1,
