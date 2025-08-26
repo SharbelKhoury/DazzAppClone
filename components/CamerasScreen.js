@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
 } from 'react-native';
+import {filterConfigs} from '../utils/filterConfig';
 
 // Import camera icons
 const cameraIcons = {
@@ -82,8 +83,124 @@ const cameraIcons = {
 };
 
 const CamerasScreen = ({navigation}) => {
-  const [selectedCameras, setSelectedCameras] = useState(new Set());
+  // Initial selection state based on requirements
+  const getInitialSelectionState = () => {
+    const initialSelected = new Set();
+
+    // DIGITAL: all selected
+    const digitalCameras = [
+      'original',
+      'grdr',
+      'ccdr',
+      'collage',
+      'puli',
+      'fxnr',
+    ];
+    digitalCameras.forEach(id => initialSelected.add(id));
+
+    // VIDEO: all but Glow V FunS and Slide P selected
+    const videoCameras = [
+      'vclassic',
+      'originalv',
+      'dam',
+      '16mm',
+      '8mm',
+      'vhs',
+      'kino',
+      'instss',
+      'dcr',
+    ];
+    videoCameras.forEach(id => initialSelected.add(id));
+
+    // VINTAGE 135: all but last 2 and DQS and FQS R selected
+    const vintage135Cameras = [
+      'dclassic',
+      'grf',
+      'ct2f',
+      'dexp',
+      'nt16',
+      'd3d',
+      '135ne',
+      'dfuns',
+      'ir',
+      'classicu',
+      'golf',
+      'cpm35',
+      '135sr',
+      'dhalf',
+      'dslide',
+    ];
+    vintage135Cameras.forEach(id => initialSelected.add(id));
+
+    // VINTAGE 120: all selected
+    const vintage120Cameras = ['sclassic', 'hoga', 's67', 'kv88'];
+    vintage120Cameras.forEach(id => initialSelected.add(id));
+
+    // INST COLLECTION: all but Inst SQ selected
+    const instCollectionCameras = ['instc', 'instsqc', 'pafr'];
+    instCollectionCameras.forEach(id => initialSelected.add(id));
+
+    // Select all accessories by default (they will be available in FilterControl)
+    const accessories = [
+      'ndfilter',
+      'fisheyef',
+      'fisheyew',
+      'prism',
+      'flashc',
+      'star',
+    ];
+    accessories.forEach(id => initialSelected.add(id));
+
+    return initialSelected;
+  };
+
+  // Get saved selection state or initial state
+  const getSavedOrInitialState = () => {
+    // Check if user has already made changes (saved in global state)
+    if (global.userCameraSelections) {
+      return new Set(global.userCameraSelections);
+    }
+
+    // If no saved state, use initial state and mark as first time
+    const initialState = getInitialSelectionState();
+    global.userCameraSelections = Array.from(initialState);
+    global.isFirstTimeUser = true;
+
+    return initialState;
+  };
+
+  const [selectedCameras, setSelectedCameras] = useState(
+    getSavedOrInitialState,
+  );
   const [openModalId, setOpenModalId] = useState(null);
+
+  // Update global functions and save state whenever selectedCameras changes
+  useEffect(() => {
+    global.getCameraDataForFilterControl = getCameraDataForFilterControl;
+    global.updateCameraSelection = cameraId => {
+      toggleCameraSelection(cameraId);
+    };
+
+    // Save current selection state globally
+    global.userCameraSelections = Array.from(selectedCameras);
+
+    // Note: global.activeFilters is managed by FilterControl, not CamerasScreen
+    // CamerasScreen only manages which accessories are selected/available
+  }, [selectedCameras]);
+
+  // Listen for filter changes and force re-render
+  useEffect(() => {
+    const checkFilters = () => {
+      // Force re-render when filters change
+      if (global.activeFilters) {
+        // This will trigger a re-render
+        setSelectedCameras(new Set(selectedCameras));
+      }
+    };
+
+    const interval = setInterval(checkFilters, 100);
+    return () => clearInterval(interval);
+  }, [selectedCameras]);
   const openCameraInfoModal = cameraId => {
     setOpenModalId(cameraId);
   };
@@ -495,8 +612,47 @@ const CamerasScreen = ({navigation}) => {
     } else {
       newSelected.add(cameraId);
     }
+
+    // Save the new selection state globally
+    global.userCameraSelections = Array.from(newSelected);
+    global.isFirstTimeUser = false; // Mark that user has made changes
+
     setSelectedCameras(newSelected);
   };
+
+  // Export camera data and selection state for FilterControl
+  const getCameraDataForFilterControl = () => {
+    return {
+      cameraCategories,
+      selectedCameras: Array.from(selectedCameras),
+      cameraIcons,
+    };
+  };
+
+  // Make the function available globally for FilterControl to access
+  if (global.getCameraDataForFilterControl === undefined) {
+    global.getCameraDataForFilterControl = getCameraDataForFilterControl;
+  }
+
+  // Make the update function available globally for FilterControl to access
+  if (global.updateCameraSelection === undefined) {
+    global.updateCameraSelection = cameraId => {
+      toggleCameraSelection(cameraId);
+    };
+  }
+
+  // Function to reset to initial state (for debugging or reset functionality)
+  const resetToInitialState = () => {
+    const initialState = getInitialSelectionState();
+    setSelectedCameras(initialState);
+    global.userCameraSelections = Array.from(initialState);
+    global.isFirstTimeUser = true;
+  };
+
+  // Make reset function available globally
+  if (global.resetCameraSelections === undefined) {
+    global.resetCameraSelections = resetToInitialState;
+  }
 
   const renderCameraItem = ({item, category}) => {
     const isSelected = selectedCameras.has(item.id);
@@ -559,9 +715,21 @@ const CamerasScreen = ({navigation}) => {
   };
 
   const renderCategory = ({item}) => {
+    const activeFilters = global.activeFilters || [];
+
     return (
       <View style={styles.categoryContainer}>
         <Text style={styles.categoryTitle}>{item.title}</Text>
+
+        {/* Show active filters indicator for ACCESSORY section */}
+        {/* {item.title === 'ACCESSORY' && activeFilters.length > 0 && (
+          <View style={styles.activeFiltersIndicator}>
+            <Text style={styles.activeFiltersText}>
+              Active Filters:{' '}
+              {activeFilters.map(id => filterConfigs[id]?.name).join(', ')}
+            </Text>
+          </View>
+        )} */}
 
         <View
           style={[
@@ -851,6 +1019,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     paddingHorizontal: 20,
+  },
+  activeFiltersIndicator: {
+    backgroundColor: 'rgba(0, 122, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  activeFiltersText: {
+    color: '#007AFF',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   cameraGrid: {
     flexDirection: 'row',

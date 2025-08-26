@@ -10,15 +10,28 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-camera-roll/camera-roll": "^7.10.2",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.7",
+    "@shopify/react-native-skia": "^2.2.4",
+    "buffer": "^6.0.3",
+    "gl-react": "^5.2.0",
+    "gl-react-dom": "^5.2.1",
+    "gl-react-native": "^5.2.1",
     "react": "18.2.0",
     "react-native": "0.74.0",
     "react-native-gesture-handler": "2.21.0",
+    "react-native-gl": "^0.0.0",
+    "react-native-gl-image-filters": "^0.5.0",
+    "react-native-image-crop-picker": "^0.51.0",
+    "react-native-image-filter-kit": "^0.8.0",
+    "react-native-image-manipulator": "1.0.6",
     "react-native-image-picker": "7.1.2",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-safe-area-context": "5.1.0",
     "react-native-screens": "4.5.0",
+    "react-native-unimodules": "^0.14.10",
+    "react-native-view-shot": "^4.0.3",
     "react-native-vision-camera": "4.4.0"
   },
   "devDependencies": {
