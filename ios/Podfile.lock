@@ -987,7 +987,7 @@ PODS:
     - Yoga
   - react-native-safe-area-context (5.1.0):
     - React-Core
-  - react-native-skia (2.2.4):
+  - react-native-skia (0.1.234):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1632,7 +1632,7 @@ SPEC CHECKSUMS:
   react-native-image-manipulator: 31643abf3d76d9a9c88f061ad8cee64337f3322f
   react-native-image-picker: 6f7695f6e5aa43dc6275cbb3198cfa066a2f5be4
   react-native-safe-area-context: e134b241010ebe2aacdcea013565963d13826faa
-  react-native-skia: 77e0adb8804d0b0038086addd73ddf42bb540eba
+  react-native-skia: 4590cfb3970dd03d8494677a2c2b684bad2ef9ad
   react-native-view-shot: d1a99d3a2b59689c7b6c0f88a249b2a7125bdd2f
   React-nativeconfig: 951ec32f632e81cbd7d40aebb3211313251c092e
   React-NativeModulesApple: c8963908368d05a75af1eef7451ff86efc9b6517

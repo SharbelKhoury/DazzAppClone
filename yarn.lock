@@ -2191,13 +2191,13 @@
     mkdirp "^1.0.4"
     rimraf "^3.0.2"
 
-"@shopify/react-native-skia@^2.2.4":
-  version "2.2.4"
-  resolved "https://registry.yarnpkg.com/@shopify/react-native-skia/-/react-native-skia-2.2.4.tgz#2a504e5d35f94454ceffe14ac746325827349d34"
-  integrity sha512-A8ZR8/jA8pak4fJnTq/DDlGuVRUyoqN41W629o8F5ADorjP2i9VmM6z32BHWMciSckTPdBHWGqF0Thl4BVTpXw==
+"@shopify/react-native-skia@0.1.234":
+  version "0.1.234"
+  resolved "https://registry.yarnpkg.com/@shopify/react-native-skia/-/react-native-skia-0.1.234.tgz#cf3d43935a2f5c9fd5186017e285194897cf0fe7"
+  integrity sha512-PfXXqpjyjQkdgOcy3MU6KqJdu2O9yfh4cZ8Sg/mFNP2kgkO4BUhIi3tXfXZAdS06JxvT25/A1LOdvuQuEPg7xw==
   dependencies:
-    canvaskit-wasm "0.40.0"
-    react-reconciler "0.31.0"
+    canvaskit-wasm "0.39.1"
+    react-reconciler "^0.27.0"
 
 "@sideway/address@^4.1.5":
   version "4.1.5"
@@ -3087,10 +3087,10 @@ caniuse-lite@^1.0.30001735:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001735.tgz#ba658fd3fd24a4106fd68d5ce472a2c251494dbe"
   integrity sha512-EV/laoX7Wq2J9TQlyIXRxTJqIw4sxfXS4OYgudGxBYRuTv0q7AM6yMEpU/Vo1I94thg9U6EZ2NfZx9GJq83u7w==
 
-canvaskit-wasm@0.40.0:
-  version "0.40.0"
-  resolved "https://registry.yarnpkg.com/canvaskit-wasm/-/canvaskit-wasm-0.40.0.tgz#61a77657259fddfc0025ad1c3f57ac8d4d5850ff"
-  integrity sha512-Od2o+ZmoEw9PBdN/yCGvzfu0WVqlufBPEWNG452wY7E9aT8RBE+ChpZF526doOlg7zumO4iCS+RAeht4P0Gbpw==
+canvaskit-wasm@0.39.1:
+  version "0.39.1"
+  resolved "https://registry.yarnpkg.com/canvaskit-wasm/-/canvaskit-wasm-0.39.1.tgz#c3c8f3962cbabbedf246f7bcf90e859013c7eae9"
+  integrity sha512-Gy3lCmhUdKq+8bvDrs9t8+qf7RvcjuQn+we7vTVVyqgOVO1UVfHpsnBxkTZw+R4ApEJ3D5fKySl9TU11hmjl/A==
   dependencies:
     "@webgpu/types" "0.1.21"
 
@@ -6698,12 +6698,13 @@ react-native@0.74.0:
     ws "^6.2.2"
     yargs "^17.6.2"
 
-react-reconciler@0.31.0:
-  version "0.31.0"
-  resolved "https://registry.yarnpkg.com/react-reconciler/-/react-reconciler-0.31.0.tgz#6b7390fe8fab59210daf523d7400943973de1458"
-  integrity sha512-7Ob7Z+URmesIsIVRjnLoDGwBEG/tVitidU0nMsqX/eeJaLY89RISO/10ERe0MqmzuKUUB1rmY+h1itMbUHg9BQ==
+react-reconciler@^0.27.0:
+  version "0.27.0"
+  resolved "https://registry.yarnpkg.com/react-reconciler/-/react-reconciler-0.27.0.tgz#360124fdf2d76447c7491ee5f0e04503ed9acf5b"
+  integrity sha512-HmMDKciQjYmBRGuuhIaKA1ba/7a+UsM5FzOZsMO2JYHt9Jh8reCb7j1eDC95NOyUlKM9KRyvdx0flBuDvYSBoA==
   dependencies:
-    scheduler "^0.25.0"
+    loose-envify "^1.1.0"
+    scheduler "^0.21.0"
 
 react-refresh@^0.14.0:
   version "0.14.2"
@@ -7016,17 +7017,19 @@ scheduler@0.24.0-canary-efb381bbf-20230505:
   dependencies:
     loose-envify "^1.1.0"
 
+scheduler@^0.21.0:
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.21.0.tgz#6fd2532ff5a6d877b6edb12f00d8ab7e8f308820"
+  integrity sha512-1r87x5fz9MXqswA2ERLo0EbOAU74DpIUO090gIasYTqlVoJeMcl+Z1Rg7WHz+qtPujhS/hGIt9kxZOYBV3faRQ==
+  dependencies:
+    loose-envify "^1.1.0"
+
 scheduler@^0.23.0:
   version "0.23.2"
   resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.23.2.tgz#414ba64a3b282892e944cf2108ecc078d115cdc3"
   integrity sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==
   dependencies:
     loose-envify "^1.1.0"
-
-scheduler@^0.25.0:
-  version "0.25.0"
-  resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.25.0.tgz#336cd9768e8cceebf52d3c80e3dcf5de23e7e015"
-  integrity sha512-xFVuu11jh+xcO7JOAGJNOXld8/TcEHK/4CituBUeUb5hqxJLj9YuemAEuvm9gQ/+pgXYfbQuqAkiYu+u7YEsNA==
 
 selfsigned@^2.4.1:
   version "2.4.1"

@@ -40,15 +40,75 @@ import ViewShot from 'react-native-view-shot';
 
 // Import ImageManipulator
 import {ImageManipulator} from 'react-native-image-manipulator';
+import {Canvas, ColorMatrix} from '@shopify/react-native-skia';
+
+// Skia Filter Component for live camera overlay
+const SkiaFilterOverlay = ({activeFilters}) => {
+  try {
+    if (!activeFilters || activeFilters.length === 0) return null;
+
+    const filterId = activeFilters[0];
+    const skiaConfig = skiaFilterEffects[filterId];
+
+    if (!skiaConfig || !skiaConfig.effects) return null;
+
+    const {
+      brightness = 0,
+      contrast = 1,
+      saturation = 1,
+      hue = 0,
+      gamma = 1,
+    } = skiaConfig.effects;
+
+    // Create color matrix for the filter effects
+    const colorMatrix = [
+      // Red channel
+      contrast,
+      0,
+      0,
+      0,
+      brightness,
+      // Green channel
+      0,
+      contrast,
+      0,
+      0,
+      brightness,
+      // Blue channel
+      0,
+      0,
+      contrast,
+      0,
+      brightness,
+      // Alpha channel
+      0,
+      0,
+      0,
+      1,
+      0,
+    ];
+
+    return <ColorMatrix matrix={colorMatrix} />;
+  } catch (error) {
+    console.log('Skia filter error:', error);
+    return null;
+  }
+};
 
 const CameraComponent = ({navigation}) => {
+  const focalLengthArray = [13, 26, 35, 50];
   const {hasPermission, requestPermission} = useCameraPermission();
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
+  const [focalLength, setFocalLength] = useState(focalLengthArray[1]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPhotoEnabled, setIsPhotoEnabled] = useState(false);
   const [isAppInBackground, setIsAppInBackground] = useState(false);
+  const [hideControls, setHideControls] = useState(false);
+  const [tempActive, setTempActive] = useState(false);
+  const [viewControlActive, setViewControlActive] = useState(false);
+  const [modalActive, setModalActive] = useState(false);
   // Camera position state - using the simpler approach like your friend
   const [cameraPosition, setCameraPosition] = useState('front');
   const [flashMode, setFlashMode] = useState('off');
@@ -838,6 +898,8 @@ const CameraComponent = ({navigation}) => {
             device={device}
             isActive={isCameraReady && !!device && !isAppInBackground}
             photo={isPhotoEnabled}
+            //video={true}
+            //audio={true}
             onInitialized={() => {
               // console.log('Camera initialized successfully');
               // Don't set ready immediately, let the useEffect handle it
@@ -890,9 +952,13 @@ const CameraComponent = ({navigation}) => {
         )}
       </View>
 
-      {/* Live Filter Overlay */}
-      {activeFilters.length > 0 && (
-        <View style={[styles.filterOverlay, getFilterOverlayStyle()]} />
+      {/* Skia Filter Overlay */}
+      {activeFilters.length > 0 && !isAppInBackground && (
+        <View style={styles.skiaFilterOverlay}>
+          <Canvas style={StyleSheet.absoluteFill}>
+            <SkiaFilterOverlay activeFilters={activeFilters} />
+          </Canvas>
+        </View>
       )}
 
       {/* Grid Overlay - Inside Camera Frame */}
@@ -908,16 +974,42 @@ const CameraComponent = ({navigation}) => {
       )}
 
       {/* Top Section */}
-      <View style={styles.topSection}>
-        {/* More Options Button */}
-        <TouchableOpacity style={styles.moreOptionsButton}>
-          <View style={styles.moreOptionsDots}>
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-          </View>
-        </TouchableOpacity>
-      </View>
+      {!isAppInBackground && (
+        <View style={styles.topSection}>
+          {/* More Options Button */}
+          <TouchableOpacity
+            style={styles.moreOptionsButton}
+            onPress={() => setModalActive(!modalActive)}>
+            <View style={styles.moreOptionsDots}>
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+      {modalActive && !isAppInBackground && (
+        <View style={styles.modalContainer}>
+          <TouchableOpacity style={styles.modalContent}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>
+              Assistive grid
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.modalContent}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>Level</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.modalContent}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>Save Location</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.modalContent}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>Zoom Mode</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalContent, {borderBottomColor: 'transparent'}]}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>Settings</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Focal Length Indicator */}
       {/* <View style={styles.focalLengthContainer}>
@@ -925,31 +1017,106 @@ const CameraComponent = ({navigation}) => {
       </View> */}
 
       {/* Middle Control Bar */}
-      <View style={styles.middleControlBar}>
-        <TouchableOpacity
-          style={[
-            styles.controlItem,
-            {
-              backgroundColor: 'rgb(255, 255, 255)',
-              width: 37,
-              height: 37,
-              alignContent: 'center',
-              justifyContent: 'center',
-              borderRadius: 50,
-            },
-          ]}>
-          {/* <Text style={styles.tempIcon}>🌡️</Text> */}
-          <Image
-            source={require('../src/assets/icons/temp.png')}
-            style={styles.tempIcon}
-          />
-          {/*  <Text style={styles.controlValue}>35</Text> */}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.controlItem}>
-          {/* <Text style={styles.brightnessIcon}>☀️</Text> */}
-          <Text style={styles.controlValue}>26</Text>
-        </TouchableOpacity>
-      </View>
+      {!isAppInBackground && (
+        <View style={styles.middleControlBar}>
+          {!tempActive && (
+            <TouchableOpacity
+              style={[
+                styles.controlItem,
+                {
+                  backgroundColor: 'rgb(255, 255, 255)',
+                  width: 37,
+                  height: 37,
+                  alignContent: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 50,
+                },
+              ]}
+              onPress={() => {
+                // If viewControlActive is active, switch to tempActive
+                if (viewControlActive) {
+                  setViewControlActive(!viewControlActive);
+                  setTempActive(!tempActive);
+                  setHideControls(!hideControls);
+                } else {
+                  // Toggle tempActive normally
+                  setTempActive(!tempActive);
+                  setHideControls(!hideControls);
+                }
+              }}>
+              {/* <Text style={styles.tempIcon}>🌡️</Text> */}
+              <Image
+                source={require('../src/assets/icons/temp.png')}
+                style={styles.tempIcon}
+              />
+              {/*  <Text style={styles.controlValue}>35</Text> */}
+            </TouchableOpacity>
+          )}
+          {tempActive && (
+            <TouchableOpacity
+              style={{
+                marginRight: 20,
+                marginLeft: 15,
+                justifyContent: 'center',
+                alignContent: 'center',
+              }}
+              onPress={() => {
+                // Close tempActive and show controls
+                setTempActive(!tempActive);
+                setHideControls(!hideControls);
+              }}>
+              <Image
+                source={require('../src/assets/icons/arrow-down.png')}
+                style={{width: 14, height: 14, tintColor: '#fff'}}
+              />
+            </TouchableOpacity>
+          )}
+          {!viewControlActive && (
+            <TouchableOpacity
+              style={[
+                styles.controlItem,
+                {
+                  justifyContent: 'center',
+                  alignContent: 'center',
+                },
+              ]}
+              onPress={() => {
+                // If tempActive is active, switch to viewControlActive
+                if (tempActive) {
+                  setTempActive(!tempActive);
+                  setViewControlActive(!viewControlActive);
+                  setHideControls(!hideControls);
+                } else {
+                  // Toggle viewControlActive normally
+                  setViewControlActive(!viewControlActive);
+                  setHideControls(!hideControls);
+                }
+              }}>
+              {/* <Text style={styles.brightnessIcon}>☀️</Text> */}
+              <Text style={styles.controlValue}>{focalLength}</Text>
+            </TouchableOpacity>
+          )}
+          {viewControlActive && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 20,
+                marginRight: 15,
+                justifyContent: 'center',
+                alignContent: 'center',
+              }}
+              onPress={() => {
+                // Close viewControlActive and show controls
+                setViewControlActive(!viewControlActive);
+                setHideControls(!hideControls);
+              }}>
+              <Image
+                source={require('../src/assets/icons/arrow-down.png')}
+                style={{width: 14, height: 14, tintColor: '#fff'}}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Bottom Control Bar */}
       <View style={styles.bottomControlBar}>
@@ -970,61 +1137,273 @@ const CameraComponent = ({navigation}) => {
         {/* Center Controls */}
         <View style={styles.centerControls}>
           {/* Top Row Controls */}
-          <View style={styles.topControls}>
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={openGallery}>
-              <View style={styles.galleryButtonIcon}>
-                {/* <View style={styles.cameraOutline} /> */}
+          {!hideControls && !tempActive && !viewControlActive && (
+            <View style={styles.topControls}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={openGallery}>
+                <View style={styles.galleryButtonIcon}>
+                  {/* <View style={styles.cameraOutline} /> */}
+                  <Image
+                    source={require('../src/assets/icons/gallery-plus.png')}
+                    style={styles.galleryPlus}
+                  />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={toggleGrid}>
+                <View style={styles.gridIcon}>
+                  <View style={styles.gridSquare1} />
+                  <View style={styles.gridSquare2} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={toggleTimer}>
                 <Image
-                  source={require('../src/assets/icons/gallery-plus.png')}
-                  style={styles.galleryPlus}
+                  source={require('../src/assets/icons/clock.png')}
+                  style={styles.clock}
                 />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={toggleFlash}>
+                <Text style={styles.flashIcon}>
+                  {flashMode === 'off' ? (
+                    <Image
+                      source={require('../src/assets/icons/flash-off.png')}
+                      style={styles.flashIcon2}
+                    />
+                  ) : flashMode === 'on' ? (
+                    <Image
+                      source={require('../src/assets/icons/flash-off.png')}
+                      style={styles.flashIcon3}
+                    />
+                  ) : (
+                    <Image
+                      source={require('../src/assets/icons/flash-off.png')}
+                      style={styles.flashIcon4}
+                    />
+                  )}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={flipCamera}>
+                <Image
+                  style={styles.cameraSwitchArrow}
+                  source={require('../src/assets/icons/flip-camera.png')}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+          {tempActive && (
+            <View style={styles.viewControlActive}>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#fff',
+                  width: 144,
+                  height: 54,
+                  borderRadius: 8,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 18,
+                }}>
+                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600'}}>
+                  13
+                </Text>
               </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.controlButton} onPress={toggleGrid}>
-              <View style={styles.gridIcon}>
-                <View style={styles.gridSquare1} />
-                <View style={styles.gridSquare2} />
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={toggleTimer}>
-              <Image
-                source={require('../src/assets/icons/clock.png')}
-                style={styles.clock}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={toggleFlash}>
-              <Text style={styles.flashIcon}>
-                {flashMode === 'off' ? (
-                  <Image
-                    source={require('../src/assets/icons/flash-off.png')}
-                    style={styles.flashIcon2}
-                  />
-                ) : flashMode === 'on' ? (
-                  <Image
-                    source={require('../src/assets/icons/flash-off.png')}
-                    style={styles.flashIcon3}
-                  />
-                ) : (
-                  <Image
-                    source={require('../src/assets/icons/flash-off.png')}
-                    style={styles.flashIcon4}
-                  />
-                )}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.controlButton} onPress={flipCamera}>
-              <Image
-                style={styles.cameraSwitchArrow}
-                source={require('../src/assets/icons/flip-camera.png')}
-              />
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#fff',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 14,
+                  backgroundColor: '#fff',
+                }}>
+                <Text
+                  style={{
+                    color: 'rgb(0, 0, 0)',
+                    fontSize: 17,
+                    fontWeight: '600',
+                  }}>
+                  A
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#fff',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 14,
+                }}>
+                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600'}}>
+                  26
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#fff',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 14,
+                }}>
+                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600'}}>
+                  35
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {viewControlActive && (
+            <View style={styles.viewControlActive}>
+              <TouchableOpacity
+                style={[
+                  focalLength == focalLengthArray[0]
+                    ? {
+                        backgroundColor: '#fff',
+                        color: 'rgb(0,0,0)',
+                        borderWidth: 1,
+                        borderColor: '#fff',
+                        width: 34,
+                        height: 34,
+                        borderRadius: 50,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 14,
+                      }
+                    : {
+                        borderWidth: 1,
+                        borderColor: '#fff',
+                        width: 34,
+                        height: 34,
+                        borderRadius: 50,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 14,
+                      },
+                ]}
+                onPress={() => {
+                  setFocalLength(focalLengthArray[0]);
+                  setHideControls(!hideControls);
+                  setViewControlActive(!viewControlActive);
+                }}>
+                <Text
+                  style={
+                    focalLength == focalLengthArray[0]
+                      ? {color: 'rgb(0,0,0)', fontSize: 14, fontWeight: 600}
+                      : {color: '#fff', fontSize: 14, fontWeight: '600'}
+                  }>
+                  13
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  focalLength == focalLengthArray[1] && {
+                    backgroundColor: '#fff',
+                    color: 'rgb(0,0,0)',
+                  },
+                  {
+                    borderWidth: 1,
+                    borderColor: '#fff',
+                    width: 34,
+                    height: 34,
+                    borderRadius: 50,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 14,
+                  },
+                ]}
+                onPress={() => {
+                  setFocalLength(focalLengthArray[1]);
+                  setHideControls(!hideControls);
+                  setViewControlActive(!viewControlActive);
+                }}>
+                <Text
+                  style={
+                    focalLength == focalLengthArray[1]
+                      ? {color: 'rgb(0,0,0)', fontSize: 14, fontWeight: 600}
+                      : {color: '#fff', fontSize: 14, fontWeight: '600'}
+                  }>
+                  26
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  focalLength == focalLengthArray[2] && {
+                    backgroundColor: '#fff',
+                    color: 'rgb(0,0,0)',
+                  },
+                  {
+                    borderWidth: 1,
+                    borderColor: '#fff',
+                    width: 34,
+                    height: 34,
+                    borderRadius: 50,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 14,
+                  },
+                ]}
+                onPress={() => {
+                  setFocalLength(focalLengthArray[2]);
+                  setHideControls(!hideControls);
+                  setViewControlActive(!viewControlActive);
+                }}>
+                <Text
+                  style={
+                    focalLength == focalLengthArray[2]
+                      ? {color: 'rgb(0,0,0)', fontSize: 14, fontWeight: 600}
+                      : {color: '#fff', fontSize: 14, fontWeight: '600'}
+                  }>
+                  35
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  focalLength == focalLengthArray[3] && {
+                    backgroundColor: '#fff',
+                    color: 'rgb(0,0,0)',
+                  },
+                  {
+                    borderWidth: 1,
+                    borderColor: '#fff',
+                    width: 34,
+                    height: 34,
+                    borderRadius: 50,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  },
+                ]}
+                onPress={() => {
+                  setFocalLength(focalLengthArray[3]);
+                  setHideControls(!hideControls);
+                  setViewControlActive(!viewControlActive);
+                }}>
+                <Text
+                  style={
+                    focalLength == focalLengthArray[3]
+                      ? {color: 'rgb(0,0,0)', fontSize: 14, fontWeight: 600}
+                      : {color: '#fff', fontSize: 14, fontWeight: '600'}
+                  }>
+                  50
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Shutter Button */}
           <TouchableOpacity
@@ -1062,7 +1441,7 @@ const CameraComponent = ({navigation}) => {
           )}
           <View
             style={{
-              marginTop: 15,
+              marginBottom: -15,
               width: 40,
               borderRadius: 30,
               height: 15,
@@ -1106,7 +1485,7 @@ const styles = StyleSheet.create({
   },
   cameraFrame: {
     flex: 1,
-    margin: 30,
+    marginHorizontal: 15,
     marginVertical: 230,
     marginTop: 160,
     borderRadius: 8,
@@ -1128,21 +1507,50 @@ const styles = StyleSheet.create({
     flex: 1,
     transform: [{rotateY: '0deg'}], // Add rotate(Y) functionality
   },
+  modalContainer: {
+    paddingTop: 0,
+
+    position: 'absolute',
+    top: 210,
+    right: 40,
+    backgroundColor: 'rgba(230, 230, 230, 0.74)',
+    zIndex: 10,
+    width: 260,
+    height: 260,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  modalContent: {
+    height: 50,
+    width: '100%',
+    borderBottomWidth: 0.7,
+    borderBottomColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  skiaFilterOverlay: {
+    position: 'absolute',
+    top: 160,
+    left: 15,
+    right: 15,
+    bottom: 230,
+    pointerEvents: 'none',
+    zIndex: 1,
+  },
   filterOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 160,
+    left: 15,
+    right: 15,
+    bottom: 230,
     pointerEvents: 'none',
     zIndex: 1,
   },
   gridOverlay: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    bottom: 20,
+    top: 160,
+    left: 15,
+    right: 15,
+    bottom: 230,
     pointerEvents: 'none',
     zIndex: 2,
   },
@@ -1178,10 +1586,18 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
+  viewControlActive: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 30,
+    marginLeft: -50,
+  },
   topSection: {
     position: 'absolute',
     top: 170,
-    right: 50,
+    right: 30,
     zIndex: 10,
   },
   moreOptionsButton: {
@@ -1276,6 +1692,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 30,
     zIndex: 10,
+    marginBottom: 20,
   },
   galleryPreview: {
     width: 60,
@@ -1334,7 +1751,7 @@ const styles = StyleSheet.create({
   },
   flashIcon: {
     fontSize: 18,
-    color: '#FF9500',
+    color: 'rgb(255, 85, 0)',
   },
   flashIcon2: {
     width: 30,
@@ -1346,7 +1763,7 @@ const styles = StyleSheet.create({
     width: 30,
     marginTop: -6,
     height: 30,
-    tintColor: 'orange',
+    tintColor: 'rgb(255, 85, 0)',
   },
   flashIcon4: {
     width: 30,
@@ -1480,6 +1897,7 @@ const styles = StyleSheet.create({
   selectedCameraIcon: {
     width: 60,
     height: 60,
+    marginBottom: 29,
     borderRadius: 6,
     resizeMode: 'contain',
   },
