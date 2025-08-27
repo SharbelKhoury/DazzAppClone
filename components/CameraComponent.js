@@ -7,6 +7,7 @@ import {
   Alert,
   Image,
   StatusBar,
+  AppState,
 } from 'react-native';
 
 import {
@@ -46,6 +47,8 @@ const CameraComponent = ({navigation}) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPhotoEnabled, setIsPhotoEnabled] = useState(false);
+  const [isAppInBackground, setIsAppInBackground] = useState(false);
   // Camera position state - using the simpler approach like your friend
   const [cameraPosition, setCameraPosition] = useState('front');
   const [flashMode, setFlashMode] = useState('off');
@@ -129,6 +132,14 @@ const CameraComponent = ({navigation}) => {
     };
   }, [cameraPosition]);
 
+  // Cleanup effect for app state changes
+  useEffect(() => {
+    return () => {
+      // Ensure camera is disabled when component unmounts
+      setIsAppInBackground(true);
+    };
+  }, []);
+
   // Add camera initialization safety
   useEffect(() => {
     // Only initialize camera after permission is granted
@@ -209,6 +220,32 @@ const CameraComponent = ({navigation}) => {
         setActiveFilters([global.selectedCameraId]);
       }
     }
+  }, []);
+
+  // AppState listener to handle background/foreground transitions
+  useEffect(() => {
+    const handleAppStateChange = nextAppState => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // App is going to background or becoming inactive
+        setIsAppInBackground(true);
+        console.log('App going to background - disabling camera');
+      } else if (nextAppState === 'active') {
+        // App is coming back to foreground - add small delay for smooth transition
+        setTimeout(() => {
+          setIsAppInBackground(false);
+          console.log('App coming to foreground - re-enabling camera');
+        }, 300);
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
+
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   // Listen for filter and camera selection changes
@@ -565,6 +602,12 @@ const CameraComponent = ({navigation}) => {
       setIsProcessing(true);
       console.log('Starting photo capture...');
 
+      // Enable photo capture just before taking the photo
+      setIsPhotoEnabled(true);
+
+      // Delay to ensure photo capture is enabled
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       const photo = await cameraRef.current.takePhoto({
         qualityPrioritization: 'quality',
         flash: flashMode,
@@ -606,6 +649,8 @@ const CameraComponent = ({navigation}) => {
       Alert.alert('Error', `Failed to take photo: ${error.message}`);
     } finally {
       setIsProcessing(false);
+      // Disable photo capture after taking the photo
+      setIsPhotoEnabled(false);
     }
   };
 
@@ -651,35 +696,6 @@ const CameraComponent = ({navigation}) => {
       });
     }, 100);
     setIsCameraReady(true);
-  };
-
-  const takePhoto = async () => {
-    if (!cameraRef.current || !isCameraReady) {
-      console.log('Camera not ready for photo capture');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      const photo = await cameraRef.current.takePhoto({
-        flash: flashMode,
-        qualityPrioritization: 'balanced',
-      });
-
-      console.log('Photo captured:', photo.path);
-
-      // Save to camera roll
-      await CameraRoll.save(`file://${photo.path}`, {
-        type: 'photo',
-        album: 'DazzAppClone',
-      });
-
-      console.log('Photo saved to camera roll');
-    } catch (error) {
-      console.error('Error taking photo:', error);
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   const toggleFlash = () => {
@@ -811,17 +827,17 @@ const CameraComponent = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <View style={styles.cameraFrameInside} />
+      {!isAppInBackground && <View style={styles.cameraFrameInside} />}
       {/* Camera View with Frame */}
       <View style={styles.cameraFrame}>
-        {device ? (
+        {device && !isAppInBackground ? (
           <Camera
             key={`${device.id}-${cameraPosition}-${Date.now()}`}
             ref={cameraRef}
             style={styles.camera}
             device={device}
-            isActive={isCameraReady && !!device}
-            photo={true}
+            isActive={isCameraReady && !!device && !isAppInBackground}
+            photo={isPhotoEnabled}
             onInitialized={() => {
               // console.log('Camera initialized successfully');
               // Don't set ready immediately, let the useEffect handle it
@@ -860,9 +876,16 @@ const CameraComponent = ({navigation}) => {
                 alignItems: 'center',
               },
             ]}>
-            <Text style={{color: '#fff', fontSize: 16}}>
-              Camera not available
-            </Text>
+            <Image
+              source={require('../src/assets/icons/logo.png')}
+              style={{
+                width: 100,
+                height: 100,
+                marginTop: -70,
+                borderRadius: 50,
+                resizeMode: 'contain',
+              }}
+            />
           </View>
         )}
       </View>
@@ -897,20 +920,35 @@ const CameraComponent = ({navigation}) => {
       </View>
 
       {/* Focal Length Indicator */}
-      <View style={styles.focalLengthContainer}>
+      {/* <View style={styles.focalLengthContainer}>
         <Text style={styles.focalLengthText}>35mm</Text>
-      </View>
+      </View> */}
 
       {/* Middle Control Bar */}
       <View style={styles.middleControlBar}>
-        <View style={styles.controlItem}>
-          <Text style={styles.tempIcon}>🌡️</Text>
-          <Text style={styles.controlValue}>35</Text>
-        </View>
-        <View style={styles.controlItem}>
-          <Text style={styles.brightnessIcon}>☀️</Text>
-          <Text style={styles.controlValue}>0</Text>
-        </View>
+        <TouchableOpacity
+          style={[
+            styles.controlItem,
+            {
+              backgroundColor: 'rgb(255, 255, 255)',
+              width: 37,
+              height: 37,
+              alignContent: 'center',
+              justifyContent: 'center',
+              borderRadius: 50,
+            },
+          ]}>
+          {/* <Text style={styles.tempIcon}>🌡️</Text> */}
+          <Image
+            source={require('../src/assets/icons/temp.png')}
+            style={styles.tempIcon}
+          />
+          {/*  <Text style={styles.controlValue}>35</Text> */}
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.controlItem}>
+          {/* <Text style={styles.brightnessIcon}>☀️</Text> */}
+          <Text style={styles.controlValue}>26</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Bottom Control Bar */}
@@ -994,7 +1032,7 @@ const CameraComponent = ({navigation}) => {
               styles.shutterButton,
               isProcessing && styles.shutterButtonProcessing,
             ]}
-            onPress={takePhoto}
+            onPress={takePicture}
             disabled={!isCameraReady || isProcessing}>
             <View style={styles.shutterInner} />
             {isProcessing && (
@@ -1069,7 +1107,7 @@ const styles = StyleSheet.create({
   cameraFrame: {
     flex: 1,
     margin: 30,
-    marginVertical: 200,
+    marginVertical: 230,
     marginTop: 160,
     borderRadius: 8,
     overflow: 'hidden',
@@ -1142,8 +1180,8 @@ const styles = StyleSheet.create({
   },
   topSection: {
     position: 'absolute',
-    top: 60,
-    right: 20,
+    top: 170,
+    right: 50,
     zIndex: 10,
   },
   moreOptionsButton: {
@@ -1155,11 +1193,11 @@ const styles = StyleSheet.create({
   moreOptionsDots: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 20,
+    width: 13,
   },
   dot: {
-    width: 4,
-    height: 4,
+    width: 2.5,
+    height: 2.5,
     borderRadius: 2,
     backgroundColor: '#fff',
   },
@@ -1182,7 +1220,7 @@ const styles = StyleSheet.create({
   },
   middleControlBar: {
     position: 'absolute',
-    top: '71%',
+    top: '67%',
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -1193,20 +1231,30 @@ const styles = StyleSheet.create({
   controlItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
+    marginHorizontal: 6,
+    backgroundColor: 'rgb(0, 0, 0)',
+    width: 37,
+    height: 37,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   controlIcon: {
     fontSize: 14,
     marginRight: 8,
   },
-  tempIcon: {
+  /*  tempIcon: {
     fontSize: 14,
     marginRight: 8,
     color: '#FF3B30',
+  }, */
+  tempIcon: {
+    width: 20,
+    height: 20,
+    //marginRight: 8,
+    tintColor: 'black',
   },
   brightnessIcon: {
     fontSize: 14,

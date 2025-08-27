@@ -750,9 +750,9 @@ const FilterControl = ({navigation}) => {
               style={styles.liitIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuIcon} onPress={forceSetGRF}>
+          {/* <TouchableOpacity style={styles.menuIcon} onPress={forceSetGRF}>
             <Text style={styles.menuIconText}>⚫</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
