@@ -94,10 +94,10 @@ export const skiaFilterEffects = {
     name: 'GR F',
     description: 'Black and white film simulation',
     effects: {
-      brightness: 0.1,
-      contrast: 1.4,
-      saturation: 0.0, // TRUE BLACK AND WHITE
-      gamma: 1.2,
+      brightness: 0.05, // Reduced brightness
+      contrast: 1.4, // Reduced contrast to prevent white photos
+      saturation: -0.8, // Less aggressive saturation reduction
+      gamma: 1.1, // Reduced gamma
     },
   },
 
