@@ -201,6 +201,18 @@ const SafeCanvas = ({children, style}) => {
 
 // Safe Skia Filter Component with multiple fallbacks
 const SkiaFilterOverlay = ({activeFilters}) => {
+  console.log('🎨 SkiaFilterOverlay called with filters:', activeFilters);
+
+  // Multiple safety checks
+  if (
+    !activeFilters ||
+    !Array.isArray(activeFilters) ||
+    activeFilters.length === 0
+  ) {
+    console.log('🎨 SkiaFilterOverlay: No active filters');
+    return null;
+  }
+
   // Multiple safety checks
   if (
     !activeFilters ||
@@ -312,15 +324,41 @@ const SkiaFilterOverlay = ({activeFilters}) => {
         1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0,
       ];
 
-      // For GR F filter, use a simple desaturation matrix
+      // For GR F filter, use pure black and white matrix (front camera only)
       if (filterId === 'grf') {
-        const desaturationMatrix = [
-          0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
-          0.114, 0, 0, 0, 0, 0, 1, 0,
-        ];
-        return <ColorMatrix matrix={desaturationMatrix} />;
-      }
+        console.log(
+          '🎨 Skia: Applying pure black and white matrix for front camera',
+        );
 
+        // Pure black and white matrix - converts all colors to grayscale
+        const pureBlackAndWhiteMatrix = [
+          0.299,
+          0.587,
+          0.114,
+          0,
+          0, // Red channel - pure luminance
+          0.299,
+          0.587,
+          0.114,
+          0,
+          0, // Green channel - pure luminance
+          0.299,
+          0.587,
+          0.114,
+          0,
+          0, // Blue channel - pure luminance
+          0,
+          0,
+          0,
+          1,
+          0, // Alpha channel - unchanged
+        ];
+
+        console.log(
+          '🎨 Skia: Pure black and white matrix applied successfully',
+        );
+        return <ColorMatrix matrix={pureBlackAndWhiteMatrix} />;
+      }
       return <ColorMatrix matrix={identityMatrix} />;
     } else {
       console.log('No ColorMatrix component available');
@@ -1002,11 +1040,24 @@ const CameraComponent = ({navigation}) => {
       // Delay to ensure photo capture is enabled
       await new Promise(resolve => setTimeout(resolve, 200));
 
+      console.log('🎯 Taking photo with camera position:', cameraPosition);
+
+      // Add extra delay for front camera to prevent AVFoundation errors
+      if (cameraPosition === 'front') {
+        console.log('🎯 Front camera detected, adding extra delay...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
       const photo = await cameraRef.current.takePhoto({
         qualityPrioritization: 'quality',
         flash: flashMode,
       });
 
+      console.log(
+        '🎯 Photo captured successfully for',
+        cameraPosition,
+        'camera',
+      );
       console.log('Photo captured:', photo.path);
 
       // Apply filters to captured photo and save to gallery
@@ -1031,6 +1082,21 @@ const CameraComponent = ({navigation}) => {
           Alert.alert('Photo Saved!', message);
         } else {
           Alert.alert('Photo Saved!', 'Photo captured and saved to gallery!');
+        }
+
+        // Special handling for front camera - reinitialize if needed
+        if (cameraPosition === 'front') {
+          console.log(
+            '🎯 Front camera photo completed, checking camera state...',
+          );
+          // Add a small delay to let the camera stabilize
+          setTimeout(() => {
+            if (!isCameraReady) {
+              console.log('🎯 Front camera not ready, reinitializing...');
+              setIsCameraReady(false);
+              setTimeout(() => setIsCameraReady(true), 500);
+            }
+          }, 1000);
         }
       } else {
         Alert.alert(
@@ -1226,7 +1292,9 @@ const CameraComponent = ({navigation}) => {
       <View style={styles.cameraFrame}>
         {device && !isAppInBackground ? (
           <Camera
-            key={`${device.id}-${cameraPosition}-${Date.now()}`}
+            key={`${device.id}-${cameraPosition}-${
+              isCameraReady ? 'ready' : 'not-ready'
+            }`}
             ref={cameraRef}
             style={styles.camera}
             device={device}
@@ -1239,27 +1307,63 @@ const CameraComponent = ({navigation}) => {
               // Don't set ready immediately, let the useEffect handle it
             }}
             onError={error => {
-              // console.error('Camera error:', error);
-              // console.error('Error details:', {
-              //   message: error.message,
-              //   code: error.code,
-              //   domain: error.domain,
-              //   userInfo: error.userInfo,
-              // });
+              console.error(
+                'Camera error for',
+                cameraPosition,
+                'camera:',
+                error,
+              );
               setIsCameraReady(false);
+
+              // Special handling for front camera errors
+              if (cameraPosition === 'front') {
+                console.log(
+                  '🎯 Front camera error detected, attempting recovery...',
+                );
+                // Try to reinitialize the front camera with faster recovery
+                setTimeout(() => {
+                  console.log('🎯 Reinitializing front camera...');
+                  setIsCameraReady(false);
+                  // Force a complete camera reset
+                  setTimeout(() => {
+                    console.log('🎯 Front camera reset complete');
+                    setIsCameraReady(true);
+                  }, 300);
+                }, 500);
+              }
 
               // If it's an AVFoundation error, try switching to a different device
               if (
                 error.code === -11800 ||
                 error.domain === 'AVFoundationErrorDomain'
               ) {
-                // console.log(
-                //   'AVFoundation error detected, this device might be problematic',
-                // );
+                console.log(
+                  'AVFoundation error detected for',
+                  cameraPosition,
+                  'camera',
+                );
+
+                // Special handling for AVFoundation errors on front camera
+                if (cameraPosition === 'front') {
+                  console.log(
+                    '🎯 AVFoundation error on front camera, forcing reset...',
+                  );
+                  // Force a more aggressive reset for AVFoundation errors
+                  setIsCameraReady(false);
+                  // Force a complete camera reset with longer delay
+                  setTimeout(() => {
+                    console.log('🎯 Front camera AVFoundation reset...');
+                    setIsCameraReady(true);
+                  }, 1000);
+                }
               }
 
               // Log the error but don't prevent future attempts
-              // console.log('Camera error occurred, but allowing retry');
+              console.log(
+                'Camera error occurred for',
+                cameraPosition,
+                'camera, but allowing retry',
+              );
             }}
           />
         ) : (
@@ -1287,16 +1391,40 @@ const CameraComponent = ({navigation}) => {
       </View>
 
       {/* Safe Skia Filter Overlay with Multiple Fallbacks */}
+      {/* Safe Skia Filter Overlay with Multiple Fallbacks */}
       {activeFilters.length > 0 && !isAppInBackground && skiaWorking && (
-        <View style={styles.skiaFilterOverlay}>
+        <View style={[styles.skiaFilterOverlay, {zIndex: 999}]}>
           <Canvas style={StyleSheet.absoluteFill}>
-            <SkiaFilterOverlay activeFilters={activeFilters} />
+            <SkiaFilterOverlay
+              key={`skia-${cameraPosition}-${activeFilters[0]}`}
+              activeFilters={activeFilters}
+            />
           </Canvas>
+          {__DEV__ && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                backgroundColor: 'rgba(0,255,0,0.7)',
+                padding: 5,
+                borderRadius: 5,
+              }}>
+              <Text style={{color: 'white', fontSize: 8}}>
+                Skia: {activeFilters[0]} | Camera: {cameraPosition}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
-      {/* Fallback CSS Overlay - Always available as backup */}
-      {activeFilters.length > 0 && (
+      {/* Fallback CSS Overlay - Only when Skia is not available */}
+      {activeFilters.length > 0 && !skiaWorking && (
+        <View style={[styles.filterOverlay, getFilterOverlayStyle()]} />
+      )}
+
+      {/* Fallback CSS Overlay - Only when Skia is not available */}
+      {activeFilters.length > 0 && !skiaWorking && (
         <View style={[styles.filterOverlay, getFilterOverlayStyle()]} />
       )}
 
