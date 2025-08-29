@@ -348,55 +348,55 @@ export const getOpenGLFilterOverlay = filterId => {
   // Apply different overlay effects based on filter type
   switch (filterId) {
     case 'grdr':
-      overlayStyle.backgroundColor = 'rgba(0, 0, 0, 0.2)'; // Dark overlay
+      overlayStyle.backgroundColor = 'rgba(0, 0, 0, 0.4)'; // Strong dark overlay
       break;
     case 'ccdr':
-      overlayStyle.backgroundColor = 'rgba(255, 200, 200, 0.1)'; // Warm tint
+      overlayStyle.backgroundColor = 'rgba(255, 200, 200, 0.3)'; // Strong warm tint
       break;
     case 'collage':
-      overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.1)'; // Bright overlay
+      overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // Bright overlay
       break;
     case 'puli':
-      overlayStyle.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // Dark cinematic
+      overlayStyle.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // Strong dark cinematic
       break;
     case 'fxnr':
-      overlayStyle.backgroundColor = 'rgba(128, 128, 128, 0.1)'; // Grain effect
+      overlayStyle.backgroundColor = 'rgba(128, 128, 128, 0.3)'; // Grain effect
       break;
     case 'dclassic':
-      overlayStyle.backgroundColor = 'rgba(255, 200, 150, 0.15)'; // Vintage warm
+      overlayStyle.backgroundColor = 'rgba(255, 200, 150, 0.4)'; // Strong vintage warm
       break;
     case 'grf':
-      overlayStyle.backgroundColor = 'rgba(128, 128, 128, 0.3)'; // Black and white overlay
+      overlayStyle.backgroundColor = 'rgba(128, 128, 128, 0.6)'; // Strong black and white overlay
       break;
     case 'ct2f':
-      overlayStyle.backgroundColor = 'rgba(255, 180, 150, 0.2)'; // Warm vintage
+      overlayStyle.backgroundColor = 'rgba(255, 180, 150, 0.4)'; // Strong warm vintage
       break;
     case 'dexp':
-      overlayStyle.backgroundColor = 'rgba(255, 255, 200, 0.15)'; // Expired film
+      overlayStyle.backgroundColor = 'rgba(255, 255, 200, 0.3)'; // Expired film
       break;
     case 'nt16':
-      overlayStyle.backgroundColor = 'rgba(0, 0, 0, 0.2)'; // Neutral dark
+      overlayStyle.backgroundColor = 'rgba(0, 0, 0, 0.4)'; // Strong neutral dark
       break;
     case 'd3d':
-      overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.1)'; // 3D effect
+      overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // 3D effect
       break;
     case '135ne':
-      overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.05)'; // Natural
+      overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.1)'; // Natural
       break;
     case 'dfuns':
-      overlayStyle.backgroundColor = 'rgba(255, 200, 200, 0.2)'; // Fun saturated
+      overlayStyle.backgroundColor = 'rgba(255, 200, 200, 0.4)'; // Strong fun saturated
       break;
     case 'ir':
-      overlayStyle.backgroundColor = 'rgba(0, 255, 255, 0.1)'; // Infrared
+      overlayStyle.backgroundColor = 'rgba(0, 255, 255, 0.3)'; // Infrared
       break;
     case 'classicu':
-      overlayStyle.backgroundColor = 'rgba(255, 200, 150, 0.2)'; // Ultra classic
+      overlayStyle.backgroundColor = 'rgba(255, 200, 150, 0.4)'; // Strong ultra classic
       break;
     case 'golf':
-      overlayStyle.backgroundColor = 'rgba(200, 255, 200, 0.1)'; // Green tint
+      overlayStyle.backgroundColor = 'rgba(200, 255, 200, 0.3)'; // Green tint
       break;
     case 'cpm35':
-      overlayStyle.backgroundColor = 'rgba(255, 200, 150, 0.15)'; // 35mm film
+      overlayStyle.backgroundColor = 'rgba(255, 200, 150, 0.3)'; // 35mm film
       break;
     case '135sr':
       overlayStyle.backgroundColor = 'rgba(255, 255, 255, 0.1)'; // Super res

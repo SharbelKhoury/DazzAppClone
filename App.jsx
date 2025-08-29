@@ -7,6 +7,8 @@ import CameraComponent from './components/CameraComponent';
 import FilterControl from './components/FilterControl';
 import CamerasScreen from './components/CamerasScreen';
 import GalleryItemPreview from './components/GalleryItemPreview';
+import Settings from './components/Settings';
+import AppGallery from './components/AppGallery';
 
 const Stack = createStackNavigator();
 
@@ -21,6 +23,8 @@ const App = () => {
         <Stack.Screen name="Camera" component={CameraComponent} />
         <Stack.Screen name="FilterControl" component={FilterControl} />
         <Stack.Screen name="CamerasScreen" component={CamerasScreen} />
+        <Stack.Screen name="Settings" component={Settings} />
+        <Stack.Screen name="AppGallery" component={AppGallery} />
         <Stack.Screen
           name="GalleryItemPreview"
           component={GalleryItemPreview}

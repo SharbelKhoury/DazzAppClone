@@ -1,4 +1,5 @@
 PODS:
+  - Bolts/Tasks (1.9.0)
   - boost (1.83.0)
   - BVLinearGradient (2.8.3):
     - React-Core
@@ -962,6 +963,11 @@ PODS:
     - React-Core
   - react-native-deepar (0.11.0):
     - React-Core
+  - react-native-image-filter-kit (0.8.0):
+    - Bolts/Tasks (= 1.9.0)
+    - React
+  - react-native-image-manipulator (1.0.6):
+    - React
   - react-native-image-picker (7.1.2):
     - DoubleConversion
     - glog
@@ -1417,6 +1423,8 @@ DEPENDENCIES:
   - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
   - react-native-color-matrix-image-filters (from `../node_modules/react-native-color-matrix-image-filters`)
   - react-native-deepar (from `../node_modules/react-native-deepar`)
+  - react-native-image-filter-kit (from `../node_modules/react-native-image-filter-kit`)
+  - react-native-image-manipulator (from `../node_modules/react-native-image-manipulator`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../node_modules/@shopify/react-native-skia`)"
@@ -1454,6 +1462,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - Bolts
     - SocketRocket
     - TOCropViewController
 
@@ -1527,6 +1536,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-color-matrix-image-filters"
   react-native-deepar:
     :path: "../node_modules/react-native-deepar"
+  react-native-image-filter-kit:
+    :path: "../node_modules/react-native-image-filter-kit"
+  react-native-image-manipulator:
+    :path: "../node_modules/react-native-image-manipulator"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
   react-native-safe-area-context:
@@ -1597,6 +1610,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  Bolts: ac6567323eac61e203f6a9763667d0f711be34c8
   boost: d3f49c53809116a5d38da093a8aa78bf551aed09
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: 76ab83afb40bddeeee456813d9c04f67f78771b5
@@ -1631,6 +1645,8 @@ SPEC CHECKSUMS:
   react-native-cameraroll: 4c2db43b6f248a7bab38e809ca190e6e491b874e
   react-native-color-matrix-image-filters: c87e5fd9de35250e1edebd49ba9a4501bf5eef7a
   react-native-deepar: e1523ad3120212985a149eb0b16492a222f94ec2
+  react-native-image-filter-kit: 1871556126f9aa134ea2b7ee0fe899a74ef6666c
+  react-native-image-manipulator: 31643abf3d76d9a9c88f061ad8cee64337f3322f
   react-native-image-picker: 6f7695f6e5aa43dc6275cbb3198cfa066a2f5be4
   react-native-safe-area-context: e134b241010ebe2aacdcea013565963d13826faa
   react-native-skia: 4b9b729a5280ca399f86d108b0e73ee7bb770574

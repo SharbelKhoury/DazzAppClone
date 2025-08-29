@@ -27,8 +27,8 @@
     "react-native-gl": "^0.0.0",
     "react-native-gl-image-filters": "^0.5.0",
     "react-native-image-crop-picker": "^0.51.0",
-
-
+    "react-native-image-filter-kit": "^0.8.0",
+    "react-native-image-manipulator": "^1.0.6",
     "react-native-image-picker": "7.1.2",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-reanimated": "3.6.1",

@@ -19,144 +19,38 @@ import {
 } from 'react-native-vision-camera';
 import {launchImageLibrary} from 'react-native-image-picker';
 // ImageFilterKit removed - using Skia and OpenGL effects only
-import {filterConfigs} from '../utils/filterConfig';
 import {ColorMatrixImageFilter} from 'react-native-color-matrix-image-filters';
-import {
-  simpleFilterConfigs,
-  getSimpleFilterOverlay,
-  createSimpleFilteredImage,
-} from '../utils/simpleImageProcessor';
 import {
   openglFilterEffects,
   getOpenGLFilterOverlay,
   createOpenGLFilteredImage,
 } from '../utils/openglFilterEffects';
-import {
-  skiaFilterEffects,
-  getSkiaFilterOverlay,
-  SkiaFilteredImage,
-  createSkiaColorMatrix,
-} from '../utils/skiaFilterEffects';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 
-// Import Skia components properly
-import {
-  Canvas,
-  ColorMatrix,
-  Image as SkiaImage,
-  Paint,
-  useImage,
-  useValue,
-  Fill,
-  Skia,
-} from '@shopify/react-native-skia';
+// ImageManipulator removed - using OpenGL effects only
 
-// ImageManipulator removed - using Skia and OpenGL effects only
+// ImageCropPicker removed - using OpenGL effects only
 
-// ImageCropPicker removed - using Skia and OpenGL effects only
+// ImageFilterKit removed - using OpenGL effects only
 
-// ImageFilterKit removed - using Skia and OpenGL effects only
-
-// Safe Canvas Wrapper Component
-const SafeCanvas = ({children, style}) => {
-  try {
-    if (Canvas) {
-      return <Canvas style={style}>{children}</Canvas>;
-    } else {
-      console.log('No Canvas component available');
-      return null;
-    }
-  } catch (error) {
-    console.log('Canvas error:', error);
-    return null;
-  }
-};
-
-// Skia Filter Overlay Component for Live Preview
-const SkiaFilterOverlay = ({activeFilters, cameraPosition}) => {
-  console.log('🎨 SkiaFilterOverlay: Component called with:', {
+// OpenGL Filter Overlay Component for Live Preview
+const OpenGLFilterOverlay = ({activeFilters, cameraPosition}) => {
+  console.log('🎨 OpenGLFilterOverlay: Component called with:', {
     activeFilters,
     cameraPosition,
   });
-  console.log('🎨 SkiaFilterOverlay: Canvas available:', !!Canvas);
-  console.log('🎨 SkiaFilterOverlay: Fill available:', !!Fill);
 
-  if (!Canvas || !Fill || activeFilters.length === 0) {
-    console.log(
-      '🎨 SkiaFilterOverlay: Returning null - missing components or no filters',
-    );
+  if (activeFilters.length === 0) {
+    console.log('🎨 OpenGLFilterOverlay: No active filters');
     return null;
   }
 
   const filterId = activeFilters[0];
+  const overlayStyle = getOpenGLFilterOverlay(filterId);
 
-  // Test different Skia effects based on filter
-  const getSkiaEffect = () => {
-    switch (filterId) {
-      case 'grf':
-        // Black and white using saturation blend
-        return (
-          <>
-            <Fill color="rgba(128, 128, 128, 0.4)" blendMode="saturation" />
-            <Fill color="rgba(0, 0, 0, 0.1)" blendMode="multiply" />
-          </>
-        );
+  console.log('🎨 OpenGLFilterOverlay: Using overlay style:', overlayStyle);
 
-      case 'grdr':
-        // High contrast B&W
-        return (
-          <>
-            <Fill color="rgba(128, 128, 128, 0.6)" blendMode="saturation" />
-            <Fill color="rgba(0, 0, 0, 0.2)" blendMode="multiply" />
-          </>
-        );
-
-      case 'ccdr':
-        // Color correction - warm tone
-        return (
-          <>
-            <Fill color="rgba(255, 200, 150, 0.2)" blendMode="overlay" />
-            <Fill color="rgba(255, 255, 255, 0.1)" blendMode="screen" />
-          </>
-        );
-
-      case 'collage':
-        // Vibrant colors
-        return (
-          <>
-            <Fill color="rgba(255, 100, 100, 0.2)" blendMode="screen" />
-            <Fill color="rgba(100, 100, 255, 0.2)" blendMode="screen" />
-          </>
-        );
-
-      case 'puli':
-        // Moody cinematic
-        return (
-          <>
-            <Fill color="rgba(0, 0, 0, 0.3)" blendMode="multiply" />
-            <Fill color="rgba(100, 50, 150, 0.2)" blendMode="overlay" />
-          </>
-        );
-
-      default:
-        // Default effect
-        return <Fill color="rgba(128, 128, 128, 0.3)" blendMode="saturation" />;
-    }
-  };
-
-  return (
-    <SafeCanvas
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1,
-      }}>
-      {getSkiaEffect()}
-    </SafeCanvas>
-  );
+  return <View style={overlayStyle} pointerEvents="none" />;
 };
 
 const CameraComponent = ({navigation}) => {
@@ -173,11 +67,15 @@ const CameraComponent = ({navigation}) => {
   const [tempActive, setTempActive] = useState(false);
   const [viewControlActive, setViewControlActive] = useState(false);
   const [modalActive, setModalActive] = useState(false);
-  const [skiaWorking, setSkiaWorking] = useState(false);
+  // const [openGLWorking, setOpenGLWorking] = useState(true); // Commented for future use
+
   // Camera position state - using the simpler approach like your friend
   const [cameraPosition, setCameraPosition] = useState('front');
   const [flashMode, setFlashMode] = useState('off');
   const [showGrid, setShowGrid] = useState(false);
+  const [level, setLevel] = useState(false);
+  const [zoomMode, setZoomMode] = useState(false);
+  const [locationMode, setLocationMode] = useState(false);
   const [timerMode, setTimerMode] = useState('off');
   const [latestMedia, setLatestMedia] = useState(null);
   const cameraRef = useRef(null); // Ref for Camera component
@@ -185,47 +83,42 @@ const CameraComponent = ({navigation}) => {
 
   const devices = useCameraDevices();
 
-  // Test if Skia is working
-  const testSkia = () => {
+  // Test if OpenGL is working - Commented for future use
+  /*
+  const testOpenGL = () => {
     try {
-      console.log('🧪 Testing Skia components...');
-      console.log('Canvas available:', Canvas ? 'YES' : 'NO');
-      console.log('ColorMatrix available:', ColorMatrix ? 'YES' : 'NO');
-      console.log('SkiaImage available:', SkiaImage ? 'YES' : 'NO');
-      console.log('Paint available:', Paint ? 'YES' : 'NO');
-      console.log('Fill available:', Fill ? 'YES' : 'NO');
-      console.log('Skia available:', Skia ? 'YES' : 'NO');
+      console.log('🧪 Testing OpenGL components...');
+      console.log(
+        'OpenGL filter effects available:',
+        openglFilterEffects ? 'YES' : 'NO',
+      );
+      console.log(
+        'OpenGL overlay function available:',
+        getOpenGLFilterOverlay ? 'YES' : 'NO',
+      );
 
       // Test if essential components are available
-      const canvasAvailable = Canvas;
-      const colorMatrixAvailable = ColorMatrix;
-      const fillAvailable = Fill;
-      const skiaAvailable = Skia;
+      const effectsAvailable = openglFilterEffects;
+      const overlayAvailable = getOpenGLFilterOverlay;
 
-      if (
-        canvasAvailable &&
-        colorMatrixAvailable &&
-        fillAvailable &&
-        skiaAvailable
-      ) {
-        console.log('✅ All essential Skia components available');
-        setSkiaWorking(true);
+      if (effectsAvailable && overlayAvailable) {
+        console.log('✅ All essential OpenGL components available');
+        setOpenGLWorking(true);
         return true;
       } else {
-        console.log('❌ Some Skia components missing');
-        console.log('Canvas available:', canvasAvailable);
-        console.log('ColorMatrix available:', colorMatrixAvailable);
-        console.log('Fill available:', fillAvailable);
-        console.log('Skia available:', skiaAvailable);
-        setSkiaWorking(false);
+        console.log('❌ Some OpenGL components missing');
+        console.log('Effects available:', effectsAvailable);
+        console.log('Overlay available:', overlayAvailable);
+        setOpenGLWorking(false);
         return false;
       }
     } catch (error) {
-      console.log('❌ Skia test failed:', error);
-      setSkiaWorking(false);
+      console.log('❌ OpenGL test failed:', error);
+      setOpenGLWorking(false);
       return false;
     }
   };
+  */
 
   // Manual device selection function that was working for front camera
   const getDevice = () => {
@@ -481,10 +374,12 @@ const CameraComponent = ({navigation}) => {
   // Load latest media on component mount
   useEffect(() => {
     fetchLatestMedia();
-    // Test Skia on mount
+    // Test OpenGL on mount - Commented for future use
+    /*
     setTimeout(() => {
-      testSkia();
+      testOpenGL();
     }, 1000);
+    */
   }, []);
 
   // Function to get combined filter effects for ImageFilter
@@ -499,45 +394,15 @@ const CameraComponent = ({navigation}) => {
         try {
           console.log('Processing filter ID:', filterId);
 
-          // Check if it's a 2nd row camera (Skia effects)
-          const skiaConfig = skiaFilterEffects[filterId];
-          if (skiaConfig && skiaConfig.effects) {
-            console.log('Using Skia filter config:', skiaConfig);
-            // Convert Skia effects to ImageFilter format
-            const {brightness, contrast, saturation, hue, gamma} =
-              skiaConfig.effects;
-
-            if (brightness !== undefined) {
-              allEffects.push({name: 'Brightness', value: brightness});
-            }
-            if (contrast !== undefined) {
-              allEffects.push({name: 'Contrast', value: contrast});
-            }
-            if (saturation !== undefined) {
-              allEffects.push({name: 'Saturation', value: saturation});
-            }
-            if (hue !== undefined) {
-              allEffects.push({name: 'Hue', value: hue});
-            }
+          // Check if it's OpenGL effects
+          const openglConfig = openglFilterEffects[filterId];
+          if (openglConfig && openglConfig.filters) {
+            console.log('Using OpenGL filter config:', openglConfig);
+            openglConfig.filters.forEach(filter => {
+              allEffects.push(filter);
+            });
           } else {
-            // Check if it's OpenGL effects (fallback)
-            const openglConfig = openglFilterEffects[filterId];
-            if (openglConfig && openglConfig.filters) {
-              console.log('Using OpenGL filter config:', openglConfig);
-              openglConfig.filters.forEach(filter => {
-                allEffects.push(filter);
-              });
-            } else {
-              // Fallback to simple configs (for accessories)
-              const config = simpleFilterConfigs[filterId];
-              console.log('Using simple filter config:', config);
-
-              if (config && config.filters) {
-                config.filters.forEach(filter => {
-                  allEffects.push(filter);
-                });
-              }
-            }
+            console.log('No OpenGL config found for filter ID:', filterId);
           }
         } catch (error) {
           console.log('Error processing filter ID:', filterId, error);
@@ -560,14 +425,7 @@ const CameraComponent = ({navigation}) => {
       const filterId = activeFilters[0]; // Only one filter active at a time
       console.log('Getting overlay for filter ID:', filterId);
 
-      // Check if it's a 2nd row camera (Skia effects)
-      if (skiaFilterEffects[filterId]) {
-        console.log('Using Skia overlay for:', filterId);
-        // Return empty object so Skia Canvas will be used instead
-        return {};
-      }
-
-      // Check if it's OpenGL effects (fallback)
+      // Check if it's OpenGL effects
       const openglOverlay = getOpenGLFilterOverlay(filterId);
       console.log('OpenGL overlay result:', openglOverlay);
 
@@ -576,68 +434,204 @@ const CameraComponent = ({navigation}) => {
         return openglOverlay;
       }
 
-      // Fallback to simple filter overlay style (for accessories)
-      console.log('Using simple overlay for:', filterId);
-      return getSimpleFilterOverlay(filterId);
+      // Fallback to empty object
+      console.log('No overlay found for:', filterId);
+      return {};
     } catch (error) {
       console.log('Error getting filter overlay style:', error);
       return {};
     }
   };
 
-  // Function to apply filter effects to photo using color matrix
-  const applyFilterToPhoto = async (photoUri, filterId) => {
+  // Function to apply OpenGL filter effects to photo using multiple approaches
+  const applyOpenGLFilterToPhoto = async (photoUri, filterId) => {
     try {
-      console.log('🎨 Applying filter to photo:', filterId);
+      console.log('🎨 Applying OpenGL filter to photo:', filterId);
 
-      // Get the color matrix for the filter
-      const getColorMatrix = () => {
-        switch (filterId) {
-          case 'grf':
-            // Black and white matrix
-            return [
-              0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299,
-              0.587, 0.114, 0, 0, 0, 0, 0, 1, 0,
-            ];
-          case 'grdr':
-            // High contrast black and white
-            return [
-              0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299,
-              0.587, 0.114, 0, 0, 0, 0, 0, 1, 0,
-            ];
-          case 'ccdr':
-            // Warm tone matrix
-            return [
-              1.1, 0.1, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 0.9, 0, 0, 0, 0, 0, 1,
-              0,
-            ];
-          case 'collage':
-            // Vibrant colors
-            return [
-              1.2, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 1.2, 0, 0, 0, 0, 0, 1, 0,
-            ];
-          case 'puli':
-            // Moody cinematic
-            return [
-              0.8, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 1, 0,
-            ];
-          default:
-            return null;
-        }
-      };
-
-      const colorMatrix = getColorMatrix();
-      if (!colorMatrix) {
-        console.log('🎨 No color matrix for filter:', filterId);
+      const filterConfig = openglFilterEffects[filterId];
+      if (!filterConfig) {
+        console.log('🎨 No OpenGL filter config for:', filterId);
         return photoUri;
       }
 
-      // For now, return the original photo
-      // The ColorMatrixImageFilter would need to be used in a different way
-      console.log('🎨 Color matrix calculated for filter:', filterId);
-      return photoUri;
+      console.log('🎨 OpenGL filter config:', filterConfig);
+
+      // Create color matrix based on filter effects
+      const createColorMatrix = () => {
+        let brightness = 0;
+        let contrast = 1;
+        let saturation = 1;
+        let hue = 0;
+        let gamma = 1;
+
+        // Extract values from filter config
+        filterConfig.filters.forEach(filter => {
+          if (filter.name === 'Brightness') brightness = filter.value;
+          if (filter.name === 'Contrast') contrast = filter.value;
+          if (filter.name === 'Saturation') saturation = filter.value;
+          if (filter.name === 'Hue') hue = filter.value;
+          if (filter.name === 'Gamma') gamma = filter.value;
+        });
+
+        // Special handling for GR F (black and white)
+        if (filterId === 'grf') {
+          return [
+            0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+            0.114, 0, 0, 0, 0, 0, 1, 0,
+          ];
+        }
+
+        // Create advanced color matrix based on effects
+        const brightnessOffset = brightness * 255;
+        const contrastMatrix = [
+          contrast,
+          0,
+          0,
+          0,
+          brightnessOffset,
+          0,
+          contrast,
+          0,
+          0,
+          brightnessOffset,
+          0,
+          0,
+          contrast,
+          0,
+          brightnessOffset,
+          0,
+          0,
+          0,
+          1,
+          0,
+        ];
+
+        // Apply saturation
+        if (saturation !== 1) {
+          const r = 0.213;
+          const g = 0.715;
+          const b = 0.072;
+          const satMatrix = [
+            (1 - saturation) * r + saturation,
+            (1 - saturation) * r,
+            (1 - saturation) * r,
+            0,
+            0,
+            (1 - saturation) * g,
+            (1 - saturation) * g + saturation,
+            (1 - saturation) * g,
+            0,
+            0,
+            (1 - saturation) * b,
+            (1 - saturation) * b,
+            (1 - saturation) * b + saturation,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+          ];
+          return satMatrix;
+        }
+
+        return contrastMatrix;
+      };
+
+      const colorMatrix = createColorMatrix();
+      console.log('🎨 Color matrix created:', colorMatrix);
+
+      // Use working image processing approach
+      try {
+        const RNFS = require('react-native-fs');
+
+        console.log('🎨 Processing image with working approach...');
+
+        // Apply filter directly to the whole photo without cropping
+        if (filterId === 'grf') {
+          try {
+            // For GR F filter, create a grayscale effect using ColorMatrixImageFilter
+            const outputPath = `${
+              RNFS.TemporaryDirectoryPath
+            }/grf_filtered_${Date.now()}.jpg`;
+
+            console.log('🎨 Applying GR F black & white filter directly...');
+
+            // Create grayscale color matrix for GR F filter
+            const grayscaleMatrix = [
+              0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299,
+              0.587, 0.114, 0, 0, 0, 0, 0, 1, 0,
+            ];
+
+            if (
+              ColorMatrixImageFilter &&
+              typeof ColorMatrixImageFilter.processImage === 'function'
+            ) {
+              await ColorMatrixImageFilter.processImage(
+                photoUri,
+                outputPath,
+                grayscaleMatrix,
+              );
+              console.log(
+                '✅ GR F filter applied successfully to:',
+                outputPath,
+              );
+              return outputPath;
+            } else {
+              console.log(
+                '❌ ColorMatrixImageFilter not available for GR F filter',
+              );
+              return photoUri;
+            }
+          } catch (grfError) {
+            console.error('❌ GR F filter processing failed:', grfError);
+            console.log('🎨 Using original photo for GR F filter');
+            return photoUri;
+          }
+        } else {
+          // For other filters, try ColorMatrixImageFilter with proper error handling
+          try {
+            const outputPath = `${
+              RNFS.TemporaryDirectoryPath
+            }/filtered_${Date.now()}.jpg`;
+
+            console.log('🎨 Processing with ColorMatrixImageFilter...');
+
+            // Check if ColorMatrixImageFilter is properly imported
+            if (
+              ColorMatrixImageFilter &&
+              typeof ColorMatrixImageFilter.processImage === 'function'
+            ) {
+              await ColorMatrixImageFilter.processImage(
+                photoUri,
+                outputPath,
+                colorMatrix,
+              );
+              console.log('✅ ColorMatrixImageFilter applied successfully');
+              return outputPath;
+            } else {
+              console.log(
+                '❌ ColorMatrixImageFilter not properly imported or processImage not available',
+              );
+              console.log(
+                '🎨 ColorMatrixImageFilter object:',
+                ColorMatrixImageFilter,
+              );
+              return photoUri;
+            }
+          } catch (matrixError) {
+            console.error('❌ ColorMatrixImageFilter failed:', matrixError);
+            console.log('🎨 Using original photo with overlay effect');
+            return photoUri;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Image processing failed:', error);
+        return photoUri;
+      }
     } catch (error) {
-      console.error('❌ Error applying filter:', error);
+      console.error('❌ Error applying OpenGL filter:', error);
       return photoUri;
     }
   };
@@ -655,24 +649,17 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
-  // Function to render image through Skia Canvas with ColorMatrix
-  const renderImageWithSkia = async (imageUri, colorMatrix) => {
-    if (!Canvas || !ColorMatrix) {
-      console.log('❌ Skia components not available for image rendering');
-      return null;
-    }
-
+  // Function to render image through OpenGL
+  const renderImageWithOpenGL = async (imageUri, colorMatrix) => {
     try {
-      console.log('🎨 Rendering image through Skia Canvas...');
+      console.log('🎨 Rendering image through OpenGL...');
 
-      // Skia image processing not implemented for file output
+      // OpenGL image processing not implemented for file output
       // Return original image for now
-      console.log('🎨 Skia image processing not available for file output');
-      return imageUri;
-
+      console.log('🎨 OpenGL image processing not available for file output');
       return imageUri;
     } catch (error) {
-      console.error('❌ Skia image rendering failed:', error);
+      console.error('❌ OpenGL image rendering failed:', error);
       return null;
     }
   };
@@ -682,36 +669,30 @@ const CameraComponent = ({navigation}) => {
     try {
       // Check if this is GR F filter first - handle it separately
       if (activeFilters[0] === 'grf') {
-        console.log('🎯 GR F filter: Processing with SKIA ONLY...');
+        console.log('🎯 GR F filter: Processing with OpenGL...');
 
-        if (skiaWorking) {
-          try {
-            console.log('🎯 GR F: Processing photo...');
+        try {
+          console.log('🎯 GR F: Processing photo with OpenGL...');
 
-            // For now, save the original photo
-            // The Skia overlay provides the visual effect in live preview
-            const saved = await savePhotoToGallery(photoUri);
-
-            console.log(
-              '✅ GR F: Photo saved (Skia overlay provides live preview effect)',
-            );
-
-            return {
-              uri: photoUri,
-              saved,
-              filtersApplied: true,
-              filterInfo: `GR F: Live preview shows black & white effect, photo saved as original`,
-            };
-          } catch (error) {
-            console.error('❌ Error processing GR F photo:', error);
-            return null;
-          }
-        } else {
-          console.log('❌ SKIA not available - cannot apply GR F filter');
-          Alert.alert(
-            'Filter Error',
-            'Skia is not available for filter processing',
+          // Apply OpenGL filter to the photo
+          const filteredPhotoUri = await applyOpenGLFilterToPhoto(
+            photoUri,
+            'grf',
           );
+          const saved = await savePhotoToGallery(filteredPhotoUri);
+
+          console.log(
+            '✅ GR F: Photo saved with OpenGL black and white effect',
+          );
+
+          return {
+            uri: filteredPhotoUri,
+            saved,
+            filtersApplied: true,
+            filterInfo: `GR F: OpenGL black and white filter applied`,
+          };
+        } catch (error) {
+          console.error('❌ Error processing GR F photo:', error);
           return null;
         }
       }
@@ -736,58 +717,64 @@ const CameraComponent = ({navigation}) => {
 
         // Get the filter configuration
         const filterId = activeFilters[0];
-        const skiaConfig = skiaFilterEffects[filterId];
         const openglConfig = openglFilterEffects[filterId];
-        const simpleConfig = simpleFilterConfigs[filterId];
+        const filterConfig = openglConfig;
 
-        const filterConfig = skiaConfig || openglConfig || simpleConfig;
+        if (filterConfig && filterConfig.filters) {
+          console.log(
+            '🎯 Applying OpenGL filter effects:',
+            filterConfig.filters,
+          );
 
-        if (filterConfig && filterConfig.effects) {
-          console.log('🎯 Applying filter effects:', filterConfig.effects);
-
-          // Create ImageManipulator actions based on filter effects
+          // Create filter actions based on OpenGL filter config
           const actions = [];
 
-          if (filterConfig.effects.brightness !== undefined) {
-            actions.push({brightness: filterConfig.effects.brightness});
-            console.log(
-              '🎯 Added brightness:',
-              filterConfig.effects.brightness,
-            );
-          }
-
-          if (filterConfig.effects.contrast !== undefined) {
-            actions.push({contrast: filterConfig.effects.contrast});
-            console.log('🎯 Added contrast:', filterConfig.effects.contrast);
-          }
-
-          if (filterConfig.effects.saturation !== undefined) {
-            // Special handling for GR F filter to ensure black and white
-            if (filterId === 'grf') {
-              actions.push({saturation: 0}); // Force to 0 for true black and white
-              console.log(
-                '🎯 GR F filter: Forcing saturation to 0 for black and white',
-              );
-            } else {
-              actions.push({saturation: filterConfig.effects.saturation});
-              console.log(
-                '🎯 Added saturation:',
-                filterConfig.effects.saturation,
-              );
+          filterConfig.filters.forEach(filter => {
+            if (filter.name === 'Brightness' && filter.value !== undefined) {
+              actions.push({brightness: filter.value});
+              console.log('🎯 Added brightness:', filter.value);
             }
-          }
+            if (filter.name === 'Contrast' && filter.value !== undefined) {
+              actions.push({contrast: filter.value});
+              console.log('🎯 Added contrast:', filter.value);
+            }
+            if (filter.name === 'Saturation' && filter.value !== undefined) {
+              // Special handling for GR F filter to ensure black and white
+              if (filterId === 'grf') {
+                actions.push({saturation: 0}); // Force to 0 for true black and white
+                console.log(
+                  '🎯 GR F filter: Forcing saturation to 0 for black and white',
+                );
+              } else {
+                actions.push({saturation: filter.value});
+                console.log('🎯 Added saturation:', filter.value);
+              }
+            }
+            if (filter.name === 'Hue' && filter.value !== undefined) {
+              actions.push({hue: filter.value});
+              console.log('🎯 Added hue:', filter.value);
+            }
+            if (filter.name === 'Gamma' && filter.value !== undefined) {
+              actions.push({gamma: filter.value});
+              console.log('🎯 Added gamma:', filter.value);
+            }
+          });
 
           console.log('🎯 Final actions for photo processing:', actions);
 
-          // For other filters (not GR F), save original photo
+          // For other filters (not GR F), apply OpenGL filter
           if (actions.length > 0 && filterId !== 'grf') {
-            console.log('🎯 Saving original photo for filter:', filterId);
-            const saved = await savePhotoToGallery(photoUri);
+            console.log('🎯 Applying OpenGL filter to photo:', filterId);
+            const filteredPhotoUri = await applyOpenGLFilterToPhoto(
+              photoUri,
+              filterId,
+            );
+            const saved = await savePhotoToGallery(filteredPhotoUri);
             return {
-              uri: photoUri,
+              uri: filteredPhotoUri,
               saved,
               filtersApplied: true,
-              filterInfo: `Applied ${filterId} filter via Skia overlay (live preview only)`,
+              filterInfo: `Applied ${filterId} filter via OpenGL`,
             };
           }
         }
@@ -888,7 +875,7 @@ const CameraComponent = ({navigation}) => {
 
         if (activeFilters.length > 0) {
           const filterNames = activeFilters
-            .map(id => simpleFilterConfigs[id]?.name)
+            .map(id => openglFilterEffects[id]?.name || id)
             .join(', ');
           const message = result.filtersApplied
             ? `✅ Applied ${activeFilters.length} filter(s): ${filterNames}\n\nPhoto saved to gallery!`
@@ -982,6 +969,32 @@ const CameraComponent = ({navigation}) => {
 
   const toggleGrid = () => {
     setShowGrid(!showGrid);
+  };
+
+  const toggleLevel = () => {
+    setLevel(!level);
+  };
+
+  const toggleLocation = () => {
+    setLocationMode(!locationMode);
+    console.log('Location mode:', locationMode);
+    /* todo integrate location workflow with the app */
+
+    /* todo integrate location workflow with the app */
+
+    /* todo integrate location workflow with the app */
+
+    /* todo integrate location workflow with the app */
+
+    /* todo integrate location workflow with the app */
+
+    /* todo integrate location workflow with the app */
+
+    /* todo integrate location workflow with the app */
+  };
+
+  const toggleZoomMode = () => {
+    setZoomMode(!zoomMode);
   };
 
   const toggleTimer = () => {
@@ -1205,14 +1218,14 @@ const CameraComponent = ({navigation}) => {
         )}
       </View>
 
-      {/* Skia Filter Overlay for All Filters */}
+      {/* OpenGL Filter Overlay for All Filters */}
       {activeFilters.length > 0 && !isAppInBackground && (
         <>
-          <SkiaFilterOverlay
+          <OpenGLFilterOverlay
             activeFilters={activeFilters}
             cameraPosition={cameraPosition}
           />
-          {__DEV__ && (
+          {/*           {__DEV__ && (
             <View
               style={{
                 position: 'absolute',
@@ -1224,47 +1237,49 @@ const CameraComponent = ({navigation}) => {
                 zIndex: 10000,
               }}>
               <Text style={{color: 'white', fontSize: 10}}>
-                SKIA: {activeFilters[0]}
+                OpenGL: {activeFilters[0]}
               </Text>
             </View>
-          )}
+          )} */}
         </>
       )}
 
-      {/* Debug Info - Remove this later */}
-      {__DEV__ && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 50,
-            left: 10,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            padding: 5,
-            borderRadius: 5,
-          }}>
-          <Text style={{color: 'white', fontSize: 10}}>
-            SKIA: {skiaWorking ? '✅' : '❌'} | Filters: {activeFilters.length}{' '}
-            | Active: {activeFilters[0] || 'none'}
-          </Text>
-          <TouchableOpacity
+      {/* Debug Info - Commented for future use */}
+      {/*
+        {__DEV__ && (
+          <View
             style={{
-              backgroundColor: 'rgba(255,0,0,0.8)',
+              position: 'absolute',
+              top: 50,
+              left: 10,
+              backgroundColor: 'rgba(0,0,0,0.7)',
               padding: 5,
-              marginTop: 5,
-              borderRadius: 3,
-            }}
-            onPress={() => {
-              console.log('🧪 Test: Setting GR F filter manually');
-              setActiveFilters(['grf']);
-              global.activeFilters = ['grf'];
+              borderRadius: 5,
             }}>
-            <Text style={{color: 'white', fontSize: 8}}>TEST GR F</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            <Text style={{color: 'white', fontSize: 10}}>
+              OpenGL: {openGLWorking ? '✅' : '❌'} | Filters:{' '}
+              {activeFilters.length} | Active: {activeFilters[0] || 'none'}
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: 'rgba(255,0,0,0.8)',
+                padding: 5,
+                marginTop: 5,
+                borderRadius: 3,
+              }}
+              onPress={() => {
+                console.log('🧪 Test: Setting GR F filter manually');
+                setActiveFilters(['grf']);
+                global.activeFilters = ['grf'];
+              }}>
+              <Text style={{color: 'white', fontSize: 8}}>TEST GR F</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        */}
 
       {/* Grid Overlay - Inside Camera Frame */}
-      {showGrid && (
+      {showGrid && !isAppInBackground && (
         <View style={styles.gridOverlay}>
           {/* Vertical lines */}
           <View style={styles.gridVerticalLine1} />
@@ -1292,23 +1307,121 @@ const CameraComponent = ({navigation}) => {
       )}
       {modalActive && !isAppInBackground && (
         <View style={styles.modalContainer}>
-          <TouchableOpacity style={styles.modalContent}>
+          <TouchableOpacity style={styles.modalContent} onPress={toggleGrid}>
             <Text style={{paddingLeft: 18, paddingTop: 18}}>
               Assistive grid
             </Text>
+            {showGrid && !isAppInBackground ? (
+              <Image
+                style={{width: 20, height: 20, marginLeft: 220, marginTop: -17}}
+                source={require('../src/assets/icons/grid-on.png')}
+              />
+            ) : (
+              <Image
+                style={{
+                  width: 20,
+                  height: 20,
+                  marginLeft: 220,
+                  marginTop: -17,
+                }}
+                source={require('../src/assets/icons/grid-off.png')}
+              />
+            )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.modalContent}>
+          <TouchableOpacity style={styles.modalContent} onPress={toggleLevel}>
             <Text style={{paddingLeft: 18, paddingTop: 18}}>Level</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.modalContent}>
-            <Text style={{paddingLeft: 18, paddingTop: 18}}>Save Location</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.modalContent}>
-            <Text style={{paddingLeft: 18, paddingTop: 18}}>Zoom Mode</Text>
+            {level && !isAppInBackground ? (
+              <Image
+                style={{width: 20, height: 20, marginLeft: 220, marginTop: -17}}
+                source={require('../src/assets/icons/level-on.png')}
+              />
+            ) : (
+              <Image
+                style={{
+                  width: 20,
+                  height: 20,
+                  marginLeft: 220,
+                  marginTop: -17,
+                }}
+                source={require('../src/assets/icons/level-off.png')}
+              />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.modalContent, {borderBottomColor: 'transparent'}]}>
+            style={styles.modalContent}
+            onPress={toggleLocation}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>Save Location</Text>
+            {locationMode && !isAppInBackground ? (
+              <Image
+                style={{width: 20, height: 20, marginLeft: 220, marginTop: -17}}
+                source={require('../src/assets/icons/location-on.png')}
+              />
+            ) : (
+              <Image
+                style={{
+                  width: 20,
+                  height: 20,
+                  marginLeft: 220,
+                  marginTop: -17,
+                }}
+                source={require('../src/assets/icons/location-off.png')}
+              />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.modalContent}
+            onPress={toggleZoomMode}>
+            <Text style={{paddingLeft: 18, paddingTop: 18}}>Zoom Mode</Text>
+            {zoomMode && !isAppInBackground ? (
+              <Image
+                style={{width: 20, height: 20, marginLeft: 220, marginTop: -17}}
+                source={require('../src/assets/icons/zoom-on.png')}
+              />
+            ) : (
+              <Image
+                style={{
+                  width: 20,
+                  height: 20,
+                  marginLeft: 220,
+                  marginTop: -17,
+                }}
+                source={require('../src/assets/icons/zoom-off.png')}
+              />
+            )}
+            {zoomMode && !isAppInBackground ? (
+              <Text
+                style={{
+                  width: 120,
+                  height: 120,
+                  color: 'gray',
+                  marginLeft: 18,
+                  marginTop: -5,
+                  marginBottom: 10,
+                }}>
+                Full Screen Mode
+              </Text>
+            ) : (
+              <Text
+                style={{
+                  width: 120,
+                  height: 120,
+                  color: 'gray',
+                  marginLeft: 18,
+                  marginTop: -5,
+                  marginBottom: 10,
+                }}>
+                Frame Mode
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalContent, {borderBottomColor: 'transparent'}]}
+            onPress={() => navigation.navigate('Settings')}>
             <Text style={{paddingLeft: 18, paddingTop: 18}}>Settings</Text>
+            <Image
+              source={require('../src/assets/icons/settings.png')}
+              style={{width: 20, height: 20, marginLeft: 220, marginTop: -17}}
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -1829,7 +1942,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.7,
     borderBottomColor: 'rgba(0, 0, 0, 0.3)',
   },
-  skiaFilterOverlay: {
+  openGLFilterOverlay: {
     position: 'absolute',
     top: 160,
     left: 15,
