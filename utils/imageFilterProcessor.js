@@ -1,4 +1,4 @@
-import {ImageFilter} from 'react-native-image-filter-kit';
+// ImageFilterKit removed - using simple effects only
 
 // Advanced filter configurations for real image processing
 export const advancedFilterConfigs = {
@@ -78,41 +78,8 @@ export const createFilteredImage = (imageUri, filterId) => {
 
   const {filter} = filterConfig;
 
-  return (
-    <ImageFilter
-      source={{uri: imageUri}}
-      filters={[
-        {
-          name: 'Brightness',
-          value: filter.brightness || 0,
-        },
-        {
-          name: 'Contrast',
-          value: filter.contrast || 1,
-        },
-        {
-          name: 'Saturation',
-          value: filter.saturation || 1,
-        },
-        ...(filter.gamma
-          ? [
-              {
-                name: 'Gamma',
-                value: filter.gamma,
-              },
-            ]
-          : []),
-        ...(filter.hue
-          ? [
-              {
-                name: 'Hue',
-                value: filter.hue,
-              },
-            ]
-          : []),
-      ]}
-    />
-  );
+  // ImageFilterKit removed - return original image
+  return imageUri;
 };
 
 // Function to apply multiple filters
@@ -142,33 +109,8 @@ export const createMultiFilteredImage = (imageUri, filterIds) => {
     }
   });
 
-  return (
-    <ImageFilter
-      source={{uri: imageUri}}
-      filters={[
-        {
-          name: 'Brightness',
-          value: combinedFilter.brightness,
-        },
-        {
-          name: 'Contrast',
-          value: combinedFilter.contrast,
-        },
-        {
-          name: 'Saturation',
-          value: combinedFilter.saturation,
-        },
-        {
-          name: 'Gamma',
-          value: combinedFilter.gamma,
-        },
-        {
-          name: 'Hue',
-          value: combinedFilter.hue,
-        },
-      ]}
-    />
-  );
+  // ImageFilterKit removed - return original image
+  return imageUri;
 };
 
 // Function to get filter preview style for live camera overlay

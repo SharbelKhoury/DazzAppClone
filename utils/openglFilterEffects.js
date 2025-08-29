@@ -1,4 +1,4 @@
-import {ImageFilter} from 'react-native-image-filter-kit';
+// ImageFilterKit removed - using OpenGL effects only
 
 // OpenGL-based filter effects for Dazz Cam style filters
 export const openglFilterEffects = {
@@ -321,9 +321,8 @@ export const createOpenGLFilteredImage = (imageUri, filterId) => {
     return null;
   }
 
-  return (
-    <ImageFilter source={{uri: imageUri}} filters={filterConfig.filters} />
-  );
+  // ImageFilterKit removed - return original image
+  return imageUri;
 };
 
 // Get OpenGL filter overlay style for live preview

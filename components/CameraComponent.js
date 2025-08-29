@@ -18,8 +18,9 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import {launchImageLibrary} from 'react-native-image-picker';
-import {ImageFilter} from 'react-native-image-filter-kit';
+// ImageFilterKit removed - using Skia and OpenGL effects only
 import {filterConfigs} from '../utils/filterConfig';
+import {ColorMatrixImageFilter} from 'react-native-color-matrix-image-filters';
 import {
   simpleFilterConfigs,
   getSimpleFilterOverlay,
@@ -37,157 +38,29 @@ import {
   createSkiaColorMatrix,
 } from '../utils/skiaFilterEffects';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
-import ViewShot from 'react-native-view-shot';
 
-// Import ImageManipulator with fallback
-let ImageManipulator;
-let ImageCropPicker;
-try {
-  const ImageManipulatorModule = require('react-native-image-manipulator');
-  console.log(
-    '🔍 ImageManipulator module keys:',
-    Object.keys(ImageManipulatorModule),
-  );
-  console.log('🔍 ImageManipulator module:', ImageManipulatorModule);
+// Import Skia components properly
+import {
+  Canvas,
+  ColorMatrix,
+  Image as SkiaImage,
+  Paint,
+  useImage,
+  useValue,
+  Fill,
+  Skia,
+} from '@shopify/react-native-skia';
 
-  ImageManipulator =
-    ImageManipulatorModule.ImageManipulator ||
-    ImageManipulatorModule.default ||
-    ImageManipulatorModule;
-  console.log('✅ ImageManipulator imported successfully:', !!ImageManipulator);
-  console.log('🔍 ImageManipulator type:', typeof ImageManipulator);
-  console.log(
-    '🔍 ImageManipulator methods:',
-    ImageManipulator ? Object.keys(ImageManipulator) : 'null',
-  );
-  if (ImageManipulator) {
-    console.log(
-      '🔍 ImageManipulator.process exists:',
-      !!ImageManipulator.process,
-    );
-    console.log(
-      '🔍 ImageManipulator.manipulate exists:',
-      !!ImageManipulator.manipulate,
-    );
-    console.log(
-      '🔍 ImageManipulator.manipulateAsync exists:',
-      !!ImageManipulator.manipulateAsync,
-    );
-    console.log('🔍 ImageManipulator.edit exists:', !!ImageManipulator.edit);
-    console.log(
-      '🔍 ImageManipulator.grayscale exists:',
-      !!ImageManipulator.grayscale,
-    );
-    console.log(
-      '🔍 ImageManipulator.blackAndWhite exists:',
-      !!ImageManipulator.blackAndWhite,
-    );
-    console.log(
-      '🔍 ImageManipulator.monochrome exists:',
-      !!ImageManipulator.monochrome,
-    );
-    console.log(
-      '🔍 All ImageManipulator methods:',
-      Object.keys(ImageManipulator),
-    );
-  }
-} catch (error) {
-  console.log('❌ ImageManipulator import failed:', error);
-  ImageManipulator = null;
-}
+// ImageManipulator removed - using Skia and OpenGL effects only
 
-// Also try ImageCropPicker as alternative
-try {
-  ImageCropPicker = require('react-native-image-crop-picker');
-  console.log('✅ ImageCropPicker imported successfully:', !!ImageCropPicker);
-} catch (error) {
-  console.log('❌ ImageCropPicker import failed:', error);
-  ImageCropPicker = null;
-}
+// ImageCropPicker removed - using Skia and OpenGL effects only
 
-// Try ImageFilterKit for better B&W support
-let ImageFilterKit;
-try {
-  ImageFilterKit = require('react-native-image-filter-kit');
-  console.log('✅ ImageFilterKit imported successfully:', !!ImageFilterKit);
-  console.log('🔍 ImageFilterKit methods:', Object.keys(ImageFilterKit));
-} catch (error) {
-  console.log('❌ ImageFilterKit import failed:', error);
-  ImageFilterKit = null;
-}
-// Import Skia components for version 0.1.241
-let Canvas, ColorMatrix;
-
-// Try ES6 import first
-try {
-  const {
-    Canvas: CanvasES6,
-    ColorMatrix: ColorMatrixES6,
-  } = require('@shopify/react-native-skia');
-  if (CanvasES6 && ColorMatrixES6) {
-    Canvas = CanvasES6;
-    ColorMatrix = ColorMatrixES6;
-    console.log('✅ Skia components imported via ES6 destructuring');
-  }
-} catch (error) {
-  console.log('ES6 import failed, trying require method...');
-}
-
-try {
-  // Import Skia module
-  const Skia = require('@shopify/react-native-skia');
-  console.log('Skia module loaded successfully');
-  console.log('Available keys:', Object.keys(Skia));
-  console.log('Full Skia object:', Skia);
-
-  // Try different paths for Canvas and ColorMatrix
-  if (Skia.Canvas) {
-    Canvas = Skia.Canvas;
-    console.log('✅ Canvas found at Skia.Canvas');
-  } else if (Skia.default && Skia.default.Canvas) {
-    Canvas = Skia.default.Canvas;
-    console.log('✅ Canvas found at Skia.default.Canvas');
-  } else if (Skia.Skia && Skia.Skia.Canvas) {
-    Canvas = Skia.Skia.Canvas;
-    console.log('✅ Canvas found at Skia.Skia.Canvas');
-  } else {
-    console.log('❌ Canvas not found in any location');
-  }
-
-  if (Skia.ColorMatrix) {
-    ColorMatrix = Skia.ColorMatrix;
-    console.log('✅ ColorMatrix found at Skia.ColorMatrix');
-  } else if (Skia.default && Skia.default.ColorMatrix) {
-    ColorMatrix = Skia.default.ColorMatrix;
-    console.log('✅ ColorMatrix found at Skia.default.ColorMatrix');
-  } else if (Skia.Skia && Skia.Skia.ColorMatrix) {
-    ColorMatrix = Skia.Skia.ColorMatrix;
-    console.log('✅ ColorMatrix found at Skia.Skia.ColorMatrix');
-  } else {
-    console.log('❌ ColorMatrix not found in any location');
-  }
-
-  console.log('Final Canvas type:', typeof Canvas);
-  console.log('Final ColorMatrix type:', typeof ColorMatrix);
-
-  if (Canvas && ColorMatrix) {
-    console.log('✅ Skia components imported successfully');
-  } else {
-    console.log('❌ Skia components not found');
-  }
-} catch (error) {
-  console.log('❌ Skia import failed:', error);
-  Canvas = null;
-  ColorMatrix = null;
-}
+// ImageFilterKit removed - using Skia and OpenGL effects only
 
 // Safe Canvas Wrapper Component
 const SafeCanvas = ({children, style}) => {
   try {
-    if (
-      Canvas &&
-      (typeof Canvas === 'function' || typeof Canvas === 'object')
-    ) {
+    if (Canvas) {
       return <Canvas style={style}>{children}</Canvas>;
     } else {
       console.log('No Canvas component available');
@@ -199,175 +72,91 @@ const SafeCanvas = ({children, style}) => {
   }
 };
 
-// Safe Skia Filter Component with multiple fallbacks
-const SkiaFilterOverlay = ({activeFilters}) => {
-  console.log('🎨 SkiaFilterOverlay called with filters:', activeFilters);
+// Skia Filter Overlay Component for Live Preview
+const SkiaFilterOverlay = ({activeFilters, cameraPosition}) => {
+  console.log('🎨 SkiaFilterOverlay: Component called with:', {
+    activeFilters,
+    cameraPosition,
+  });
+  console.log('🎨 SkiaFilterOverlay: Canvas available:', !!Canvas);
+  console.log('🎨 SkiaFilterOverlay: Fill available:', !!Fill);
 
-  // Multiple safety checks
-  if (
-    !activeFilters ||
-    !Array.isArray(activeFilters) ||
-    activeFilters.length === 0
-  ) {
-    console.log('🎨 SkiaFilterOverlay: No active filters');
-    return null;
-  }
-
-  // Multiple safety checks
-  if (
-    !activeFilters ||
-    !Array.isArray(activeFilters) ||
-    activeFilters.length === 0
-  ) {
+  if (!Canvas || !Fill || activeFilters.length === 0) {
+    console.log(
+      '🎨 SkiaFilterOverlay: Returning null - missing components or no filters',
+    );
     return null;
   }
 
   const filterId = activeFilters[0];
 
-  // Check if filterId is valid
-  if (!filterId || typeof filterId !== 'string') {
-    console.log('Invalid filter ID:', filterId);
-    return null;
-  }
-
-  // Check if skiaFilterEffects exists
-  if (!skiaFilterEffects || typeof skiaFilterEffects !== 'object') {
-    console.log('skiaFilterEffects not available');
-    return null;
-  }
-
-  const skiaConfig = skiaFilterEffects[filterId];
-
-  // Check if config exists and has effects
-  if (
-    !skiaConfig ||
-    !skiaConfig.effects ||
-    typeof skiaConfig.effects !== 'object'
-  ) {
-    console.log('No Skia config for filter:', filterId);
-    return null;
-  }
-
-  try {
-    const {
-      brightness = 0,
-      contrast = 1,
-      saturation = 1,
-      hue = 0,
-      gamma = 1,
-    } = skiaConfig.effects;
-
-    // Validate values are numbers
-    if (
-      typeof brightness !== 'number' ||
-      typeof contrast !== 'number' ||
-      typeof saturation !== 'number' ||
-      typeof hue !== 'number' ||
-      typeof gamma !== 'number'
-    ) {
-      console.log('Invalid effect values for filter:', filterId);
-      return null;
-    }
-
-    // Create safe color matrix with bounds checking
-    const safeContrast = Math.max(0, Math.min(3, contrast)); // Limit contrast to 0-3
-    const safeBrightness = Math.max(-1, Math.min(1, brightness)); // Limit brightness to -1 to 1
-    const safeSaturation = Math.max(0, Math.min(2, saturation)); // Limit saturation to 0-2
-
-    // Create color matrix for the filter effects
-    const colorMatrix = [
-      // Red channel
-      safeContrast,
-      0,
-      0,
-      0,
-      safeBrightness,
-      // Green channel
-      0,
-      safeContrast,
-      0,
-      0,
-      safeBrightness,
-      // Blue channel
-      0,
-      0,
-      safeContrast,
-      0,
-      safeBrightness,
-      // Alpha channel
-      0,
-      0,
-      0,
-      1,
-      0,
-    ];
-
-    // Validate color matrix
-    if (!Array.isArray(colorMatrix) || colorMatrix.length !== 20) {
-      console.log('Invalid color matrix generated');
-      return null;
-    }
-
-    // Check if all values are numbers
-    const allNumbers = colorMatrix.every(
-      val => typeof val === 'number' && !isNaN(val),
-    );
-    if (!allNumbers) {
-      console.log('Color matrix contains invalid values');
-      return null;
-    }
-
-    // Use a simpler approach without worklets for now
-    if (ColorMatrix && typeof ColorMatrix === 'function') {
-      // Create a simple identity matrix for testing
-      const identityMatrix = [
-        1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0,
-      ];
-
-      // For GR F filter, use pure black and white matrix (front camera only)
-      if (filterId === 'grf') {
-        console.log(
-          '🎨 Skia: Applying pure black and white matrix for front camera',
+  // Test different Skia effects based on filter
+  const getSkiaEffect = () => {
+    switch (filterId) {
+      case 'grf':
+        // Black and white using saturation blend
+        return (
+          <>
+            <Fill color="rgba(128, 128, 128, 0.4)" blendMode="saturation" />
+            <Fill color="rgba(0, 0, 0, 0.1)" blendMode="multiply" />
+          </>
         );
 
-        // Pure black and white matrix - converts all colors to grayscale
-        const pureBlackAndWhiteMatrix = [
-          0.299,
-          0.587,
-          0.114,
-          0,
-          0, // Red channel - pure luminance
-          0.299,
-          0.587,
-          0.114,
-          0,
-          0, // Green channel - pure luminance
-          0.299,
-          0.587,
-          0.114,
-          0,
-          0, // Blue channel - pure luminance
-          0,
-          0,
-          0,
-          1,
-          0, // Alpha channel - unchanged
-        ];
-
-        console.log(
-          '🎨 Skia: Pure black and white matrix applied successfully',
+      case 'grdr':
+        // High contrast B&W
+        return (
+          <>
+            <Fill color="rgba(128, 128, 128, 0.6)" blendMode="saturation" />
+            <Fill color="rgba(0, 0, 0, 0.2)" blendMode="multiply" />
+          </>
         );
-        return <ColorMatrix matrix={pureBlackAndWhiteMatrix} />;
-      }
-      return <ColorMatrix matrix={identityMatrix} />;
-    } else {
-      console.log('No ColorMatrix component available');
-      return null;
+
+      case 'ccdr':
+        // Color correction - warm tone
+        return (
+          <>
+            <Fill color="rgba(255, 200, 150, 0.2)" blendMode="overlay" />
+            <Fill color="rgba(255, 255, 255, 0.1)" blendMode="screen" />
+          </>
+        );
+
+      case 'collage':
+        // Vibrant colors
+        return (
+          <>
+            <Fill color="rgba(255, 100, 100, 0.2)" blendMode="screen" />
+            <Fill color="rgba(100, 100, 255, 0.2)" blendMode="screen" />
+          </>
+        );
+
+      case 'puli':
+        // Moody cinematic
+        return (
+          <>
+            <Fill color="rgba(0, 0, 0, 0.3)" blendMode="multiply" />
+            <Fill color="rgba(100, 50, 150, 0.2)" blendMode="overlay" />
+          </>
+        );
+
+      default:
+        // Default effect
+        return <Fill color="rgba(128, 128, 128, 0.3)" blendMode="saturation" />;
     }
-  } catch (error) {
-    console.log('Skia filter error for', filterId, ':', error);
-    return null;
-  }
+  };
+
+  return (
+    <SafeCanvas
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
+      }}>
+      {getSkiaEffect()}
+    </SafeCanvas>
+  );
 };
 
 const CameraComponent = ({navigation}) => {
@@ -392,33 +181,42 @@ const CameraComponent = ({navigation}) => {
   const [timerMode, setTimerMode] = useState('off');
   const [latestMedia, setLatestMedia] = useState(null);
   const cameraRef = useRef(null); // Ref for Camera component
+  const cameraContainerRef = useRef(null); // Ref for camera container (for ViewShot)
 
   const devices = useCameraDevices();
 
   // Test if Skia is working
   const testSkia = () => {
     try {
-      console.log('Testing Skia components...');
-      console.log('Canvas type:', typeof Canvas);
-      console.log('ColorMatrix type:', typeof ColorMatrix);
+      console.log('🧪 Testing Skia components...');
       console.log('Canvas available:', Canvas ? 'YES' : 'NO');
       console.log('ColorMatrix available:', ColorMatrix ? 'YES' : 'NO');
+      console.log('SkiaImage available:', SkiaImage ? 'YES' : 'NO');
+      console.log('Paint available:', Paint ? 'YES' : 'NO');
+      console.log('Fill available:', Fill ? 'YES' : 'NO');
+      console.log('Skia available:', Skia ? 'YES' : 'NO');
 
-      // Test if Canvas and ColorMatrix are available
-      // Canvas is an object (React component), ColorMatrix is a function
-      const canvasAvailable =
-        Canvas && (typeof Canvas === 'object' || typeof Canvas === 'function');
-      const colorMatrixAvailable =
-        ColorMatrix && typeof ColorMatrix === 'function';
+      // Test if essential components are available
+      const canvasAvailable = Canvas;
+      const colorMatrixAvailable = ColorMatrix;
+      const fillAvailable = Fill;
+      const skiaAvailable = Skia;
 
-      if (canvasAvailable && colorMatrixAvailable) {
-        console.log('✅ Skia components available');
+      if (
+        canvasAvailable &&
+        colorMatrixAvailable &&
+        fillAvailable &&
+        skiaAvailable
+      ) {
+        console.log('✅ All essential Skia components available');
         setSkiaWorking(true);
         return true;
       } else {
-        console.log('❌ Skia components not available');
+        console.log('❌ Some Skia components missing');
         console.log('Canvas available:', canvasAvailable);
         console.log('ColorMatrix available:', colorMatrixAvailable);
+        console.log('Fill available:', fillAvailable);
+        console.log('Skia available:', skiaAvailable);
         setSkiaWorking(false);
         return false;
       }
@@ -763,12 +561,10 @@ const CameraComponent = ({navigation}) => {
       console.log('Getting overlay for filter ID:', filterId);
 
       // Check if it's a 2nd row camera (Skia effects)
-      const skiaOverlay = getSkiaFilterOverlay(filterId);
-      console.log('Skia overlay result:', skiaOverlay);
-
-      if (Object.keys(skiaOverlay).length > 0) {
+      if (skiaFilterEffects[filterId]) {
         console.log('Using Skia overlay for:', filterId);
-        return skiaOverlay;
+        // Return empty object so Skia Canvas will be used instead
+        return {};
       }
 
       // Check if it's OpenGL effects (fallback)
@@ -786,6 +582,63 @@ const CameraComponent = ({navigation}) => {
     } catch (error) {
       console.log('Error getting filter overlay style:', error);
       return {};
+    }
+  };
+
+  // Function to apply filter effects to photo using color matrix
+  const applyFilterToPhoto = async (photoUri, filterId) => {
+    try {
+      console.log('🎨 Applying filter to photo:', filterId);
+
+      // Get the color matrix for the filter
+      const getColorMatrix = () => {
+        switch (filterId) {
+          case 'grf':
+            // Black and white matrix
+            return [
+              0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299,
+              0.587, 0.114, 0, 0, 0, 0, 0, 1, 0,
+            ];
+          case 'grdr':
+            // High contrast black and white
+            return [
+              0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299,
+              0.587, 0.114, 0, 0, 0, 0, 0, 1, 0,
+            ];
+          case 'ccdr':
+            // Warm tone matrix
+            return [
+              1.1, 0.1, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 0.9, 0, 0, 0, 0, 0, 1,
+              0,
+            ];
+          case 'collage':
+            // Vibrant colors
+            return [
+              1.2, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 1.2, 0, 0, 0, 0, 0, 1, 0,
+            ];
+          case 'puli':
+            // Moody cinematic
+            return [
+              0.8, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 1, 0,
+            ];
+          default:
+            return null;
+        }
+      };
+
+      const colorMatrix = getColorMatrix();
+      if (!colorMatrix) {
+        console.log('🎨 No color matrix for filter:', filterId);
+        return photoUri;
+      }
+
+      // For now, return the original photo
+      // The ColorMatrixImageFilter would need to be used in a different way
+      console.log('🎨 Color matrix calculated for filter:', filterId);
+      return photoUri;
+    } catch (error) {
+      console.error('❌ Error applying filter:', error);
+      return photoUri;
     }
   };
 
@@ -812,53 +665,10 @@ const CameraComponent = ({navigation}) => {
     try {
       console.log('🎨 Rendering image through Skia Canvas...');
 
-      // Since we can't easily render to a file with Skia in React Native,
-      // let's use a different approach - apply the filter using ImageManipulator
-      // but with a more aggressive approach
-
-      if (ImageManipulator) {
-        console.log('🎨 Using ImageManipulator with safe B&W settings...');
-
-        try {
-          // Use safer values that won't crash the app
-          let processed = await ImageManipulator.manipulate(
-            imageUri,
-            [{contrast: 3.0}], // High but safe contrast
-            {compress: 0.8, format: 'jpeg'},
-          );
-
-          processed = await ImageManipulator.manipulate(
-            processed.uri,
-            [{brightness: 0.2}], // Moderate brightening
-            {compress: 0.8, format: 'jpeg'},
-          );
-
-          processed = await ImageManipulator.manipulate(
-            processed.uri,
-            [{contrast: 2.5}], // Final safe contrast
-            {compress: 0.8, format: 'jpeg'},
-          );
-
-          console.log('🎨 Safe B&W processing completed');
-          return processed.uri;
-        } catch (error) {
-          console.error('❌ ImageManipulator processing failed:', error);
-          // Return original if processing fails
-          return imageUri;
-        }
-      }
-
-      // Fallback: Try using ImageCropPicker if available
-      if (ImageCropPicker) {
-        console.log('🎨 Trying ImageCropPicker for B&W processing...');
-        try {
-          // ImageCropPicker might have better support for image manipulation
-          // For now, return original as fallback
-          return imageUri;
-        } catch (error) {
-          console.error('❌ ImageCropPicker processing failed:', error);
-        }
-      }
+      // Skia image processing not implemented for file output
+      // Return original image for now
+      console.log('🎨 Skia image processing not available for file output');
+      return imageUri;
 
       return imageUri;
     } catch (error) {
@@ -870,6 +680,42 @@ const CameraComponent = ({navigation}) => {
   // Function to apply filters to photo and save to gallery
   const applyFiltersToPhoto = async photoUri => {
     try {
+      // Check if this is GR F filter first - handle it separately
+      if (activeFilters[0] === 'grf') {
+        console.log('🎯 GR F filter: Processing with SKIA ONLY...');
+
+        if (skiaWorking) {
+          try {
+            console.log('🎯 GR F: Processing photo...');
+
+            // For now, save the original photo
+            // The Skia overlay provides the visual effect in live preview
+            const saved = await savePhotoToGallery(photoUri);
+
+            console.log(
+              '✅ GR F: Photo saved (Skia overlay provides live preview effect)',
+            );
+
+            return {
+              uri: photoUri,
+              saved,
+              filtersApplied: true,
+              filterInfo: `GR F: Live preview shows black & white effect, photo saved as original`,
+            };
+          } catch (error) {
+            console.error('❌ Error processing GR F photo:', error);
+            return null;
+          }
+        } else {
+          console.log('❌ SKIA not available - cannot apply GR F filter');
+          Alert.alert(
+            'Filter Error',
+            'Skia is not available for filter processing',
+          );
+          return null;
+        }
+      }
+
       const filters = getCombinedFilters();
 
       if (filters.length === 0) {
@@ -878,12 +724,10 @@ const CameraComponent = ({navigation}) => {
         return {uri: photoUri, saved};
       }
 
-      // Apply filters using ImageManipulator
+      // Apply filters using UI overlays only
       console.log('=== FILTER PROCESSING DEBUG ===');
       console.log('Active filters:', activeFilters);
       console.log('Applying filters:', filters);
-      console.log('ImageManipulator available:', !!ImageManipulator);
-      console.log('ImageManipulator type:', typeof ImageManipulator);
       console.log('Photo URI:', photoUri);
 
       // Check if we have active filters to apply
@@ -935,45 +779,16 @@ const CameraComponent = ({navigation}) => {
 
           console.log('🎯 Final actions for photo processing:', actions);
 
-          // Simplified GR F filter handling to prevent freezing
-          if (filterId === 'grf') {
-            console.log(
-              '🎯 GR F filter: Using simplified approach to prevent freezing...',
-            );
-            console.log('🎯 Note: Skia overlay is applied in camera preview');
-
+          // For other filters (not GR F), save original photo
+          if (actions.length > 0 && filterId !== 'grf') {
+            console.log('🎯 Saving original photo for filter:', filterId);
             const saved = await savePhotoToGallery(photoUri);
             return {
               uri: photoUri,
               saved,
               filtersApplied: true,
-              filterInfo: `Applied GR F black and white filter via Skia overlay (original photo saved)`,
+              filterInfo: `Applied ${filterId} filter via Skia overlay (live preview only)`,
             };
-          }
-
-          // For other filters, try ImageManipulator if available
-          if (ImageManipulator && actions.length > 0) {
-            try {
-              console.log('🎯 Processing with ImageManipulator...');
-              const result = await ImageManipulator.manipulate(
-                photoUri,
-                actions,
-                {
-                  compress: 0.8,
-                  format: ImageManipulator.SaveFormat.JPEG,
-                },
-              );
-              console.log('✅ ImageManipulator processing completed');
-              const saved = await savePhotoToGallery(result.uri);
-              return {
-                uri: result.uri,
-                saved,
-                filtersApplied: true,
-                filterInfo: `Applied ${filterId} filter via ImageManipulator`,
-              };
-            } catch (manipulatorError) {
-              console.error('❌ ImageManipulator failed:', manipulatorError);
-            }
           }
         }
       }
@@ -1289,7 +1104,7 @@ const CameraComponent = ({navigation}) => {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       {!isAppInBackground && <View style={styles.cameraFrameInside} />}
       {/* Camera View with Frame */}
-      <View style={styles.cameraFrame}>
+      <View ref={cameraContainerRef} style={styles.cameraFrame}>
         {device && !isAppInBackground ? (
           <Camera
             key={`${device.id}-${cameraPosition}-${
@@ -1390,42 +1205,30 @@ const CameraComponent = ({navigation}) => {
         )}
       </View>
 
-      {/* Safe Skia Filter Overlay with Multiple Fallbacks */}
-      {/* Safe Skia Filter Overlay with Multiple Fallbacks */}
-      {activeFilters.length > 0 && !isAppInBackground && skiaWorking && (
-        <View style={[styles.skiaFilterOverlay, {zIndex: 999}]}>
-          <Canvas style={StyleSheet.absoluteFill}>
-            <SkiaFilterOverlay
-              key={`skia-${cameraPosition}-${activeFilters[0]}`}
-              activeFilters={activeFilters}
-            />
-          </Canvas>
+      {/* Skia Filter Overlay for All Filters */}
+      {activeFilters.length > 0 && !isAppInBackground && (
+        <>
+          <SkiaFilterOverlay
+            activeFilters={activeFilters}
+            cameraPosition={cameraPosition}
+          />
           {__DEV__ && (
             <View
               style={{
                 position: 'absolute',
                 top: 10,
-                right: 10,
-                backgroundColor: 'rgba(0,255,0,0.7)',
+                left: 10,
+                backgroundColor: 'rgba(0,255,0,0.8)',
                 padding: 5,
                 borderRadius: 5,
+                zIndex: 10000,
               }}>
-              <Text style={{color: 'white', fontSize: 8}}>
-                Skia: {activeFilters[0]} | Camera: {cameraPosition}
+              <Text style={{color: 'white', fontSize: 10}}>
+                SKIA: {activeFilters[0]}
               </Text>
             </View>
           )}
-        </View>
-      )}
-
-      {/* Fallback CSS Overlay - Only when Skia is not available */}
-      {activeFilters.length > 0 && !skiaWorking && (
-        <View style={[styles.filterOverlay, getFilterOverlayStyle()]} />
-      )}
-
-      {/* Fallback CSS Overlay - Only when Skia is not available */}
-      {activeFilters.length > 0 && !skiaWorking && (
-        <View style={[styles.filterOverlay, getFilterOverlayStyle()]} />
+        </>
       )}
 
       {/* Debug Info - Remove this later */}
@@ -1440,9 +1243,23 @@ const CameraComponent = ({navigation}) => {
             borderRadius: 5,
           }}>
           <Text style={{color: 'white', fontSize: 10}}>
-            Skia: {skiaWorking ? '✅' : '❌'} | Filters: {activeFilters.length}{' '}
+            SKIA: {skiaWorking ? '✅' : '❌'} | Filters: {activeFilters.length}{' '}
             | Active: {activeFilters[0] || 'none'}
           </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: 'rgba(255,0,0,0.8)',
+              padding: 5,
+              marginTop: 5,
+              borderRadius: 3,
+            }}
+            onPress={() => {
+              console.log('🧪 Test: Setting GR F filter manually');
+              setActiveFilters(['grf']);
+              global.activeFilters = ['grf'];
+            }}>
+            <Text style={{color: 'white', fontSize: 8}}>TEST GR F</Text>
+          </TouchableOpacity>
         </View>
       )}
 

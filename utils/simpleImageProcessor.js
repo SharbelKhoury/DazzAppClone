@@ -1,4 +1,4 @@
-import {ImageFilter} from 'react-native-image-filter-kit';
+// ImageFilterKit removed - using simple effects only
 
 // Simple but effective filter configurations
 export const simpleFilterConfigs = {
@@ -71,7 +71,8 @@ export const createSimpleFilteredImage = (imageUri, filterId) => {
     return null;
   }
 
-  return <ImageFilter source={{uri: imageUri}} filters={config.filters} />;
+  // ImageFilterKit removed - return original image
+  return imageUri;
 };
 
 // Get visual overlay style for live preview
