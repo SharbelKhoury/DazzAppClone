@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import React, {useState} from 'react';
 
-const Settings = () => {
+const Settings = ({navigation}) => {
   // Toggle states for settings
   const [exportToAlbum, setExportToAlbum] = useState(false);
   const [keepOriginalPhotos, setKeepOriginalPhotos] = useState(true);
@@ -23,22 +23,25 @@ const Settings = () => {
   const [preserveSetting, setPreserveSetting] = useState(true);
   return (
     <View style={styles.container}>
-      <>
-        <Image
-          source={require('../src/assets/icons/front-arrow.png')}
-          style={{
-            width: 17,
-            height: 17,
-            position: 'absolute',
-            top: 65,
-            left: 30,
-            marginRight: 220,
-            paddingTop: -40,
-            tintColor: '#fff',
-          }}
-        />
-        <Text style={styles.text}>Settings</Text>
-      </>
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <>
+          <Image
+            source={require('../src/assets/icons/front-arrow.png')}
+            style={{
+              width: 17,
+              height: 17,
+              position: 'absolute',
+              top: 2,
+              left: -140,
+              marginRight: 220,
+              paddingTop: -40,
+              tintColor: '#fff',
+            }}
+          />
+          <Text style={styles.text}>Settings</Text>
+        </>
+      </TouchableOpacity>
+
       <View
         style={[styles.divider, {marginTop: 25, marginLeft: 0, width: '110%'}]}
       />
@@ -60,6 +63,13 @@ const Settings = () => {
           <TouchableOpacity>
             <View style={styles.settingsItem}>
               <Text style={styles.text2}>Restore Purchases</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
+              />
             </View>
           </TouchableOpacity>
         </View>
@@ -210,14 +220,26 @@ const Settings = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.settingsContainerSingular}>
+        <View
+          style={[
+            styles.settingsContainerSingular,
+            {height: 67, backgroundColor: 'rgba(183, 37, 0, 0.49)'},
+          ]}>
           <TouchableOpacity>
             <View style={styles.settingsItem}>
               <Image
                 source={require('../src/assets/icons/poke.png')}
-                style={styles.arrowIcon}
+                style={[
+                  styles.arrowIcon,
+                  {
+                    width: 30,
+                    height: 30,
+                    tintColor: 'rgb(229, 200, 121)',
+                    marginRight: 13,
+                  },
+                ]}
               />
-              <Text style={[styles.text2, {fontSize: 12}]}>
+              <Text style={[styles.text2, {fontSize: 12, marginRight: 40}]}>
                 Photos and videos are stored within the Dazz App locally. Please
                 backup when necessary.
               </Text>
@@ -228,33 +250,33 @@ const Settings = () => {
         <View style={styles.settingsContainer}>
           <TouchableOpacity>
             <View style={styles.settingsItem}>
-              <Text style={styles.text2}>Export to Album</Text>
-              <Switch
-                value={exportToAlbum}
-                onValueChange={setExportToAlbum}
-                trackColor={{false: '#767577', true: 'rgb(255, 107, 107)'}}
-                thumbColor={exportToAlbum ? '#FFFFFF' : '#f4f3f4'}
-                style={styles.toggleSwitch}
+              <Text style={styles.text2}>Share with friends</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
               />
             </View>
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity>
             <View style={styles.settingsItem}>
-              <Text style={styles.text2}>Keep Original Photos</Text>
-              <Switch
-                value={keepOriginalPhotos}
-                onValueChange={setKeepOriginalPhotos}
-                trackColor={{false: '#767577', true: 'rgb(255, 107, 107)'}}
-                thumbColor={keepOriginalPhotos ? '#FFFFFF' : '#f4f3f4'}
-                style={styles.toggleSwitch}
+              <Text style={styles.text2}>Send FeedBack</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
               />
             </View>
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity>
             <View style={styles.settingsItem}>
-              <Text style={styles.text2}>Save Location</Text>
+              <Text style={styles.text2}>Recommended apps</Text>
               <Switch
                 value={saveLocation}
                 onValueChange={setSaveLocation}
@@ -267,17 +289,76 @@ const Settings = () => {
           <View style={styles.divider} />
           <TouchableOpacity>
             <View style={styles.settingsItem}>
-              <Text style={styles.text2}>Mirror Front Camera</Text>
-              <Switch
-                value={mirrorFrontCamera}
-                onValueChange={setMirrorFrontCamera}
-                trackColor={{false: '#767577', true: 'rgb(255, 107, 107)'}}
-                thumbColor={mirrorFrontCamera ? '#FFFFFF' : '#f4f3f4'}
-                style={styles.toggleSwitch}
+              <Text style={styles.text2}>Write Review</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
               />
             </View>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.settingsContainerSingular}>
+          <TouchableOpacity>
+            <View style={styles.settingsItem}>
+              <Text style={styles.text2}>Follow us on Instagram</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.settingsContainer}>
+          <TouchableOpacity>
+            <View style={styles.settingsItem}>
+              <Text style={styles.text2}>Privacy</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity>
+            <View style={styles.settingsItem}>
+              <Text style={styles.text2}>Terms of Use</Text>
+              <Image
+                source={require('../src/assets/icons/back-arrow.png')}
+                style={[
+                  styles.arrowIcon,
+                  {tintColor: 'transparent', backgroundColor: 'transparent'},
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.footerText}>
+          Please use the hashtag #dazzcam when you post content on social media.
+        </Text>
+
+        <Image
+          source={require('../src/assets/icons/dazz-settings.png')}
+          style={{
+            width: 200,
+            height: 110,
+            marginLeft: 80,
+            marginTop: 20,
+            opacity: 0.4,
+            marginBottom: 40,
+          }}
+        />
       </ScrollView>
     </View>
   );
@@ -349,5 +430,13 @@ const styles = StyleSheet.create({
   },
   toggleSwitch: {
     transform: [{scaleX: 1}, {scaleY: 1}],
+  },
+  footerText: {
+    marginTop: 20,
+    marginBottom: 40,
+    marginLeft: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.4)',
   },
 });
