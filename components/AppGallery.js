@@ -129,7 +129,7 @@ const AppGallery = ({navigation}) => {
     if (isSelectionMode) {
       togglePhotoSelection(photo);
     } else {
-      // Navigate to GalleryItemPreview with the selected photo
+      // Navigate to GalleryItemPreview with the selected photo and refresh callback
       navigation.navigate('GalleryItemPreview', {
         item: {
           uri: photo.uri,
@@ -140,6 +140,7 @@ const AppGallery = ({navigation}) => {
               ? photo.timestamp.toISOString()
               : photo.timestamp,
         },
+        onRefresh: fetchAppPhotos, // Pass the refresh function
       });
     }
   };
@@ -233,7 +234,10 @@ const AppGallery = ({navigation}) => {
         Alert.alert('Error', 'Failed to import photo');
       } else if (response.assets && response.assets[0]) {
         const item = response.assets[0];
-        navigation.navigate('GalleryItemPreview', {item});
+        navigation.navigate('GalleryItemPreview', {
+          item,
+          onRefresh: fetchAppPhotos, // Pass the refresh function for consistency
+        });
       }
     });
   };

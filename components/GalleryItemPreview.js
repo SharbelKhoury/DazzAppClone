@@ -16,7 +16,7 @@ import RNFS from 'react-native-fs';
 const {width, height} = Dimensions.get('window');
 
 const GalleryItemPreview = ({navigation, route}) => {
-  const {item} = route.params || {};
+  const {item, onRefresh} = route.params || {};
   const [isVideo, setIsVideo] = useState(false);
 
   useEffect(() => {
@@ -78,6 +78,11 @@ const GalleryItemPreview = ({navigation, route}) => {
               // Delete the file
               await RNFS.unlink(filePath);
               console.log('✅ File deleted successfully:', filePath);
+
+              // Call the refresh callback if provided
+              if (onRefresh && typeof onRefresh === 'function') {
+                onRefresh();
+              }
 
               Alert.alert('Success', 'Item deleted successfully');
               navigation.goBack();

@@ -9,6 +9,7 @@ import {
   Image,
   StatusBar,
   AppState,
+  PanResponder,
 } from 'react-native';
 
 import {
@@ -154,6 +155,34 @@ const CameraComponent = ({navigation}) => {
   const [tempActive, setTempActive] = useState(false);
   const [viewControlActive, setViewControlActive] = useState(false);
   const [modalActive, setModalActive] = useState(false);
+  const [temperatureValue, setTemperatureValue] = useState(50); // Temperature control value (0-100)
+
+  // PanResponder for temperature control
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt, gestureState) => {
+        console.log('Temperature control started');
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const {locationX} = evt.nativeEvent;
+        const containerWidth = 120; // Width of the temperature bar
+        const percentage = Math.max(
+          0,
+          Math.min(100, (locationX / containerWidth) * 100),
+        );
+        setTemperatureValue(percentage);
+      },
+      onPanResponderRelease: () => {
+        console.log(
+          'Temperature set to:',
+          Math.round(3000 + (temperatureValue / 100) * 4000),
+          'K',
+        );
+      },
+    }),
+  ).current;
   // const [openGLWorking, setOpenGLWorking] = useState(true); // Commented for future use
 
   // Camera position state - using the simpler approach like your friend
@@ -164,6 +193,8 @@ const CameraComponent = ({navigation}) => {
   const [zoomMode, setZoomMode] = useState(false);
   const [locationMode, setLocationMode] = useState(false);
   const [timerMode, setTimerMode] = useState('off');
+  const [timerCountdown, setTimerCountdown] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
   const [latestMedia, setLatestMedia] = useState(null);
   const cameraRef = useRef(null); // Ref for Camera component
   const cameraContainerRef = useRef(null); // Ref for camera container (for ViewShot)
@@ -1137,6 +1168,47 @@ const CameraComponent = ({navigation}) => {
     setTimerMode(timerModes[nextIndex]);
   };
 
+  const startTimer = async () => {
+    if (timerMode === 'off') {
+      // No timer, take photo immediately
+      await takePicture();
+      return;
+    }
+
+    // If timer is already active, don't start another one
+    if (isTimerActive) {
+      return;
+    }
+
+    // Get timer duration in seconds
+    const duration = timerMode === '3s' ? 3 : 10;
+    setIsTimerActive(true);
+    setTimerCountdown(duration);
+
+    try {
+      // Start countdown
+      for (let i = duration; i > 0; i--) {
+        setTimerCountdown(i);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Take photo after countdown
+      setTimerCountdown(0);
+      setIsTimerActive(false);
+      await takePicture();
+    } catch (error) {
+      // If there's an error, reset timer state
+      setTimerCountdown(0);
+      setIsTimerActive(false);
+      console.error('Timer error:', error);
+    }
+  };
+
+  const cancelTimer = () => {
+    setTimerCountdown(0);
+    setIsTimerActive(false);
+  };
+
   // Show permission request screen if permission is denied
   if (hasPermission === false) {
     return (
@@ -1636,8 +1708,14 @@ const CameraComponent = ({navigation}) => {
                 onPress={toggleTimer}>
                 <Image
                   source={require('../src/assets/icons/clock.png')}
-                  style={styles.clock}
+                  style={[
+                    styles.clock,
+                    timerMode !== 'off' && styles.clockActive,
+                  ]}
                 />
+                {timerMode !== 'off' && (
+                  <Text style={styles.timerModeText}>{timerMode}</Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.controlButton}
@@ -1683,10 +1761,168 @@ const CameraComponent = ({navigation}) => {
                   justifyContent: 'center',
                   alignItems: 'center',
                   marginRight: 18,
+                  position: 'relative',
                 }}>
-                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600'}}>
-                  13
-                </Text>
+                {/* Temperature Control Container */}
+                <View
+                  style={{
+                    width: 120,
+                    height: 40,
+                    position: 'relative',
+                    justifyContent: 'center',
+                  }}>
+                  {/* Temperature Display */}
+                  <Text
+                    style={{
+                      position: 'absolute',
+                      top: -25,
+                      left: '50%',
+                      marginLeft: -20,
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: '600',
+                      textAlign: 'center',
+                    }}>
+                    {Math.round(3000 + (temperatureValue / 100) * 4000)}K
+                  </Text>
+
+                  {/* Gradient Background Bar */}
+                  <View
+                    style={{
+                      width: '100%',
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: 'transparent',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}>
+                    {/* Gradient Colors */}
+                    <View
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 15,
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        overflow: 'hidden',
+                      }}>
+                      {/* Gradient Background */}
+                      <View
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          backgroundColor: 'transparent',
+                          position: 'relative',
+                        }}>
+                        {/* Cool to Warm Gradient */}
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            width: '25%',
+                            height: '100%',
+                            backgroundColor: '#4A90E2', // Cool blue
+                          }}
+                        />
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: '25%',
+                            top: 0,
+                            width: '25%',
+                            height: '100%',
+                            backgroundColor: '#7B68EE', // Purple
+                          }}
+                        />
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: 0,
+                            width: '25%',
+                            height: '100%',
+                            backgroundColor: '#FF6B6B', // Warm red
+                          }}
+                        />
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: '75%',
+                            top: 0,
+                            width: '25%',
+                            height: '100%',
+                            backgroundColor: '#FF8C42', // Warm orange
+                          }}
+                        />
+                      </View>
+                      {/* Top Markers */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -12,
+                          left: 0,
+                          right: 0,
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          paddingHorizontal: 2,
+                        }}>
+                        {[0, 25, 50, 75, 100].map((marker, index) => (
+                          <View
+                            key={index}
+                            style={{
+                              width: 1,
+                              height: 3,
+                              backgroundColor: '#fff',
+                              opacity: 0.6,
+                            }}
+                          />
+                        ))}
+                      </View>
+                      {/* Bottom Markers */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          bottom: -12,
+                          left: 0,
+                          right: 0,
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          paddingHorizontal: 2,
+                        }}>
+                        {[0, 25, 50, 75, 100].map((marker, index) => (
+                          <View
+                            key={index}
+                            style={{
+                              width: 1,
+                              height: 3,
+                              backgroundColor: '#fff',
+                              opacity: 0.6,
+                            }}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Draggable Temperature Dot */}
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      left: `${temperatureValue}%`,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: '#000',
+                      borderWidth: 1.5,
+                      borderColor: '#fff',
+                      marginLeft: -5,
+                    }}
+                    {...panResponder.panHandlers}
+                  />
+                </View>
               </View>
               <TouchableOpacity
                 style={{
@@ -1720,9 +1956,14 @@ const CameraComponent = ({navigation}) => {
                   alignItems: 'center',
                   marginRight: 14,
                 }}>
-                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600'}}>
-                  26
-                </Text>
+                <Image
+                  source={require('../src/assets/icons/sun.png')}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    tintColor: '#fff',
+                  }}
+                />
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
@@ -1735,9 +1976,14 @@ const CameraComponent = ({navigation}) => {
                   alignItems: 'center',
                   marginRight: 14,
                 }}>
-                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600'}}>
-                  35
-                </Text>
+                <Image
+                  source={require('../src/assets/icons/lamp.png')}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    tintColor: '#fff',
+                  }}
+                />
               </TouchableOpacity>
             </View>
           )}
@@ -1782,6 +2028,26 @@ const CameraComponent = ({navigation}) => {
                   }>
                   13
                 </Text>
+                <Text
+                  style={[
+                    {
+                      position: 'absolute',
+                      bottom: -8,
+                      right: '40%',
+                      fontSize: 7,
+                      fontWeight: '600',
+                    },
+                    focalLength == focalLengthArray[0]
+                      ? {
+                          color: 'rgb(0,0,0)',
+                          textShadowColor: '#fff',
+                          textShadowOffset: {width: 0, height: 0},
+                          textShadowRadius: 1,
+                        }
+                      : {color: '#fff'},
+                  ]}>
+                  .5x
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -1812,6 +2078,27 @@ const CameraComponent = ({navigation}) => {
                       : {color: '#fff', fontSize: 14, fontWeight: '600'}
                   }>
                   26
+                </Text>
+                <Text
+                  style={[
+                    {
+                      position: 'absolute',
+                      bottom: -8,
+                      left: '50%',
+                      marginLeft: -3.5,
+                      fontSize: 7,
+                      fontWeight: '600',
+                    },
+                    focalLength == focalLengthArray[1]
+                      ? {
+                          color: 'rgb(0,0,0)',
+                          textShadowColor: '#fff',
+                          textShadowOffset: {width: 0, height: 0},
+                          textShadowRadius: 1,
+                        }
+                      : {color: '#fff'},
+                  ]}>
+                  1x
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1884,12 +2171,17 @@ const CameraComponent = ({navigation}) => {
               styles.shutterButton,
               isProcessing && styles.shutterButtonProcessing,
             ]}
-            onPress={takePicture}
+            onPress={isTimerActive ? cancelTimer : startTimer}
             disabled={!isCameraReady || isProcessing}>
             <View style={styles.shutterInner} />
             {isProcessing && (
               <View style={styles.processingIndicator}>
                 <Text style={styles.processingText}>...</Text>
+              </View>
+            )}
+            {isTimerActive && timerCountdown > 0 && (
+              <View style={styles.timerCountdown}>
+                <Text style={styles.timerCountdownText}>{timerCountdown}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -2299,6 +2591,16 @@ const styles = StyleSheet.create({
     height: 26,
     tintColor: '#fff',
   },
+  clockActive: {
+    tintColor: '#FF3B30',
+  },
+  timerModeText: {
+    position: 'absolute',
+    bottom: -8,
+    fontSize: 10,
+    color: '#FF3B30',
+    fontWeight: 'bold',
+  },
   shutterButton: {
     width: 80,
     height: 80,
@@ -2323,6 +2625,21 @@ const styles = StyleSheet.create({
   processingText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  timerCountdown: {
+    position: 'absolute',
+    top: -50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+  },
+  timerCountdownText: {
+    color: '#fff',
+    fontSize: 24,
     fontWeight: 'bold',
   },
   shutterInner: {
