@@ -18,7 +18,6 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import {launchImageLibrary} from 'react-native-image-picker';
-// ImageFilterKit removed - using Skia and OpenGL effects only
 import {ColorMatrixImageFilter} from 'react-native-color-matrix-image-filters';
 import {
   openglFilterEffects,
@@ -26,7 +25,15 @@ import {
   createOpenGLFilteredImage,
 } from '../utils/openglFilterEffects';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
-
+import {
+  Canvas,
+  Image as SkiaImage,
+  useImage,
+  ColorMatrix,
+} from '@shopify/react-native-skia';
+import {Skia} from '@shopify/react-native-skia';
+import RNFS from 'react-native-fs';
+import {Buffer} from 'buffer';
 // ImageManipulator removed - using OpenGL effects only
 
 // ImageCropPicker removed - using OpenGL effects only
@@ -35,22 +42,100 @@ import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 
 // OpenGL Filter Overlay Component for Live Preview
 const OpenGLFilterOverlay = ({activeFilters, cameraPosition}) => {
-  console.log('🎨 OpenGLFilterOverlay: Component called with:', {
-    activeFilters,
-    cameraPosition,
-  });
-
   if (activeFilters.length === 0) {
-    console.log('🎨 OpenGLFilterOverlay: No active filters');
     return null;
   }
 
   const filterId = activeFilters[0];
   const overlayStyle = getOpenGLFilterOverlay(filterId);
 
-  console.log('🎨 OpenGLFilterOverlay: Using overlay style:', overlayStyle);
-
   return <View style={overlayStyle} pointerEvents="none" />;
+};
+
+// Skia Filter Preview Component
+const SkiaFilterPreview = ({imageUri, filterId}) => {
+  const skiaImage = useImage(imageUri);
+  const [filterMatrix, setFilterMatrix] = useState(null);
+
+  useEffect(() => {
+    // Get the color matrix for the selected filter
+    const getFilterMatrix = () => {
+      const filterConfig = openglFilterEffects[filterId];
+      if (!filterConfig || !filterConfig.filters) return null;
+
+      let brightness = 0;
+      let contrast = 1;
+      let saturation = 1;
+      let hue = 0;
+      let gamma = 1;
+
+      // Extract values from filter config
+      filterConfig.filters.forEach(filter => {
+        if (filter.name === 'Brightness') brightness = filter.value;
+        if (filter.name === 'Contrast') contrast = filter.value;
+        if (filter.name === 'Saturation') saturation = filter.value;
+        if (filter.name === 'Hue') hue = filter.value;
+        if (filter.name === 'Gamma') gamma = filter.value;
+      });
+
+      // Special handling for specific filters
+      if (filterId === 'grf') {
+        // Grayscale matrix for GR F filter
+        return [
+          0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+          0.114, 0, 0, 0, 0, 0, 1, 0,
+        ];
+      }
+
+      // Create custom matrix based on filter effects
+      const brightnessOffset = brightness * 255;
+      return [
+        contrast,
+        0,
+        0,
+        0,
+        brightnessOffset,
+        0,
+        contrast,
+        0,
+        0,
+        brightnessOffset,
+        0,
+        0,
+        contrast,
+        0,
+        brightnessOffset,
+        0,
+        0,
+        0,
+        1,
+        0,
+      ];
+    };
+
+    setFilterMatrix(getFilterMatrix());
+  }, [filterId]);
+
+  if (!skiaImage || !filterMatrix) {
+    return (
+      <View style={styles.skiaFallback}>
+        <Image source={{uri: imageUri}} style={StyleSheet.absoluteFill} />
+      </View>
+    );
+  }
+
+  return (
+    <Canvas style={StyleSheet.absoluteFill}>
+      <SkiaImage
+        image={skiaImage}
+        x={0}
+        y={0}
+        width={400} // Adjust based on your layout
+        height={400}>
+        <ColorMatrix matrix={filterMatrix} />
+      </SkiaImage>
+    </Canvas>
+  );
 };
 
 const CameraComponent = ({navigation}) => {
@@ -664,134 +749,547 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
-  // Function to apply filters to photo and save to gallery
+  // NEW: Function to apply Skia filter to photo using actual Skia Canvas
+  const applySkiaFilterToPhoto = async (photoUri, filterId) => {
+    try {
+      console.log('🎨 Trying alternative Skia approach...');
+
+      // Read the image file
+      const imageData = await RNFS.readFile(photoUri, 'base64');
+      const imageBuffer = Buffer.from(imageData, 'base64');
+
+      // Create Skia data from buffer
+      const data = Skia.Data.fromBytes(new Uint8Array(imageBuffer));
+      const skiaImage = Skia.Image.MakeImageFromEncoded(data);
+
+      if (!skiaImage) {
+        throw new Error('Failed to create Skia image');
+      }
+
+      const width = skiaImage.width();
+      const height = skiaImage.height();
+
+      // Create color matrix
+      const filterConfig = openglFilterEffects[filterId];
+      console.log('🎨 Filter config:', filterConfig);
+
+      // Get the correct color matrix for the specific filter
+      const colorMatrix = getFilterMatrix(filterId);
+      console.log('🎨 Color matrix:', colorMatrix);
+
+      const colorFilter = Skia.ColorFilter.MakeMatrix(colorMatrix);
+
+      // Create paint
+      const paint = Skia.Paint();
+      paint.setColorFilter(colorFilter);
+
+      // Create surface and draw
+      const surface = Skia.Surface.Make(width, height);
+      const canvas = surface.getCanvas();
+
+      // Draw the image with the filter
+      canvas.drawImage(skiaImage, 0, 0, paint);
+
+      // Get image and encode
+      const image = surface.makeImageSnapshot();
+      const imageDataOut = image.encodeToBytes();
+
+      // Write to file
+      const outputPath = `${
+        RNFS.TemporaryDirectoryPath
+      }/skia_filtered_${Date.now()}.jpg`;
+      await RNFS.writeFile(
+        outputPath,
+        Buffer.from(imageDataOut).toString('base64'),
+        'base64',
+      );
+
+      return outputPath;
+    } catch (error) {
+      console.error('❌ Alternative Skia approach failed:', error);
+
+      // Fallback to ColorMatrixImageFilter
+      try {
+        const filterConfig = openglFilterEffects[filterId];
+        const colorMatrix = createColorMatrixFromFilter(filterConfig);
+        const outputPath = `${
+          RNFS.TemporaryDirectoryPath
+        }/filtered_${Date.now()}.jpg`;
+
+        await ColorMatrixImageFilter.processImage(
+          photoUri,
+          outputPath,
+          colorMatrix,
+        );
+        return outputPath;
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        return photoUri;
+      }
+    }
+  };
+
+  // Function to get the correct color matrix for each filter
+  const getFilterMatrix = filterId => {
+    // VIDEO FILTERS
+    if (filterId === 'vclassic') {
+      // Vintage classic video look - warm, slightly desaturated
+      return [
+        1.1, 0.1, 0.1, 0, 0, 0.1, 0.9, 0.1, 0, 0, 0.1, 0.1, 0.8, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'originalv') {
+      // Original video - clean, slightly enhanced
+      return [
+        1.05, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.05, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'dam') {
+      // DAM filter - dramatic, high contrast
+      return [1.3, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 1, 0];
+    }
+
+    if (filterId === '16mm') {
+      // 16mm film look - warm, grainy
+      return [
+        1.2, 0.1, 0.05, 0, 0, 0.05, 0.9, 0.1, 0, 0, 0.05, 0.1, 0.8, 0, 0, 0, 0,
+        0, 1, 0,
+      ];
+    }
+
+    if (filterId === '8mm') {
+      // 8mm film look - vintage, faded
+      return [
+        1.1, 0.15, 0.1, 0, 0, 0.1, 0.85, 0.15, 0, 0, 0.1, 0.15, 0.75, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'vhs') {
+      // VHS look - retro, slightly distorted
+      return [
+        1.15, 0.1, 0.05, 0, 0, 0.05, 0.95, 0.1, 0, 0, 0.05, 0.1, 0.85, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'kino') {
+      // Kino filter - cinematic, moody
+      return [
+        1.25, 0, 0, 0, 0, 0, 0.85, 0, 0, 0, 0, 0, 0.75, 0, 0, 0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'instss') {
+      // Inst SS - instant film look
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.9, 0, 0, 0, 0,
+        0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'dcr') {
+      // DCR - digital camera look
+      return [
+        1.05, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.05, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    // DIGITAL FILTERS
+    if (filterId === 'original') {
+      // Original - clean, no filter
+      return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+    }
+
+    if (filterId === 'grdr') {
+      // GRD R - digital GR look
+      return [
+        1.1, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.1, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'ccdr') {
+      // CCD R - CCD sensor look
+      return [
+        1.15, 0.05, 0.05, 0, 0, 0.05, 1.1, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'collage') {
+      // Collage - artistic, vibrant
+      return [
+        1.2, 0.1, 0.1, 0, 0, 0.1, 1.2, 0.1, 0, 0, 0.1, 0.1, 1.2, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'puli') {
+      // Puli - unique color treatment
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.95, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'fxnr') {
+      // FXN R - experimental look
+      return [
+        1.25, 0.05, 0.05, 0, 0, 0.05, 0.9, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    // VINTAGE 135 FILTERS
+    if (filterId === 'dclassic') {
+      // D Classic - vintage classic
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 0.95, 0.1, 0, 0, 0.05, 0.1, 0.85, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'grf') {
+      // GR F - black and white (grayscale)
+      return [
+        0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+        0.114, 0, 0, 0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'ct2f') {
+      // CT2F - cool tone
+      return [
+        0.9, 0.1, 0.1, 0, 0, 0.1, 1.1, 0.1, 0, 0, 0.1, 0.1, 1.2, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'dexp') {
+      // D Exp - experimental
+      return [
+        1.2, 0.05, 0.05, 0, 0, 0.05, 0.85, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'nt16') {
+      // NT16 - neutral tone
+      return [
+        1.05, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.05, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'd3d') {
+      // D3D - 3D effect
+      return [
+        1.15, 0.1, 0.05, 0, 0, 0.05, 1.1, 0.1, 0, 0, 0.05, 0.1, 1.15, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === '135ne') {
+      // 135 NE - negative effect
+      return [
+        0.2, 0.8, 0.8, 0, 0, 0.8, 0.2, 0.8, 0, 0, 0.8, 0.8, 0.2, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'dfuns') {
+      // D FunS - fun, vibrant
+      return [
+        1.3, 0.1, 0.1, 0, 0, 0.1, 1.3, 0.1, 0, 0, 0.1, 0.1, 1.3, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'ir') {
+      // IR - infrared effect
+      return [
+        0.5, 0.5, 0.5, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'classicu') {
+      // Classic U - universal classic
+      return [
+        1.1, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.1, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'golf') {
+      // Golf - sporty look
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 1.15, 0.1, 0, 0, 0.05, 0.1, 0.9, 0, 0, 0, 0,
+        0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'cpm35') {
+      // CPM35 - compact look
+      return [
+        1.05, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 1.05, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === '135sr') {
+      // 135 SR - slide reversal
+      return [
+        1.2, 0.05, 0.05, 0, 0, 0.05, 1.1, 0.05, 0, 0, 0.05, 0.05, 1.2, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'dhalf') {
+      // D Half - half frame
+      return [
+        1.15, 0.05, 0.05, 0, 0, 0.05, 1.15, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'dslide') {
+      // D Slide - slide film look
+      return [
+        1.25, 0.05, 0.05, 0, 0, 0.05, 1.2, 0.05, 0, 0, 0.05, 0.05, 1.25, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    // VINTAGE 120 FILTERS
+    if (filterId === 'sclassic') {
+      // S Classic - square format classic
+      return [
+        1.1, 0.05, 0.05, 0, 0, 0.05, 1.1, 0.05, 0, 0, 0.05, 0.05, 1.1, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'hoga') {
+      // HOGA - medium format look
+      return [
+        1.15, 0.05, 0.05, 0, 0, 0.05, 1.15, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 's67') {
+      // S 67 - 6x7 format
+      return [
+        1.2, 0.05, 0.05, 0, 0, 0.05, 1.2, 0.05, 0, 0, 0.05, 0.05, 1.2, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'kv88') {
+      // KV88 - vintage medium format
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.95, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    // INST COLLECTION FILTERS
+    if (filterId === 'instc') {
+      // Inst C - instant camera
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.9, 0, 0, 0, 0,
+        0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'instsqc') {
+      // Inst SQC - square instant
+      return [
+        1.15, 0.05, 0.05, 0, 0, 0.05, 1.15, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
+        0, 0, 0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'pafr') {
+      // PAF R - polaroid look
+      return [
+        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.85, 0, 0, 0,
+        0, 0, 1, 0,
+      ];
+    }
+
+    // ACCESSORY FILTERS
+    if (filterId === 'ndfilter') {
+      // ND Filter - neutral density (darker)
+      return [0.7, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 1, 0];
+    }
+
+    if (filterId === 'fisheyef') {
+      // Fisheye F - fisheye effect
+      return [
+        1.2, 0.1, 0.05, 0, 0, 0.05, 1.1, 0.1, 0, 0, 0.05, 0.1, 1.2, 0, 0, 0, 0,
+        0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'fisheyew') {
+      // Fisheye W - wide fisheye
+      return [
+        1.15, 0.1, 0.05, 0, 0, 0.05, 1.2, 0.1, 0, 0, 0.05, 0.1, 1.15, 0, 0, 0,
+        0, 1, 0,
+      ];
+    }
+
+    if (filterId === 'prism') {
+      // Prism - prismatic effect
+      return [
+        1.1, 0.2, 0.1, 0, 0, 0.1, 0.8, 0.3, 0, 0, 0.1, 0.2, 0.9, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'flashc') {
+      // Flash C - flash effect
+      return [
+        1.2, 0.1, 0.1, 0, 0, 0.1, 1.2, 0.1, 0, 0, 0.1, 0.1, 1.2, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    if (filterId === 'star') {
+      // Star - star filter effect
+      return [
+        1.3, 0.1, 0.1, 0, 0, 0.1, 1.3, 0.1, 0, 0, 0.1, 0.1, 1.3, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    }
+
+    // Fallback: Use the original createColorMatrixFromFilter function
+    const filterConfig = openglFilterEffects[filterId];
+    return createColorMatrixFromFilter(filterConfig);
+  };
+
+  // Helper function to create color matrix from filter config
+  const createColorMatrixFromFilter = filterConfig => {
+    if (!filterConfig || !filterConfig.filters) {
+      return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+    }
+
+    let brightness = 0;
+    let contrast = 1;
+    let saturation = 1;
+    let hue = 0;
+    let gamma = 1;
+
+    // Extract values from filter config
+    filterConfig.filters.forEach(filter => {
+      if (filter.name === 'Brightness') brightness = filter.value;
+      if (filter.name === 'Contrast') contrast = filter.value;
+      if (filter.name === 'Saturation') saturation = filter.value;
+      if (filter.name === 'Hue') hue = filter.value;
+      if (filter.name === 'Gamma') gamma = filter.value;
+    });
+
+    // Special handling for GR F (black and white)
+    if (
+      filterConfig.name === 'grf' ||
+      filterConfig.name?.toLowerCase().includes('grf')
+    ) {
+      return [
+        0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+        0.114, 0, 0, 0, 0, 0, 1, 0,
+      ];
+    }
+
+    // Create comprehensive color matrix based on filter effects
+    const brightnessOffset = brightness * 255;
+
+    // Start with identity matrix
+    const matrix = [
+      contrast,
+      0,
+      0,
+      0,
+      brightnessOffset,
+      0,
+      contrast,
+      0,
+      0,
+      brightnessOffset,
+      0,
+      0,
+      contrast,
+      0,
+      brightnessOffset,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ];
+
+    // Apply saturation if needed
+    if (saturation !== 1) {
+      const r = 0.213;
+      const g = 0.715;
+      const b = 0.072;
+
+      matrix[0] = (1 - saturation) * r + saturation;
+      matrix[1] = (1 - saturation) * r;
+      matrix[2] = (1 - saturation) * r;
+
+      matrix[5] = (1 - saturation) * g;
+      matrix[6] = (1 - saturation) * g + saturation;
+      matrix[7] = (1 - saturation) * g;
+
+      matrix[10] = (1 - saturation) * b;
+      matrix[11] = (1 - saturation) * b;
+      matrix[12] = (1 - saturation) * b + saturation;
+    }
+
+    return matrix;
+  };
+
+  // MODIFIED: applyFiltersToPhoto function to use Skia
   const applyFiltersToPhoto = async photoUri => {
     try {
-      // Check if this is GR F filter first - handle it separately
-      if (activeFilters[0] === 'grf') {
-        console.log('🎯 GR F filter: Processing with OpenGL...');
-
-        try {
-          console.log('🎯 GR F: Processing photo with OpenGL...');
-
-          // Apply OpenGL filter to the photo
-          const filteredPhotoUri = await applyOpenGLFilterToPhoto(
-            photoUri,
-            'grf',
-          );
-          const saved = await savePhotoToGallery(filteredPhotoUri);
-
-          console.log(
-            '✅ GR F: Photo saved with OpenGL black and white effect',
-          );
-
-          return {
-            uri: filteredPhotoUri,
-            saved,
-            filtersApplied: true,
-            filterInfo: `GR F: OpenGL black and white filter applied`,
-          };
-        } catch (error) {
-          console.error('❌ Error processing GR F photo:', error);
-          return null;
-        }
-      }
-
-      const filters = getCombinedFilters();
-
-      if (filters.length === 0) {
+      if (activeFilters.length === 0) {
         // No filters to apply, just save original to gallery
         const saved = await savePhotoToGallery(photoUri);
-        return {uri: photoUri, saved};
+        return {uri: photoUri, saved, filtersApplied: false};
       }
 
-      // Apply filters using UI overlays only
-      console.log('=== FILTER PROCESSING DEBUG ===');
-      console.log('Active filters:', activeFilters);
-      console.log('Applying filters:', filters);
-      console.log('Photo URI:', photoUri);
+      const filterId = activeFilters[0];
+      console.log('🎯 Processing filter:', filterId);
 
-      // Check if we have active filters to apply
-      if (activeFilters.length > 0) {
-        console.log('🎯 Processing active filters for photo...');
+      // Apply Skia filter to the photo
+      const filteredPhotoUri = await applySkiaFilterToPhoto(photoUri, filterId);
 
-        // Get the filter configuration
-        const filterId = activeFilters[0];
-        const openglConfig = openglFilterEffects[filterId];
-        const filterConfig = openglConfig;
+      // Save the filtered photo to gallery
+      const saved = await savePhotoToGallery(filteredPhotoUri);
 
-        if (filterConfig && filterConfig.filters) {
-          console.log(
-            '🎯 Applying OpenGL filter effects:',
-            filterConfig.filters,
-          );
-
-          // Create filter actions based on OpenGL filter config
-          const actions = [];
-
-          filterConfig.filters.forEach(filter => {
-            if (filter.name === 'Brightness' && filter.value !== undefined) {
-              actions.push({brightness: filter.value});
-              console.log('🎯 Added brightness:', filter.value);
-            }
-            if (filter.name === 'Contrast' && filter.value !== undefined) {
-              actions.push({contrast: filter.value});
-              console.log('🎯 Added contrast:', filter.value);
-            }
-            if (filter.name === 'Saturation' && filter.value !== undefined) {
-              // Special handling for GR F filter to ensure black and white
-              if (filterId === 'grf') {
-                actions.push({saturation: 0}); // Force to 0 for true black and white
-                console.log(
-                  '🎯 GR F filter: Forcing saturation to 0 for black and white',
-                );
-              } else {
-                actions.push({saturation: filter.value});
-                console.log('🎯 Added saturation:', filter.value);
-              }
-            }
-            if (filter.name === 'Hue' && filter.value !== undefined) {
-              actions.push({hue: filter.value});
-              console.log('🎯 Added hue:', filter.value);
-            }
-            if (filter.name === 'Gamma' && filter.value !== undefined) {
-              actions.push({gamma: filter.value});
-              console.log('🎯 Added gamma:', filter.value);
-            }
-          });
-
-          console.log('🎯 Final actions for photo processing:', actions);
-
-          // For other filters (not GR F), apply OpenGL filter
-          if (actions.length > 0 && filterId !== 'grf') {
-            console.log('🎯 Applying OpenGL filter to photo:', filterId);
-            const filteredPhotoUri = await applyOpenGLFilterToPhoto(
-              photoUri,
-              filterId,
-            );
-            const saved = await savePhotoToGallery(filteredPhotoUri);
-            return {
-              uri: filteredPhotoUri,
-              saved,
-              filtersApplied: true,
-              filterInfo: `Applied ${filterId} filter via OpenGL`,
-            };
-          }
-        }
+      if (saved) {
+        console.log('✅ Filtered photo saved to gallery:', filteredPhotoUri);
+      } else {
+        console.log('❌ Failed to save filtered photo to gallery');
       }
 
-      // Fallback: save original photo
-      console.log('🎯 Using fallback - saving original photo');
-      const saved = await savePhotoToGallery(photoUri);
       return {
-        uri: photoUri,
+        uri: filteredPhotoUri,
         saved,
         filtersApplied: true,
-        filterInfo: `Applied filter via UI overlay (original photo saved)`,
+        filterInfo: `Applied ${filterId} filter via Skia and saved to gallery`,
       };
     } catch (error) {
       console.error('❌ applyFiltersToPhoto failed:', error);
-      // Ultimate fallback
+      // Fallback: save original photo
       try {
         const saved = await savePhotoToGallery(photoUri);
         return {uri: photoUri, saved, filtersApplied: false};
@@ -802,51 +1300,28 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
+  // MODIFIED: takePicture function
   const takePicture = async () => {
     console.log('Take picture called');
-    console.log('Camera ref:', !!cameraRef.current);
-    console.log('Camera ready:', isCameraReady);
-    console.log('Device:', !!device);
-    console.log('Permission:', hasPermission);
 
-    if (!device) {
-      Alert.alert('No Camera', 'No camera device available');
-      return;
-    }
-
-    if (!hasPermission) {
-      Alert.alert('No Permission', 'Camera permission not granted');
-      return;
-    }
-
-    if (!cameraRef.current || !isCameraReady) {
-      Alert.alert('Camera not ready', 'Please wait for camera to initialize');
-      return;
-    }
-
-    if (isProcessing) {
-      Alert.alert(
-        'Processing',
-        'Please wait for the previous photo to finish processing',
-      );
+    if (
+      !device ||
+      !hasPermission ||
+      !cameraRef.current ||
+      !isCameraReady ||
+      isProcessing
+    ) {
+      Alert.alert('Camera not ready');
       return;
     }
 
     try {
       setIsProcessing(true);
-      console.log('Starting photo capture...');
-
-      // Enable photo capture just before taking the photo
       setIsPhotoEnabled(true);
 
-      // Delay to ensure photo capture is enabled
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      console.log('🎯 Taking photo with camera position:', cameraPosition);
-
-      // Add extra delay for front camera to prevent AVFoundation errors
       if (cameraPosition === 'front') {
-        console.log('🎯 Front camera detected, adding extra delay...');
         await new Promise(resolve => setTimeout(resolve, 300));
       }
 
@@ -855,22 +1330,26 @@ const CameraComponent = ({navigation}) => {
         flash: flashMode,
       });
 
+      console.log('🎯 Photo captured successfully:', photo.path);
+      console.log('🎯 Camera position during capture:', cameraPosition);
+      console.log('🎯 Photo object:', JSON.stringify(photo, null, 2));
+      console.log('🎯 Photo path type:', typeof photo.path);
       console.log(
-        '🎯 Photo captured successfully for',
-        cameraPosition,
-        'camera',
+        '🎯 Photo path starts with file://:',
+        photo.path.startsWith('file://'),
       );
-      console.log('Photo captured:', photo.path);
 
       // Apply filters to captured photo and save to gallery
+      console.log('🎯 About to apply filters to photo path:', photo.path);
+      console.log('🎯 Active filters:', activeFilters);
       const result = await applyFiltersToPhoto(photo.path);
-
-      // Show the processed photo
-      setSelectedImage(result.uri);
+      console.log(
+        '🎯 Filter application result:',
+        JSON.stringify(result, null, 2),
+      );
 
       // Show success message
       if (result.saved) {
-        // Refresh latest media after saving
         fetchLatestMedia();
 
         if (activeFilters.length > 0) {
@@ -885,21 +1364,6 @@ const CameraComponent = ({navigation}) => {
         } else {
           Alert.alert('Photo Saved!', 'Photo captured and saved to gallery!');
         }
-
-        // Special handling for front camera - reinitialize if needed
-        if (cameraPosition === 'front') {
-          console.log(
-            '🎯 Front camera photo completed, checking camera state...',
-          );
-          // Add a small delay to let the camera stabilize
-          setTimeout(() => {
-            if (!isCameraReady) {
-              console.log('🎯 Front camera not ready, reinitializing...');
-              setIsCameraReady(false);
-              setTimeout(() => setIsCameraReady(true), 500);
-            }
-          }, 1000);
-        }
       } else {
         Alert.alert(
           'Photo Captured!',
@@ -911,7 +1375,6 @@ const CameraComponent = ({navigation}) => {
       Alert.alert('Error', `Failed to take photo: ${error.message}`);
     } finally {
       setIsProcessing(false);
-      // Disable photo capture after taking the photo
       setIsPhotoEnabled(false);
     }
   };
@@ -1868,22 +2331,6 @@ const CameraComponent = ({navigation}) => {
           </View>
         </TouchableOpacity>
       </View>
-
-      {/* Selected Image Preview */}
-      {/* {selectedImage && (
-        <View style={styles.imagePreviewContainer}>
-          <ImageFilter
-            source={{uri: selectedImage}}
-            filters={getCombinedFilters()}
-            style={styles.imagePreview}
-          />
-          <TouchableOpacity
-            style={styles.clearImageButton}
-            onPress={() => setSelectedImage(null)}>
-            <Text style={styles.clearImageText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
     </View>
   );
 };
@@ -2359,11 +2806,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 100,
     right: 20,
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 120,
     borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#fff',
+    zIndex: 1000,
+  },
+  skiaFallback: {
+    flex: 1,
+    backgroundColor: '#000',
   },
   imagePreview: {
     width: '100%',

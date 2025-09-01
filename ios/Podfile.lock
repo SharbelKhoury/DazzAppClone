@@ -1035,6 +1035,27 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-worklets-core (1.6.2):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - React-nativeconfig (0.74.0)
   - React-NativeModulesApple (0.74.0):
     - glog
@@ -1380,10 +1401,16 @@ PODS:
   - TOCropViewController (2.7.4)
   - VisionCamera (4.4.0):
     - VisionCamera/Core (= 4.4.0)
+    - VisionCamera/FrameProcessors (= 4.4.0)
     - VisionCamera/React (= 4.4.0)
   - VisionCamera/Core (4.4.0)
+  - VisionCamera/FrameProcessors (4.4.0):
+    - React
+    - React-callinvoker
+    - react-native-worklets-core
   - VisionCamera/React (4.4.0):
     - React-Core
+    - VisionCamera/FrameProcessors
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -1429,6 +1456,7 @@ DEPENDENCIES:
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../node_modules/@shopify/react-native-skia`)"
   - react-native-view-shot (from `../node_modules/react-native-view-shot`)
+  - react-native-worklets-core (from `../node_modules/react-native-worklets-core`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -1548,6 +1576,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@shopify/react-native-skia"
   react-native-view-shot:
     :path: "../node_modules/react-native-view-shot"
+  react-native-worklets-core:
+    :path: "../node_modules/react-native-worklets-core"
   React-nativeconfig:
     :path: "../node_modules/react-native/ReactCommon"
   React-NativeModulesApple:
@@ -1651,6 +1681,7 @@ SPEC CHECKSUMS:
   react-native-safe-area-context: e134b241010ebe2aacdcea013565963d13826faa
   react-native-skia: 4b9b729a5280ca399f86d108b0e73ee7bb770574
   react-native-view-shot: d1a99d3a2b59689c7b6c0f88a249b2a7125bdd2f
+  react-native-worklets-core: 78711520ce0109875cb20770cdf53d81f5c85512
   React-nativeconfig: 951ec32f632e81cbd7d40aebb3211313251c092e
   React-NativeModulesApple: c8963908368d05a75af1eef7451ff86efc9b6517
   React-perflogger: 271f1111779fef70f9502d1d38da5132e5585230
@@ -1681,7 +1712,7 @@ SPEC CHECKSUMS:
   RNScreens: c7148190b2cb849bc2acc76c226d59abcfc32821
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   TOCropViewController: 80b8985ad794298fb69d3341de183f33d1853654
-  VisionCamera: 4a8d5604e560c96e119249170fb5f8c1c943c78b
+  VisionCamera: c90d8eb263473327d6206223154eb17055d6ff0c
   Yoga: 56f906bf6c11c931588191dde1229fd3e4e3d557
 
 PODFILE CHECKSUM: f5e65e6b062bda36321e12bff4b6d0b707b49e66
