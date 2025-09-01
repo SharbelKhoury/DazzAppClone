@@ -11,6 +11,7 @@ import {
   Alert,
   Share,
 } from 'react-native';
+import RNFS from 'react-native-fs';
 
 const {width, height} = Dimensions.get('window');
 
@@ -64,13 +65,27 @@ const GalleryItemPreview = ({navigation, route}) => {
         onPress: async () => {
           try {
             if (item?.uri) {
-              // Note: CameraRoll.deletePhotos might not work on all platforms
-              // This is a simplified implementation
+              // Remove the 'file://' prefix if present
+              const filePath = item.uri.replace('file://', '');
+
+              // Check if file exists before deleting
+              const fileExists = await RNFS.exists(filePath);
+              if (!fileExists) {
+                Alert.alert('Error', 'File not found');
+                return;
+              }
+
+              // Delete the file
+              await RNFS.unlink(filePath);
+              console.log('✅ File deleted successfully:', filePath);
+
               Alert.alert('Success', 'Item deleted successfully');
               navigation.goBack();
+            } else {
+              Alert.alert('Error', 'No file path available');
             }
           } catch (error) {
-            console.error('Error deleting:', error);
+            console.error('❌ Error deleting file:', error);
             Alert.alert('Error', 'Failed to delete the item');
           }
         },
