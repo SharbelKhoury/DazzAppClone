@@ -9,7 +9,6 @@ import CamerasScreen from './components/CamerasScreen';
 import GalleryItemPreview from './components/GalleryItemPreview';
 import Settings from './components/Settings';
 import AppGallery from './components/AppGallery';
-import CameraComponentTest from './components/CameraComponentTest';
 
 const Stack = createStackNavigator();
 

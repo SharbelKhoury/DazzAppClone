@@ -34,6 +34,8 @@ import {
 import {Skia} from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
 import {Buffer} from 'buffer';
+import {getFilterMatrix} from '../utils/filterMatrixUtils';
+import {getSelectedCameraIcon} from '../utils/cameraIconUtils';
 // ImageManipulator removed - using OpenGL effects only
 
 // ImageCropPicker removed - using OpenGL effects only
@@ -434,25 +436,46 @@ const CameraComponent = ({navigation}) => {
     return () => clearInterval(interval);
   }, [activeFilters]);
 
-  // Fetch latest media for gallery preview
+  // Fetch latest media for gallery preview (from app's photos)
   const fetchLatestMedia = async () => {
     try {
-      const result = await CameraRoll.getPhotos({
-        first: 1,
-        assetType: 'All',
-        sortBy: ['creationTime'],
-      });
+      // Get all files from the app's temporary directory
+      const tempDir = RNFS.TemporaryDirectoryPath;
+      const files = await RNFS.readDir(tempDir);
 
-      if (result.edges && result.edges.length > 0) {
-        const latestItem = result.edges[0].node;
+      // Filter for photos taken by the app (skia_filtered_ and filtered_ prefixes)
+      const photoFiles = files.filter(
+        file =>
+          (file.name.startsWith('skia_filtered_') ||
+            file.name.startsWith('filtered_')) &&
+          file.name.endsWith('.jpg'),
+      );
+
+      // Sort by creation time (newest first) and get the latest
+      const sortedPhotos = photoFiles
+        .map(file => ({
+          uri: `file://${file.path}`,
+          name: file.name,
+          timestamp: file.mtime || new Date(),
+        }))
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      if (sortedPhotos.length > 0) {
         setLatestMedia({
-          uri: latestItem.image.uri,
-          type: latestItem.type,
-          filename: latestItem.image.filename,
+          uri: sortedPhotos[0].uri,
+          type: 'photo',
+          filename: sortedPhotos[0].name,
+          timestamp:
+            sortedPhotos[0].timestamp instanceof Date
+              ? sortedPhotos[0].timestamp.toISOString()
+              : sortedPhotos[0].timestamp,
         });
+      } else {
+        setLatestMedia(null);
       }
     } catch (error) {
       console.error('Error fetching latest media:', error);
+      setLatestMedia(null);
     }
   };
 
@@ -727,6 +750,8 @@ const CameraComponent = ({navigation}) => {
       console.log('Attempting to save photo:', photoUri);
       await CameraRoll.save(photoUri);
       console.log('Photo saved successfully');
+      // Refresh gallery preview to show the new photo
+      fetchLatestMedia();
       return true;
     } catch (error) {
       console.error('Error saving to gallery:', error);
@@ -774,7 +799,11 @@ const CameraComponent = ({navigation}) => {
       console.log('🎨 Filter config:', filterConfig);
 
       // Get the correct color matrix for the specific filter
-      const colorMatrix = getFilterMatrix(filterId);
+      const colorMatrix = getFilterMatrix(
+        filterId,
+        openglFilterEffects,
+        createColorMatrixFromFilter,
+      );
       console.log('🎨 Color matrix:', colorMatrix);
 
       const colorFilter = Skia.ColorFilter.MakeMatrix(colorMatrix);
@@ -794,16 +823,18 @@ const CameraComponent = ({navigation}) => {
       const image = surface.makeImageSnapshot();
       const imageDataOut = image.encodeToBytes();
 
-      // Write to file
+      // Write to file with filter ID in filename
       const outputPath = `${
         RNFS.TemporaryDirectoryPath
-      }/skia_filtered_${Date.now()}.jpg`;
+      }/skia_filtered_${filterId}_${Date.now()}.jpg`;
       await RNFS.writeFile(
         outputPath,
         Buffer.from(imageDataOut).toString('base64'),
         'base64',
       );
 
+      // Refresh gallery preview to show the new filtered photo
+      fetchLatestMedia();
       return outputPath;
     } catch (error) {
       console.error('❌ Alternative Skia approach failed:', error);
@@ -814,366 +845,21 @@ const CameraComponent = ({navigation}) => {
         const colorMatrix = createColorMatrixFromFilter(filterConfig);
         const outputPath = `${
           RNFS.TemporaryDirectoryPath
-        }/filtered_${Date.now()}.jpg`;
+        }/filtered_${filterId}_${Date.now()}.jpg`;
 
         await ColorMatrixImageFilter.processImage(
           photoUri,
           outputPath,
           colorMatrix,
         );
+        // Refresh gallery preview to show the new filtered photo
+        fetchLatestMedia();
         return outputPath;
       } catch (fallbackError) {
         console.error('❌ Fallback also failed:', fallbackError);
         return photoUri;
       }
     }
-  };
-
-  // Function to get the correct color matrix for each filter
-  const getFilterMatrix = filterId => {
-    // VIDEO FILTERS
-    if (filterId === 'vclassic') {
-      // Vintage classic video look - warm, slightly desaturated
-      return [
-        1.1, 0.1, 0.1, 0, 0, 0.1, 0.9, 0.1, 0, 0, 0.1, 0.1, 0.8, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'originalv') {
-      // Original video - clean, slightly enhanced
-      return [
-        1.05, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.05, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'dam') {
-      // DAM filter - dramatic, high contrast
-      return [1.3, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 1, 0];
-    }
-
-    if (filterId === '16mm') {
-      // 16mm film look - warm, grainy
-      return [
-        1.2, 0.1, 0.05, 0, 0, 0.05, 0.9, 0.1, 0, 0, 0.05, 0.1, 0.8, 0, 0, 0, 0,
-        0, 1, 0,
-      ];
-    }
-
-    if (filterId === '8mm') {
-      // 8mm film look - vintage, faded
-      return [
-        1.1, 0.15, 0.1, 0, 0, 0.1, 0.85, 0.15, 0, 0, 0.1, 0.15, 0.75, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'vhs') {
-      // VHS look - retro, slightly distorted
-      return [
-        1.15, 0.1, 0.05, 0, 0, 0.05, 0.95, 0.1, 0, 0, 0.05, 0.1, 0.85, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'kino') {
-      // Kino filter - cinematic, moody
-      return [
-        1.25, 0, 0, 0, 0, 0, 0.85, 0, 0, 0, 0, 0, 0.75, 0, 0, 0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'instss') {
-      // Inst SS - instant film look
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.9, 0, 0, 0, 0,
-        0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'dcr') {
-      // DCR - digital camera look
-      return [
-        1.05, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.05, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    // DIGITAL FILTERS
-    if (filterId === 'original') {
-      // Original - clean, no filter
-      return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
-    }
-
-    if (filterId === 'grdr') {
-      // GRD R - digital GR look
-      return [
-        1.1, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.1, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'ccdr') {
-      // CCD R - CCD sensor look
-      return [
-        1.15, 0.05, 0.05, 0, 0, 0.05, 1.1, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'collage') {
-      // Collage - artistic, vibrant
-      return [
-        1.2, 0.1, 0.1, 0, 0, 0.1, 1.2, 0.1, 0, 0, 0.1, 0.1, 1.2, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'puli') {
-      // Puli - unique color treatment
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.95, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'fxnr') {
-      // FXN R - experimental look
-      return [
-        1.25, 0.05, 0.05, 0, 0, 0.05, 0.9, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    // VINTAGE 135 FILTERS
-    if (filterId === 'dclassic') {
-      // D Classic - vintage classic
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 0.95, 0.1, 0, 0, 0.05, 0.1, 0.85, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'grf') {
-      // GR F - black and white (grayscale)
-      return [
-        0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
-        0.114, 0, 0, 0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'ct2f') {
-      // CT2F - cool tone
-      return [
-        0.9, 0.1, 0.1, 0, 0, 0.1, 1.1, 0.1, 0, 0, 0.1, 0.1, 1.2, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'dexp') {
-      // D Exp - experimental
-      return [
-        1.2, 0.05, 0.05, 0, 0, 0.05, 0.85, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'nt16') {
-      // NT16 - neutral tone
-      return [
-        1.05, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.05, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'd3d') {
-      // D3D - 3D effect
-      return [
-        1.15, 0.1, 0.05, 0, 0, 0.05, 1.1, 0.1, 0, 0, 0.05, 0.1, 1.15, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === '135ne') {
-      // 135 NE - negative effect
-      return [
-        0.2, 0.8, 0.8, 0, 0, 0.8, 0.2, 0.8, 0, 0, 0.8, 0.8, 0.2, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'dfuns') {
-      // D FunS - fun, vibrant
-      return [
-        1.3, 0.1, 0.1, 0, 0, 0.1, 1.3, 0.1, 0, 0, 0.1, 0.1, 1.3, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'ir') {
-      // IR - infrared effect
-      return [
-        0.5, 0.5, 0.5, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'classicu') {
-      // Classic U - universal classic
-      return [
-        1.1, 0.05, 0.05, 0, 0, 0.05, 1.05, 0.05, 0, 0, 0.05, 0.05, 1.1, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'golf') {
-      // Golf - sporty look
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 1.15, 0.1, 0, 0, 0.05, 0.1, 0.9, 0, 0, 0, 0,
-        0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'cpm35') {
-      // CPM35 - compact look
-      return [
-        1.05, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 1.05, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === '135sr') {
-      // 135 SR - slide reversal
-      return [
-        1.2, 0.05, 0.05, 0, 0, 0.05, 1.1, 0.05, 0, 0, 0.05, 0.05, 1.2, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'dhalf') {
-      // D Half - half frame
-      return [
-        1.15, 0.05, 0.05, 0, 0, 0.05, 1.15, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'dslide') {
-      // D Slide - slide film look
-      return [
-        1.25, 0.05, 0.05, 0, 0, 0.05, 1.2, 0.05, 0, 0, 0.05, 0.05, 1.25, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    // VINTAGE 120 FILTERS
-    if (filterId === 'sclassic') {
-      // S Classic - square format classic
-      return [
-        1.1, 0.05, 0.05, 0, 0, 0.05, 1.1, 0.05, 0, 0, 0.05, 0.05, 1.1, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'hoga') {
-      // HOGA - medium format look
-      return [
-        1.15, 0.05, 0.05, 0, 0, 0.05, 1.15, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 's67') {
-      // S 67 - 6x7 format
-      return [
-        1.2, 0.05, 0.05, 0, 0, 0.05, 1.2, 0.05, 0, 0, 0.05, 0.05, 1.2, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'kv88') {
-      // KV88 - vintage medium format
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.95, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    // INST COLLECTION FILTERS
-    if (filterId === 'instc') {
-      // Inst C - instant camera
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.9, 0, 0, 0, 0,
-        0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'instsqc') {
-      // Inst SQC - square instant
-      return [
-        1.15, 0.05, 0.05, 0, 0, 0.05, 1.15, 0.05, 0, 0, 0.05, 0.05, 1.15, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'pafr') {
-      // PAF R - polaroid look
-      return [
-        1.1, 0.1, 0.05, 0, 0, 0.05, 1.05, 0.1, 0, 0, 0.05, 0.1, 0.85, 0, 0, 0,
-        0, 0, 1, 0,
-      ];
-    }
-
-    // ACCESSORY FILTERS
-    if (filterId === 'ndfilter') {
-      // ND Filter - neutral density (darker)
-      return [0.7, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 1, 0];
-    }
-
-    if (filterId === 'fisheyef') {
-      // Fisheye F - fisheye effect
-      return [
-        1.2, 0.1, 0.05, 0, 0, 0.05, 1.1, 0.1, 0, 0, 0.05, 0.1, 1.2, 0, 0, 0, 0,
-        0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'fisheyew') {
-      // Fisheye W - wide fisheye
-      return [
-        1.15, 0.1, 0.05, 0, 0, 0.05, 1.2, 0.1, 0, 0, 0.05, 0.1, 1.15, 0, 0, 0,
-        0, 1, 0,
-      ];
-    }
-
-    if (filterId === 'prism') {
-      // Prism - prismatic effect
-      return [
-        1.1, 0.2, 0.1, 0, 0, 0.1, 0.8, 0.3, 0, 0, 0.1, 0.2, 0.9, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'flashc') {
-      // Flash C - flash effect
-      return [
-        1.2, 0.1, 0.1, 0, 0, 0.1, 1.2, 0.1, 0, 0, 0.1, 0.1, 1.2, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    if (filterId === 'star') {
-      // Star - star filter effect
-      return [
-        1.3, 0.1, 0.1, 0, 0, 0.1, 1.3, 0.1, 0, 0, 0.1, 0.1, 1.3, 0, 0, 0, 0, 0,
-        1, 0,
-      ];
-    }
-
-    // Fallback: Use the original createColorMatrixFromFilter function
-    const filterConfig = openglFilterEffects[filterId];
-    return createColorMatrixFromFilter(filterConfig);
   };
 
   // Helper function to create color matrix from filter config
@@ -1380,24 +1066,8 @@ const CameraComponent = ({navigation}) => {
   };
 
   const openGallery = () => {
-    const options = {
-      mediaType: 'mixed', // Allow both photos and videos
-      quality: 1,
-      includeBase64: false,
-    };
-
-    launchImageLibrary(options, response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.error) {
-        console.log('ImagePicker Error: ', response.error);
-        Alert.alert('Error', 'Failed to open gallery');
-      } else if (response.assets && response.assets[0]) {
-        const item = response.assets[0];
-        // Navigate to GalleryItemPreview with the selected item
-        navigation.navigate('GalleryItemPreview', {item});
-      }
-    });
+    // Navigate to AppGallery instead of opening device gallery
+    navigation.navigate('AppGallery');
   };
 
   const openFilterControl = () => {
@@ -1465,81 +1135,6 @@ const CameraComponent = ({navigation}) => {
     const currentIndex = timerModes.indexOf(timerMode);
     const nextIndex = (currentIndex + 1) % timerModes.length;
     setTimerMode(timerModes[nextIndex]);
-  };
-
-  // Function to get the selected camera icon
-  const getSelectedCameraIcon = () => {
-    // If no camera selected globally, use the first active filter
-    const cameraId =
-      global.selectedCameraId ||
-      (activeFilters.length > 0 ? activeFilters[0] : null);
-    if (!cameraId) return null;
-
-    // Import all camera icons
-    const cameraIcons = {
-      // DIGITAL
-      original: require('../src/assets/cameras/original.png'),
-      grdr: require('../src/assets/cameras/grdr.png'),
-      ccdr: require('../src/assets/cameras/ccdr.png'),
-      collage: require('../src/assets/cameras/collage.png'),
-      puli: require('../src/assets/cameras/puli.png'),
-      fxnr: require('../src/assets/cameras/fxnr.png'),
-
-      // VIDEO
-      vclassic: require('../src/assets/cameras/vclassic.png'),
-      originalv: require('../src/assets/cameras/originalv.png'),
-      dam: require('../src/assets/cameras/dam.png'),
-      '16mm': require('../src/assets/cameras/16mm.png'),
-      '8mm': require('../src/assets/cameras/8mm.png'),
-      vhs: require('../src/assets/cameras/vhs.png'),
-      kino: require('../src/assets/cameras/kino.png'),
-      instss: require('../src/assets/cameras/instss.png'),
-      vfuns: require('../src/assets/cameras/vfuns.png'),
-      dcr: require('../src/assets/cameras/dcr.png'),
-      glow: require('../src/assets/cameras/glow.png'),
-      slidep: require('../src/assets/cameras/slidep.png'),
-
-      // VINTAGE 120
-      sclassic: require('../src/assets/cameras/sclassic.png'),
-      hoga: require('../src/assets/cameras/hoga.png'),
-      s67: require('../src/assets/cameras/s67.png'),
-      kv88: require('../src/assets/cameras/kv88.png'),
-
-      // INST COLLECTION
-      instc: require('../src/assets/cameras/instc.png'),
-      instsq: require('../src/assets/cameras/instsq.png'),
-      instsqc: require('../src/assets/cameras/instsqc.png'),
-      pafr: require('../src/assets/cameras/pafr.png'),
-
-      // VINTAGE 135
-      dclassic: require('../src/assets/cameras/dclassic.png'),
-      grf: require('../src/assets/cameras/grf.png'),
-      ct2f: require('../src/assets/cameras/ct2f.png'),
-      dexp: require('../src/assets/cameras/dexp.png'),
-      nt16: require('../src/assets/cameras/nt16.png'),
-      d3d: require('../src/assets/cameras/d3d.png'),
-      '135ne': require('../src/assets/cameras/135ne.png'),
-      dfuns: require('../src/assets/cameras/dfuns.png'),
-      ir: require('../src/assets/cameras/ir.png'),
-      classicu: require('../src/assets/cameras/classicu.png'),
-      dqs: require('../src/assets/cameras/dqs.png'),
-      fqsr: require('../src/assets/cameras/fqsr.png'),
-      golf: require('../src/assets/cameras/golf.png'),
-      cpm35: require('../src/assets/cameras/cmp35.png'),
-      '135sr': require('../src/assets/cameras/135sr.png'),
-      dhalf: require('../src/assets/cameras/dhalf.png'),
-      dslide: require('../src/assets/cameras/dslide.png'),
-
-      // ACCESSORY
-      ndfilter: require('../src/assets/accessory/ndfilter.png'),
-      fisheyef: require('../src/assets/accessory/fisheyef.png'),
-      fisheyew: require('../src/assets/accessory/fisheyew.png'),
-      prism: require('../src/assets/accessory/prism.png'),
-      flashc: require('../src/assets/accessory/flashc.png'),
-      star: require('../src/assets/accessory/star.png'),
-    };
-
-    return cameraIcons[cameraId] || null;
   };
 
   // Show permission request screen if permission is denied
@@ -2304,9 +1899,9 @@ const CameraComponent = ({navigation}) => {
         <TouchableOpacity
           style={styles.selectedCameraContainer}
           onPress={openFilterControl}>
-          {getSelectedCameraIcon() ? (
+          {getSelectedCameraIcon(global, activeFilters) ? (
             <Image
-              source={getSelectedCameraIcon()}
+              source={getSelectedCameraIcon(global, activeFilters)}
               style={styles.selectedCameraIcon}
             />
           ) : (
