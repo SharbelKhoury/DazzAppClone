@@ -892,7 +892,18 @@ const CameraComponent = ({navigation}) => {
       );
       console.log('🎨 Color matrix:', colorMatrix);
 
-      const colorFilter = Skia.ColorFilter.MakeMatrix(colorMatrix);
+      // Create temperature color matrix based on current temperature value
+      const temperatureMatrix = createTemperatureColorMatrix(temperatureValue);
+      console.log('🌡️ Temperature matrix:', temperatureMatrix);
+
+      // Combine filter and temperature matrices
+      const combinedMatrix = combineColorMatrices(
+        colorMatrix,
+        temperatureMatrix,
+      );
+      console.log('🎨 Combined matrix:', combinedMatrix);
+
+      const colorFilter = Skia.ColorFilter.MakeMatrix(combinedMatrix);
 
       // Create paint
       const paint = Skia.Paint();
@@ -1027,6 +1038,86 @@ const CameraComponent = ({navigation}) => {
     }
 
     return matrix;
+  };
+
+  // Helper function to create temperature color matrix
+  const createTemperatureColorMatrix = tempValue => {
+    // Convert temperatureValue (0-100) to Kelvin (3000-7000)
+    const kelvin = 3000 + (tempValue / 100) * 4000;
+
+    // Create temperature color matrix based on inverted polarities
+    let rMultiplier = 1.0;
+    let gMultiplier = 1.0;
+    let bMultiplier = 1.0;
+
+    if (kelvin <= 3200) {
+      // Very warm (tungsten) - now gives strong BLUE tint (cold)
+      rMultiplier = 0.85; // Reduce red
+      gMultiplier = 0.9; // Slightly reduce green
+      bMultiplier = 1.2; // Increase blue
+    } else if (kelvin <= 4000) {
+      // Warm (sunrise/sunset) - now gives light BLUE tint (cool)
+      rMultiplier = 0.9; // Reduce red
+      gMultiplier = 0.95; // Slightly reduce green
+      bMultiplier = 1.1; // Increase blue
+    } else if (kelvin <= 5000) {
+      // Neutral (midday) - now gives slight COOL tint
+      rMultiplier = 0.95; // Slightly reduce red
+      gMultiplier = 0.98; // Slightly reduce green
+      bMultiplier = 1.05; // Slightly increase blue
+    } else if (kelvin <= 6000) {
+      // Cool (overcast) - now gives slight WARM tint
+      rMultiplier = 1.05; // Slightly increase red
+      gMultiplier = 1.02; // Slightly increase green
+      bMultiplier = 0.95; // Slightly reduce blue
+    } else {
+      // Very cool (shade) - now gives stronger WARM tint
+      rMultiplier = 1.2; // Increase red
+      gMultiplier = 1.1; // Increase green
+      bMultiplier = 0.85; // Reduce blue
+    }
+
+    // Return temperature color matrix (5x4 matrix)
+    return [
+      rMultiplier,
+      0,
+      0,
+      0,
+      0,
+      0,
+      gMultiplier,
+      0,
+      0,
+      0,
+      0,
+      0,
+      bMultiplier,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ];
+  };
+
+  // Helper function to combine two color matrices
+  const combineColorMatrices = (matrix1, matrix2) => {
+    // Matrix multiplication for 5x4 matrices
+    const result = [];
+
+    for (let i = 0; i < 4; i++) {
+      for (let j = 0; j < 5; j++) {
+        let sum = 0;
+        for (let k = 0; k < 4; k++) {
+          sum += matrix1[i * 5 + k] * matrix2[k * 5 + j];
+        }
+        result.push(sum);
+      }
+    }
+
+    return result;
   };
 
   // MODIFIED: applyFiltersToPhoto function to use Skia
