@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  ScrollView,
 } from 'react-native';
 import RNFS from 'react-native-fs';
 import {launchImageLibrary} from 'react-native-image-picker';
@@ -53,6 +54,153 @@ const AppGallery = ({navigation}) => {
     });
 
     return filterMap;
+  };
+
+  // Create a comprehensive mapping for all possible filter names
+  const createComprehensiveFilterMap = () => {
+    const comprehensiveMap = {};
+
+    // Add all cameras from all categories with multiple possible keys
+    cameraCategories.forEach(category => {
+      if (category.cameras) {
+        category.cameras.forEach(camera => {
+          // Map by ID
+          comprehensiveMap[camera.id] = {
+            name: camera.name,
+            icon: camera.icon,
+          };
+          // Map by lowercase ID
+          comprehensiveMap[camera.id.toLowerCase()] = {
+            name: camera.name,
+            icon: camera.icon,
+          };
+          // Map by name
+          comprehensiveMap[camera.name] = {
+            name: camera.name,
+            icon: camera.icon,
+          };
+          // Map by lowercase name
+          comprehensiveMap[camera.name.toLowerCase()] = {
+            name: camera.name,
+            icon: camera.icon,
+          };
+        });
+      }
+      if (category.accessories) {
+        category.accessories.forEach(accessory => {
+          // Map by ID
+          comprehensiveMap[accessory.id] = {
+            name: accessory.name,
+            icon: accessory.icon,
+          };
+          // Map by lowercase ID
+          comprehensiveMap[accessory.id.toLowerCase()] = {
+            name: accessory.name,
+            icon: accessory.icon,
+          };
+          // Map by name
+          comprehensiveMap[accessory.name] = {
+            name: accessory.name,
+            icon: accessory.icon,
+          };
+          // Map by lowercase name
+          comprehensiveMap[accessory.name.toLowerCase()] = {
+            name: accessory.name,
+            icon: accessory.icon,
+          };
+        });
+      }
+    });
+
+    return comprehensiveMap;
+  };
+
+  // Static mapping of all camera icons - React Native requires static require() calls
+  const cameraIconMap = {
+    // DIGITAL
+    original: require('../src/assets/cameras/original.png'),
+    grdr: require('../src/assets/cameras/grdr.png'),
+    ccdr: require('../src/assets/cameras/ccdr.png'),
+    collage: require('../src/assets/cameras/collage.png'),
+    puli: require('../src/assets/cameras/puli.png'),
+    fxnr: require('../src/assets/cameras/fxnr.png'),
+
+    // VIDEO
+    vclassic: require('../src/assets/cameras/vclassic.png'),
+    originalv: require('../src/assets/cameras/originalv.png'),
+    dam: require('../src/assets/cameras/dam.png'),
+    '16mm': require('../src/assets/cameras/16mm.png'),
+    '8mm': require('../src/assets/cameras/8mm.png'),
+    vhs: require('../src/assets/cameras/vhs.png'),
+    kino: require('../src/assets/cameras/kino.png'),
+    instss: require('../src/assets/cameras/instss.png'),
+    vfuns: require('../src/assets/cameras/vfuns.png'),
+    dcr: require('../src/assets/cameras/dcr.png'),
+    glow: require('../src/assets/cameras/glow.png'),
+    slidep: require('../src/assets/cameras/slidep.png'),
+
+    // VINTAGE 120
+    sclassic: require('../src/assets/cameras/sclassic.png'),
+    hoga: require('../src/assets/cameras/hoga.png'),
+    s67: require('../src/assets/cameras/s67.png'),
+    kv88: require('../src/assets/cameras/kv88.png'),
+
+    // INST COLLECTION
+    instc: require('../src/assets/cameras/instc.png'),
+    instsq: require('../src/assets/cameras/instsq.png'),
+    instsqc: require('../src/assets/cameras/instsqc.png'),
+    pafr: require('../src/assets/cameras/pafr.png'),
+
+    // VINTAGE 135
+    dclassic: require('../src/assets/cameras/dclassic.png'),
+    grf: require('../src/assets/cameras/grf.png'),
+    ct2f: require('../src/assets/cameras/ct2f.png'),
+    dexp: require('../src/assets/cameras/dexp.png'),
+    nt16: require('../src/assets/cameras/nt16.png'),
+    d3d: require('../src/assets/cameras/d3d.png'),
+    '135ne': require('../src/assets/cameras/135ne.png'),
+    dfuns: require('../src/assets/cameras/dfuns.png'),
+    ir: require('../src/assets/cameras/ir.png'),
+    classicu: require('../src/assets/cameras/classicu.png'),
+    dqs: require('../src/assets/cameras/dqs.png'),
+    fqsr: require('../src/assets/cameras/fqsr.png'),
+    golf: require('../src/assets/cameras/golf.png'),
+    cmp35: require('../src/assets/cameras/cmp35.png'),
+    '135sr': require('../src/assets/cameras/135sr.png'),
+    dhalf: require('../src/assets/cameras/dhalf.png'),
+    dslide: require('../src/assets/cameras/dslide.png'),
+  };
+
+  // Function to load camera icons using the static map
+  const loadCameraIcon = filterName => {
+    if (
+      !filterName ||
+      filterName === 'All Photos' ||
+      filterName === 'Unknown'
+    ) {
+      return require('../src/assets/icons/camera.png');
+    }
+
+    // Try to find the icon in the static map
+    const normalizedFilterName = filterName.toLowerCase();
+
+    // Direct match
+    if (cameraIconMap[normalizedFilterName]) {
+      return cameraIconMap[normalizedFilterName];
+    }
+
+    // Try to find a partial match
+    for (const [iconKey, iconValue] of Object.entries(cameraIconMap)) {
+      if (
+        iconKey.includes(normalizedFilterName) ||
+        normalizedFilterName.includes(iconKey)
+      ) {
+        return iconValue;
+      }
+    }
+
+    // If no match found, return default icon
+    return require('../src/assets/icons/camera.png');
   };
 
   const filterMap = getFilterMap();
@@ -260,7 +408,11 @@ const AppGallery = ({navigation}) => {
   const getFilterDisplayName = filterName => {
     if (filterName === 'All Photos') return 'All Photos';
 
-    const filterInfo = filterMap[filterName];
+    // Use the comprehensive filter map for better matching
+    const comprehensiveMap = createComprehensiveFilterMap();
+    const filterInfo =
+      comprehensiveMap[filterName] ||
+      comprehensiveMap[filterName.toLowerCase()];
     return filterInfo ? filterInfo.name : filterName;
   };
 
@@ -269,8 +421,19 @@ const AppGallery = ({navigation}) => {
       return require('../src/assets/icons/gallery-plus.png');
     }
 
-    const filterInfo = filterMap[filterName];
-    return filterInfo ? filterInfo.icon : null;
+    // Use the comprehensive filter map for better matching
+    const comprehensiveMap = createComprehensiveFilterMap();
+
+    // Try to find the filter in the comprehensive map
+    const filterInfo =
+      comprehensiveMap[filterName] ||
+      comprehensiveMap[filterName.toLowerCase()];
+    if (filterInfo && filterInfo.icon) {
+      return filterInfo.icon;
+    }
+
+    // If not found in the map, use the dynamic icon loader
+    return loadCameraIcon(filterName);
   };
 
   const renderPhotoItem = ({item, index}) => {
@@ -331,33 +494,45 @@ const AppGallery = ({navigation}) => {
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={() => setShowFilterDropdown(false)}>
-        <View style={styles.dropdownContainer}>
-          {Object.entries(filterStats).map(([filterName, count]) => {
-            const filterIcon = getFilterIcon(filterName);
-            const displayName = getFilterDisplayName(filterName);
+        <ScrollView style={styles.dropdownContainer}>
+          {Object.entries(filterStats).map(
+            ([filterName, count], index, array) => {
+              const filterIcon = getFilterIcon(filterName);
+              const displayName = getFilterDisplayName(filterName);
+              const isLastItem = index === array.length - 1;
 
-            return (
-              <TouchableOpacity
-                key={filterName}
-                style={styles.filterOption}
-                onPress={() => {
-                  setSelectedFilter(filterName);
-                  setShowFilterDropdown(false);
-                }}>
-                <View style={styles.filterOptionLeft}>
-                  {filterIcon && (
-                    <Image
-                      source={filterIcon}
-                      style={styles.filterOptionIcon}
-                    />
-                  )}
-                  <Text style={styles.filterOptionText}>{displayName}</Text>
-                </View>
-                <Text style={styles.filterOptionCount}>{count}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              return (
+                <TouchableOpacity
+                  key={filterName}
+                  style={[
+                    styles.filterOption,
+                    isLastItem && {marginBottom: 15},
+                  ]}
+                  onPress={() => {
+                    setSelectedFilter(filterName);
+                    setShowFilterDropdown(false);
+                  }}>
+                  <View style={styles.filterOptionLeft}>
+                    {filterIcon && (
+                      <Image
+                        source={filterIcon}
+                        style={[
+                          styles.filterOptionIcon,
+                          (filterName === 'All Photos' ||
+                            filterName === 'Unknown') && {
+                            tintColor: '#fff',
+                          },
+                        ]}
+                      />
+                    )}
+                    <Text style={styles.filterOptionText}>{displayName}</Text>
+                  </View>
+                  <Text style={styles.filterOptionCount}>{count}</Text>
+                </TouchableOpacity>
+              );
+            },
+          )}
+        </ScrollView>
       </TouchableOpacity>
     </Modal>
   );
@@ -682,7 +857,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     marginRight: 12,
-    tintColor: '#fff',
   },
   filterOptionText: {
     color: '#fff',
