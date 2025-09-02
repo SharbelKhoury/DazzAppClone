@@ -16,6 +16,7 @@ import {
 import RNFS from 'react-native-fs';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {cameraIcons, cameraCategories} from '../utils/cameraData';
+import {useFocusEffect} from '@react-navigation/native';
 
 const {width, height} = Dimensions.get('window');
 
@@ -268,6 +269,13 @@ const AppGallery = ({navigation}) => {
     fetchAppPhotos();
   }, []);
 
+  // Refresh photos when screen comes into focus (e.g., returning from GalleryItemPreview)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchAppPhotos();
+    }, []),
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchAppPhotos();
@@ -277,7 +285,7 @@ const AppGallery = ({navigation}) => {
     if (isSelectionMode) {
       togglePhotoSelection(photo);
     } else {
-      // Navigate to GalleryItemPreview with the selected photo and refresh callback
+      // Navigate to GalleryItemPreview with the selected photo
       navigation.navigate('GalleryItemPreview', {
         item: {
           uri: photo.uri,
@@ -288,7 +296,6 @@ const AppGallery = ({navigation}) => {
               ? photo.timestamp.toISOString()
               : photo.timestamp,
         },
-        onRefresh: fetchAppPhotos, // Pass the refresh function
       });
     }
   };
@@ -384,7 +391,6 @@ const AppGallery = ({navigation}) => {
         const item = response.assets[0];
         navigation.navigate('GalleryItemPreview', {
           item,
-          onRefresh: fetchAppPhotos, // Pass the refresh function for consistency
         });
       }
     });

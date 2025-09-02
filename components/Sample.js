@@ -123,6 +123,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
+    marginRight: 20,
+    marginBottom: 20,
   },
   tryButtonText: {
     color: '#fff',
@@ -130,10 +132,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   closeButton: {
+    backgroundColor: '#333',
+    borderRadius: 20,
     width: 30,
     height: 30,
+    paddingTop: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 20,
+    marginBottom: 20,
   },
   closeButtonText: {
     color: '#fff',

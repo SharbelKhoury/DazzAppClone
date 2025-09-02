@@ -10,6 +10,7 @@ import {
   StatusBar,
   AppState,
   PanResponder,
+  ScrollView,
 } from 'react-native';
 
 import {
@@ -147,7 +148,7 @@ const CameraComponent = ({navigation}) => {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
-  const [focalLength, setFocalLength] = useState(focalLengthArray[1]);
+  const [focalLength, setFocalLength] = useState(focalLengthArray[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPhotoEnabled, setIsPhotoEnabled] = useState(false);
   const [isAppInBackground, setIsAppInBackground] = useState(false);
@@ -233,7 +234,19 @@ const CameraComponent = ({navigation}) => {
   // const [openGLWorking, setOpenGLWorking] = useState(true); // Commented for future use
 
   // Camera position state - using the simpler approach like your friend
-  const [cameraPosition, setCameraPosition] = useState('front');
+  const aspectRatioArray = [
+    'threeTwo',
+    'fourThree',
+    'nineSixteen',
+    'sixteenNine',
+  ];
+  const [cameraPosition, setCameraPosition] = useState('back');
+  const [aspectRatio, setAspectRatio] = useState(aspectRatioArray[1]);
+  const [aspectRatioType, setAspectRatioType] = useState('Selected');
+  const timestampArray = ['none', '1', '2', '3'];
+  const [timestamp, setTimestamp] = useState(timestampArray[0]);
+  const colorProfileArray = ['400TX', 'VEL X5', '100ACR'];
+  const [colorProfile, setColorProfile] = useState(colorProfileArray[2]);
   const [flashMode, setFlashMode] = useState('off');
   const [showGrid, setShowGrid] = useState(false);
   const [level, setLevel] = useState(false);
@@ -245,7 +258,7 @@ const CameraComponent = ({navigation}) => {
   const [latestMedia, setLatestMedia] = useState(null);
   const cameraRef = useRef(null); // Ref for Camera component
   const cameraContainerRef = useRef(null); // Ref for camera container (for ViewShot)
-
+  const [bottomControlModal, setBottomControlModal] = useState(false);
   const devices = useCameraDevices();
 
   // Test if OpenGL is working - Commented for future use
@@ -1846,7 +1859,6 @@ const CameraComponent = ({navigation}) => {
             </View>
           )}
         </TouchableOpacity>
-
         {/* Center Controls */}
         <View style={styles.centerControls}>
           {/* Top Row Controls */}
@@ -2095,13 +2107,13 @@ const CameraComponent = ({navigation}) => {
                       position: 'absolute',
                       top: 10,
                       left: `${temperatureValue}%`,
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
                       backgroundColor: '#000',
                       borderWidth: 1.5,
                       borderColor: '#fff',
-                      marginLeft: -5,
+                      marginLeft: -10,
                     }}
                     {...panResponder.panHandlers}
                   />
@@ -2387,7 +2399,6 @@ const CameraComponent = ({navigation}) => {
             )}
           </TouchableOpacity>
         </View>
-
         {/* Right Side - Selected Camera Icon */}
         <TouchableOpacity
           style={styles.selectedCameraContainer}
@@ -2405,19 +2416,436 @@ const CameraComponent = ({navigation}) => {
               </View>
             </View>
           )}
-          <View
-            style={{
-              marginBottom: -15,
-              width: 40,
-              borderRadius: 30,
-              height: 15,
-              zIndex: 10,
-              borderWidth: 1.5,
-              borderColor: 'gray',
-            }}>
-            <View style={styles.selectedIndicator} />
-          </View>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setBottomControlModal(!bottomControlModal)}
+          style={{
+            marginBottom: -45,
+            marginLeft: -60,
+            width: 40,
+            borderRadius: 30,
+            height: 18,
+            zIndex: 10,
+            borderWidth: 1.5,
+            borderColor: 'gray',
+          }}>
+          <View style={styles.selectedIndicator} />
+        </TouchableOpacity>
+        {bottomControlModal && (
+          <View style={styles.bottomControlModal}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.bottomControlModalText, {marginTop: 15}]}>
+                Ratio
+              </Text>
+              <View style={styles.bottomControlModalRatio}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingLeft: -5,
+                    paddingTop: 10,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => setAspectRatio(aspectRatioArray[0])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginRight: 15,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
+                      3:2
+                    </Text>
+                  </TouchableOpacity>
+                  {aspectRatio == aspectRatioArray[1] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 0,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setAspectRatio(aspectRatioArray[1])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text>4:3</Text>
+                  </TouchableOpacity>
+                  {aspectRatio == aspectRatioArray[0] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 95,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 10,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => setAspectRatioType('Original')}>
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={[
+                        {
+                          width: 15,
+                          height: 15,
+                          marginRight: 10,
+                          backgroundColor: '#000',
+                          tintColor: '#fff',
+                          borderRadius: 50,
+                        },
+                        aspectRatioType == 'Selected'
+                          ? {
+                              backgroundColor: '#fff',
+                              borderColor: '#000',
+                              borderWidth: 1,
+                            }
+                          : {},
+                      ]}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.bottomControlModalRatioText}>
+                    Imported assets using selected aspect ratio.
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 24,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => setAspectRatioType('Selected')}>
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={[
+                        {
+                          width: 15,
+                          height: 15,
+                          marginRight: 10,
+                          backgroundColor: '#000',
+                          tintColor: '#fff',
+                          borderRadius: 50,
+                        },
+                        aspectRatioType == 'Original'
+                          ? {
+                              backgroundColor: '#fff',
+                              borderColor: '#000',
+                              borderWidth: 1,
+                            }
+                          : {},
+                      ]}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.bottomControlModalRatioText}>
+                    Imported assets using original aspect ratio.
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={{
+                  marginTop: 8,
+                  width: '100%',
+                  height: 0.7,
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                }}
+              />
+              <Text style={[styles.bottomControlModalText, {marginTop: 20}]}>
+                Color Profile
+              </Text>
+              <View style={styles.bottomControlModalRatio}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingLeft: -5,
+                    paddingTop: 10,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => setColorProfile(colorProfileArray[0])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginRight: 15,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
+                      3:2
+                    </Text>
+                  </TouchableOpacity>
+                  {colorProfile == colorProfileArray[0] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 207,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setColorProfile(colorProfileArray[1])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 20,
+                    }}>
+                    <Text>4:3</Text>
+                  </TouchableOpacity>
+                  {colorProfile == colorProfileArray[1] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 110,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setColorProfile(colorProfileArray[2])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginRight: 15,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
+                      3:2
+                    </Text>
+                  </TouchableOpacity>
+                  {colorProfile == colorProfileArray[2] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 10,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                </View>
+              </View>
+              <View
+                style={{
+                  marginTop: 8,
+                  width: '100%',
+                  height: 0.7,
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                }}
+              />
+              <View style={styles.bottomControlModalRatio}></View>
+              <Text style={[styles.bottomControlModalText, {marginTop: 10}]}>
+                TimeStamp
+              </Text>
+              <View style={styles.bottomControlModalRatio}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingLeft: -5,
+                    paddingTop: 10,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => setTimestamp(timestampArray[0])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginRight: 15,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
+                      3:2
+                    </Text>
+                  </TouchableOpacity>
+                  {timestamp == timestampArray[0] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 292,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setTimestamp(timestampArray[1])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 15,
+                    }}>
+                    <Text>4:3</Text>
+                  </TouchableOpacity>
+                  {timestamp == timestampArray[1] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 195,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setTimestamp(timestampArray[2])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginRight: 10,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
+                      3:2
+                    </Text>
+                  </TouchableOpacity>
+                  {timestamp == timestampArray[2] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 100,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setTimestamp(timestampArray[3])}
+                    style={{
+                      width: 80,
+                      height: 55,
+                      marginRight: 15,
+                      marginBottom: 20,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#000',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
+                      3:2
+                    </Text>
+                  </TouchableOpacity>
+                  {timestamp == timestampArray[3] && (
+                    <Image
+                      source={require('../src/assets/icons/checkmark.png')}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        backgroundColor: '#000',
+                        tintColor: '#fff',
+                        borderRadius: 50,
+                        position: 'absolute',
+                        right: 10,
+                        bottom: 17,
+                      }}
+                    />
+                  )}
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -2932,8 +3360,8 @@ const styles = StyleSheet.create({
   },
   selectedIndicator: {
     position: 'absolute',
-    bottom: 5,
-    left: '50%',
+    bottom: 6.5,
+    left: '49%',
     zIndex: 10,
     marginLeft: -7.5,
     width: 16,
@@ -2999,6 +3427,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  bottomControlModal: {
+    position: 'absolute',
+    bottom: -70,
+    height: 532.5,
+    borderTopRightRadius: 23,
+    borderTopLeftRadius: 23,
+    backgroundColor: 'rgba(250, 250, 250, 1)',
+    left: 0,
+    right: 0,
+  },
+  bottomControlModalText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 20,
+    marginTop: 32,
+    color: '#000',
+  },
+  bottomControlModalRatio: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+    paddingTop: 10,
+    justifyContent: 'space-between',
   },
 });
 
