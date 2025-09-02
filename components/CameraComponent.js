@@ -244,6 +244,7 @@ const CameraComponent = ({navigation}) => {
   const [aspectRatio, setAspectRatio] = useState(aspectRatioArray[1]);
   const [aspectRatioType, setAspectRatioType] = useState('Selected');
   const timestampArray = ['none', '1', '2', '3'];
+  const [timestampDate, setTimestampDate] = useState('Generated');
   const [timestamp, setTimestamp] = useState(timestampArray[0]);
   const colorProfileArray = ['400TX', 'VEL X5', '100ACR'];
   const [colorProfile, setColorProfile] = useState(colorProfileArray[2]);
@@ -2425,7 +2426,7 @@ const CameraComponent = ({navigation}) => {
             width: 40,
             borderRadius: 30,
             height: 18,
-            zIndex: 10,
+            zIndex: 2,
             borderWidth: 1.5,
             borderColor: 'gray',
           }}>
@@ -2433,6 +2434,19 @@ const CameraComponent = ({navigation}) => {
         </TouchableOpacity>
         {bottomControlModal && (
           <View style={styles.bottomControlModal}>
+            <TouchableOpacity
+              onPress={() => setBottomControlModal(!bottomControlModal)}>
+              <View
+                style={{
+                  backgroundColor: 'rgb(183, 183, 183)',
+                  width: 60,
+                  height: 6,
+                  borderRadius: 22,
+                  marginTop: 10,
+                  marginLeft: 165,
+                }}
+              />
+            </TouchableOpacity>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={[styles.bottomControlModalText, {marginTop: 15}]}>
                 Ratio
@@ -2609,7 +2623,7 @@ const CameraComponent = ({navigation}) => {
                     }}>
                     <Text
                       style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      3:2
+                      C1
                     </Text>
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[0] && (
@@ -2640,7 +2654,7 @@ const CameraComponent = ({navigation}) => {
                       alignItems: 'center',
                       marginRight: 20,
                     }}>
-                    <Text>4:3</Text>
+                    <Text>C2</Text>
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[1] && (
                     <Image
@@ -2672,7 +2686,7 @@ const CameraComponent = ({navigation}) => {
                     }}>
                     <Text
                       style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      3:2
+                      C3
                     </Text>
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[2] && (
@@ -2727,7 +2741,7 @@ const CameraComponent = ({navigation}) => {
                     }}>
                     <Text
                       style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      3:2
+                      1
                     </Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[0] && (
@@ -2758,7 +2772,7 @@ const CameraComponent = ({navigation}) => {
                       alignItems: 'center',
                       marginRight: 15,
                     }}>
-                    <Text>4:3</Text>
+                    <Text>2</Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[1] && (
                     <Image
@@ -2790,7 +2804,7 @@ const CameraComponent = ({navigation}) => {
                     }}>
                     <Text
                       style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      3:2
+                      3
                     </Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[2] && (
@@ -2823,7 +2837,7 @@ const CameraComponent = ({navigation}) => {
                     }}>
                     <Text
                       style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      3:2
+                      4
                     </Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[3] && (
@@ -2841,6 +2855,74 @@ const CameraComponent = ({navigation}) => {
                       }}
                     />
                   )}
+                </View>
+                <View style={{height: 100, flexDirection: 'column'}}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 10,
+                    }}>
+                    <TouchableOpacity
+                      onPress={() => setTimestampDate('Generated')}>
+                      <Image
+                        source={require('../src/assets/icons/checkmark.png')}
+                        style={[
+                          {
+                            width: 15,
+                            height: 15,
+                            marginRight: 10,
+                            backgroundColor: '#000',
+                            tintColor: '#fff',
+                            borderRadius: 50,
+                          },
+                          timestampDate == 'Current-Date'
+                            ? {
+                                backgroundColor: '#fff',
+                                borderColor: '#000',
+                                borderWidth: 1,
+                              }
+                            : {},
+                        ]}
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.bottomControlModalRatioText}>
+                      Imported assets using selected aspect ratio.
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 24,
+                    }}>
+                    <TouchableOpacity
+                      onPress={() => setTimestampDate('Current-Date')}>
+                      <Image
+                        source={require('../src/assets/icons/checkmark.png')}
+                        style={[
+                          {
+                            width: 15,
+                            height: 15,
+                            marginRight: 10,
+                            backgroundColor: '#000',
+                            tintColor: '#fff',
+                            borderRadius: 50,
+                          },
+                          timestampDate == 'Generated'
+                            ? {
+                                backgroundColor: '#fff',
+                                borderColor: '#000',
+                                borderWidth: 1,
+                              }
+                            : {},
+                        ]}
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.bottomControlModalRatioText}>
+                      Imported assets using original aspect ratio.
+                    </Text>
+                  </View>
                 </View>
               </View>
             </ScrollView>
@@ -3429,6 +3511,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomControlModal: {
+    zIndex: 10,
     position: 'absolute',
     bottom: -70,
     height: 532.5,
