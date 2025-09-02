@@ -671,6 +671,13 @@ const FilterControl = ({navigation}) => {
     }
   }, [dataLoaded, cameraData]);
 
+  const openSubscription = () => {
+    navigation.navigate('Subscription');
+  };
+  const openSample = () => {
+    navigation.navigate('Sample');
+  };
+
   const renderCameraItem = (item, isSelected, onPress) => (
     <TouchableOpacity
       key={item.id}
@@ -711,12 +718,14 @@ const FilterControl = ({navigation}) => {
                 source={require('../src/assets/icons/logo-main.png')}
                 style={styles.bannerLogo}
               />
-              <View style={styles.bannerText}>
+              <TouchableOpacity
+                style={styles.bannerText}
+                onPress={openSubscription}>
                 <Text style={styles.bannerTitle}>Dazz Pro</Text>
                 <Text style={styles.bannerSubtitle}>
                   Unlock all Cameras & Accessories.
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
             <View style={styles.bannerArrow}>
               <Text style={styles.arrowText}>›</Text>
@@ -727,7 +736,7 @@ const FilterControl = ({navigation}) => {
 
       {/* Sample and Menu Icons */}
       <View style={styles.topIcons}>
-        <TouchableOpacity style={styles.sampleContainer}>
+        <TouchableOpacity style={styles.sampleContainer} onPress={openSample}>
           {selectedCamera ? (
             // Show selected camera icon
             <Image

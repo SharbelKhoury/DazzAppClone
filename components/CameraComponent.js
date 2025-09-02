@@ -863,7 +863,7 @@ const CameraComponent = ({navigation}) => {
   // NEW: Function to apply Skia filter to photo using actual Skia Canvas
   const applySkiaFilterToPhoto = async (photoUri, filterId) => {
     try {
-      console.log('🎨 Trying alternative Skia approach...');
+      console.log('🎨 Commencing Skia approach...');
 
       // Read the image file
       const imageData = await RNFS.readFile(photoUri, 'base64');
