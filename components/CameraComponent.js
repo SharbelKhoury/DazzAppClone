@@ -206,27 +206,27 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
-  // Calculate temperature color overlay based on Kelvin value
+  // Calculate temperature color overlay based on Kelvin value (INVERTED POLARITIES)
   const getTemperatureColor = tempValue => {
     // Convert temperatureValue (0-100) to Kelvin (3000-7000)
     const kelvin = 3000 + (tempValue / 100) * 4000;
 
-    // Map Kelvin to color temperature overlay
+    // Map Kelvin to color temperature overlay (INVERTED: warm becomes cold, cold becomes warm)
     if (kelvin <= 3200) {
-      // Very warm (tungsten) - strong orange tint
-      return 'rgba(255, 147, 41, 0.15)'; // Orange with 15% opacity
+      // Very warm (tungsten) - now gives strong BLUE tint (cold)
+      return 'rgba(77, 130, 255, 0.15)'; // Blue with 15% opacity
     } else if (kelvin <= 4000) {
-      // Warm (sunrise/sunset) - golden tint
-      return 'rgba(255, 183, 77, 0.12)'; // Golden with 12% opacity
+      // Warm (sunrise/sunset) - now gives golden BLUE tint (cool)
+      return 'rgba(100, 150, 255, 0.12)'; // Light blue with 12% opacity
     } else if (kelvin <= 5000) {
-      // Neutral (midday) - slight warm tint
-      return 'rgba(255, 200, 100, 0.08)'; // Light warm with 8% opacity
+      // Neutral (midday) - now gives slight COOL tint
+      return 'rgba(150, 180, 255, 0.08)'; // Light cool with 8% opacity
     } else if (kelvin <= 6000) {
-      // Cool (overcast) - slight blue tint
-      return 'rgba(100, 150, 255, 0.08)'; // Light blue with 8% opacity
+      // Cool (overcast) - now gives slight WARM tint
+      return 'rgba(255, 200, 100, 0.08)'; // Light warm with 8% opacity
     } else {
-      // Very cool (shade) - stronger blue tint
-      return 'rgba(77, 130, 255, 0.12)'; // Blue with 12% opacity
+      // Very cool (shade) - now gives stronger WARM tint
+      return 'rgba(255, 147, 41, 0.12)'; // Orange with 12% opacity
     }
   };
 
