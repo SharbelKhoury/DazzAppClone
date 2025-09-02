@@ -183,6 +183,53 @@ const CameraComponent = ({navigation}) => {
       },
     }),
   ).current;
+
+  // Calculate zoom value based on focal length
+  const calculateZoomFromFocalLength = focalLength => {
+    // Map focal lengths to zoom values:
+    // 13mm = 1.0x (widest available - camera hardware limit)
+    // 26mm = 2.0x (standard zoom)
+    // 35mm = 2.3x (medium zoom)
+    // 50mm = 3.0x (close zoom)
+
+    switch (focalLength) {
+      case 13:
+        return 1.0; // Widest available - camera hardware limit
+      case 26:
+        return 2.0; // Standard zoom
+      case 35:
+        return 2.3; // Medium zoom
+      case 50:
+        return 3.0; // Close zoom
+      default:
+        return 2.0; // Default to standard zoom
+    }
+  };
+
+  // Calculate temperature color overlay based on Kelvin value
+  const getTemperatureColor = tempValue => {
+    // Convert temperatureValue (0-100) to Kelvin (3000-7000)
+    const kelvin = 3000 + (tempValue / 100) * 4000;
+
+    // Map Kelvin to color temperature overlay
+    if (kelvin <= 3200) {
+      // Very warm (tungsten) - strong orange tint
+      return 'rgba(255, 147, 41, 0.15)'; // Orange with 15% opacity
+    } else if (kelvin <= 4000) {
+      // Warm (sunrise/sunset) - golden tint
+      return 'rgba(255, 183, 77, 0.12)'; // Golden with 12% opacity
+    } else if (kelvin <= 5000) {
+      // Neutral (midday) - slight warm tint
+      return 'rgba(255, 200, 100, 0.08)'; // Light warm with 8% opacity
+    } else if (kelvin <= 6000) {
+      // Cool (overcast) - slight blue tint
+      return 'rgba(100, 150, 255, 0.08)'; // Light blue with 8% opacity
+    } else {
+      // Very cool (shade) - stronger blue tint
+      return 'rgba(77, 130, 255, 0.12)'; // Blue with 12% opacity
+    }
+  };
+
   // const [openGLWorking, setOpenGLWorking] = useState(true); // Commented for future use
 
   // Camera position state - using the simpler approach like your friend
@@ -336,6 +383,14 @@ const CameraComponent = ({navigation}) => {
       return () => clearTimeout(timer);
     }
   }, [hasPermission, device]);
+
+  // Monitor focal length changes and log zoom level
+  useEffect(() => {
+    const zoomLevel = calculateZoomFromFocalLength(focalLength);
+    console.log(
+      `📷 Focal length changed to ${focalLength}mm (${zoomLevel}x zoom)`,
+    );
+  }, [focalLength]);
 
   useEffect(() => {
     /* console.log('=== CAMERA DEBUG ===');
@@ -1258,6 +1313,7 @@ const CameraComponent = ({navigation}) => {
             device={device}
             isActive={isCameraReady && !!device && !isAppInBackground}
             photo={isPhotoEnabled}
+            zoom={calculateZoomFromFocalLength(focalLength)}
             //video={true}
             //audio={true}
             onInitialized={() => {
@@ -1347,6 +1403,27 @@ const CameraComponent = ({navigation}) => {
           </View>
         )}
       </View>
+
+      {/* Zoom Level Indicator - Moved to left side */}
+      {/*   {device && !isAppInBackground && (
+        <View style={[styles.zoomIndicator, {left: 40, right: 'auto'}]}>
+          <Text style={styles.zoomText}>
+            {calculateZoomFromFocalLength(focalLength)}x
+          </Text>
+        </View>
+      )} */}
+
+      {/* Temperature Overlay - Changes camera tint based on Kelvin value */}
+      {device && !isAppInBackground && (
+        <View
+          style={[
+            styles.temperatureOverlay,
+            {
+              backgroundColor: getTemperatureColor(temperatureValue),
+            },
+          ]}
+        />
+      )}
 
       {/* OpenGL Filter Overlay for All Filters */}
       {activeFilters.length > 0 && !isAppInBackground && (
@@ -1789,9 +1866,11 @@ const CameraComponent = ({navigation}) => {
                   {/* Gradient Background Bar */}
                   <View
                     style={{
-                      width: '100%',
-                      height: 30,
-                      borderRadius: 15,
+                      width: '119%',
+                      height: 53,
+                      marginLeft: -11,
+                      marginTop: -2,
+                      borderRadius: 8,
                       backgroundColor: 'transparent',
                       position: 'relative',
                       overflow: 'hidden',
@@ -1800,8 +1879,8 @@ const CameraComponent = ({navigation}) => {
                     <View
                       style={{
                         width: '100%',
-                        height: '100%',
-                        borderRadius: 15,
+                        height: '160%',
+                        borderRadius: 8,
                         backgroundColor: 'transparent',
                         borderWidth: 1,
                         borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -1815,13 +1894,13 @@ const CameraComponent = ({navigation}) => {
                           backgroundColor: 'transparent',
                           position: 'relative',
                         }}>
-                        {/* Cool to Warm Gradient */}
+                        {/* Smooth Gradient with Overlapping Colors */}
                         <View
                           style={{
                             position: 'absolute',
                             left: 0,
                             top: 0,
-                            width: '25%',
+                            width: '30%',
                             height: '100%',
                             backgroundColor: '#4A90E2', // Cool blue
                           }}
@@ -1829,31 +1908,44 @@ const CameraComponent = ({navigation}) => {
                         <View
                           style={{
                             position: 'absolute',
-                            left: '25%',
+                            left: '20%',
                             top: 0,
-                            width: '25%',
+                            width: '30%',
                             height: '100%',
                             backgroundColor: '#7B68EE', // Purple
+                            opacity: 0.8,
                           }}
                         />
                         <View
                           style={{
                             position: 'absolute',
-                            left: '50%',
+                            left: '40%',
                             top: 0,
-                            width: '25%',
+                            width: '30%',
                             height: '100%',
                             backgroundColor: '#FF6B6B', // Warm red
+                            opacity: 0.8,
                           }}
                         />
                         <View
                           style={{
                             position: 'absolute',
-                            left: '75%',
+                            left: '60%',
                             top: 0,
-                            width: '25%',
+                            width: '30%',
                             height: '100%',
                             backgroundColor: '#FF8C42', // Warm orange
+                            opacity: 0.8,
+                          }}
+                        />
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: '80%',
+                            top: 0,
+                            width: '20%',
+                            height: '100%',
+                            backgroundColor: '#FF6B35', // Warm red-orange
                           }}
                         />
                       </View>
@@ -1935,6 +2027,12 @@ const CameraComponent = ({navigation}) => {
                   alignItems: 'center',
                   marginRight: 14,
                   backgroundColor: '#fff',
+                }}
+                onPress={() => {
+                  // Set temperature to 3597K (A - Auto)
+                  // 3597K = 3000 + (14.925/100) * 4000
+                  // So temperatureValue should be 14.925
+                  setTemperatureValue(14.925);
                 }}>
                 <Text
                   style={{
@@ -1955,6 +2053,12 @@ const CameraComponent = ({navigation}) => {
                   justifyContent: 'center',
                   alignItems: 'center',
                   marginRight: 14,
+                }}
+                onPress={() => {
+                  // Set temperature to 5500K (Sun - Daylight)
+                  // 5500K = 3000 + (62.5/100) * 4000
+                  // So temperatureValue should be 62.5
+                  setTemperatureValue(62.5);
                 }}>
                 <Image
                   source={require('../src/assets/icons/sun.png')}
@@ -1975,6 +2079,12 @@ const CameraComponent = ({navigation}) => {
                   justifyContent: 'center',
                   alignItems: 'center',
                   marginRight: 14,
+                }}
+                onPress={() => {
+                  // Set temperature to 3200K (Lamp - Tungsten)
+                  // 3200K = 3000 + (5/100) * 4000
+                  // So temperatureValue should be 5
+                  setTemperatureValue(5);
                 }}>
                 <Image
                   source={require('../src/assets/icons/lamp.png')}
@@ -2241,6 +2351,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     //borderWidth: 2,
     //borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  zoomIndicator: {
+    position: 'absolute',
+    top: 200,
+    right: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    zIndex: 1000,
+  },
+  zoomText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  temperatureOverlay: {
+    position: 'absolute',
+    top: 160,
+    left: 15,
+    right: 15,
+    bottom: 230,
+    pointerEvents: 'none',
+    zIndex: 500,
+    mixBlendMode: 'overlay',
   },
   cameraFrameInside: {
     position: 'absolute',
