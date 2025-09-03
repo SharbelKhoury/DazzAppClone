@@ -25,23 +25,25 @@ export const skiaFilterEffects = {
 
   grdr: {
     name: 'GR DR',
-    description: 'High contrast black & white',
+    description: 'High contrast definition enhancement',
     effects: {
-      brightness: -0.1,
-      contrast: 1.4,
-      saturation: 0.0, // True black and white
-      gamma: 1.1,
+      brightness: 0.05, // Balanced brightness for good exposure
+      contrast: 1.6, // Enhanced contrast for sharp definition
+      saturation: 1.1, // Natural saturation for color balance
+      gamma: 1.15, // Enhanced gamma for better mid-tones
+      hue: 0, // Neutral hue for natural color balance
     },
   },
 
   ccdr: {
-    name: 'CC DR',
-    description: 'Color corrected digital',
+    name: 'CCD R',
+    description: 'Vintage digital camera look',
     effects: {
-      brightness: 0.1,
-      contrast: 1.3,
-      saturation: 1.2,
-      hue: 5,
+      brightness: -0.25, // Reduced brightness for moody, aged feel
+      contrast: 1.4, // Moderate contrast enhancement for definition
+      saturation: 0.4, // Heavy desaturation for monochromatic feel
+      gamma: 0.9, // Reduced gamma for compressed mid-tones
+      hue: -130, // Strong cool blue-green tint for vintage digital look
     },
   },
 
@@ -58,23 +60,49 @@ export const skiaFilterEffects = {
 
   puli: {
     name: 'Puli',
-    description: 'Moody cinematic look',
+    description: 'Bright vibrant enhancement',
     effects: {
-      brightness: -0.2,
-      contrast: 1.5,
-      saturation: 0.7,
-      hue: -10,
+      brightness: 0.25, // Enhanced brightness for luminous quality
+      contrast: 1.4, // Improved contrast for better definition
+      saturation: 1.3, // Enhanced saturation for vibrant colors
+      gamma: 1.1, // Added gamma for better mid-tones
+      hue: 5, // Slight warm hue shift for natural warmth
+    },
+  },
+
+  fxn: {
+    name: 'FXN',
+    description: 'Dramatic cool vintage look',
+    effects: {
+      brightness: -0.3, // Significantly reduced for dramatic, moody feel
+      contrast: 1.8, // Enhanced contrast for dramatic effect
+      saturation: 0.3, // Heavy desaturation for monochromatic look
+      gamma: 0.8, // Reduced gamma for compressed mid-tones
+      hue: -140, // Strong cool blue-green tint for dramatic effect
     },
   },
 
   fxnr: {
-    name: 'FXN R',
+    name: 'FQS R',
     description: 'Film grain simulation',
     effects: {
-      brightness: 0.1,
-      contrast: 1.3,
-      saturation: 1.1,
-      gamma: 1.05,
+      brightness: -0.2, // Reduced brightness for vintage, lo-fi feel
+      contrast: 1.4, // Enhanced contrast to maintain definition despite grain
+      saturation: 0.4, // Heavy desaturation for vintage, monochromatic look
+      gamma: 0.8, // Reduced gamma for darker, richer tones
+      hue: 10, // Slight warm hue shift for vintage warmth
+    },
+  },
+
+  dqs: {
+    name: 'DQS',
+    description: 'Digital quality enhancement',
+    effects: {
+      brightness: 0.1, // Slight brightness boost for clarity
+      contrast: 1.3, // Enhanced contrast for better definition
+      saturation: 1.2, // Increased saturation for vibrant colors
+      gamma: 1.05, // Slight gamma boost for better mid-tones
+      hue: 0, // Neutral hue for natural color balance
     },
   },
 
@@ -83,10 +111,11 @@ export const skiaFilterEffects = {
     name: 'D Classic',
     description: 'Classic vintage look',
     effects: {
-      brightness: -0.1,
-      contrast: 1.2,
-      saturation: 0.9,
-      hue: 15,
+      brightness: -0.15, // Reduced brightness for classic vintage feel
+      contrast: 1.3, // Enhanced contrast for better definition
+      saturation: 0.7, // Reduced saturation for authentic vintage look
+      gamma: 0.95, // Added gamma for richer mid-tones
+      hue: 20, // Enhanced warm hue shift for classic vintage warmth
     },
   },
 
@@ -104,12 +133,13 @@ export const skiaFilterEffects = {
 
   ct2f: {
     name: 'CT2F',
-    description: 'Warm vintage tones',
+    description: 'Cool vintage tones',
     effects: {
-      brightness: -0.2,
-      contrast: 1.3,
-      saturation: 1.1,
-      hue: 20,
+      brightness: -0.3, // Significantly reduced brightness for dramatic vintage look
+      contrast: 1.6, // Enhanced contrast for dramatic effect
+      saturation: 0.3, // Heavy desaturation for monochromatic feel
+      gamma: 0.8, // Added gamma for deeper, richer tones
+      hue: -150, // Strong cool blue-green tint for dramatic vintage effect
     },
   },
 
@@ -117,10 +147,11 @@ export const skiaFilterEffects = {
     name: 'D Exp',
     description: 'Expired film look',
     effects: {
-      brightness: 0.3,
-      contrast: 1.1,
-      saturation: 1.3,
-      gamma: 0.8,
+      brightness: 0.4, // Increased from 0.3 to 0.4 for more brightness
+      contrast: 1.25, // Increased from 1.1 to 1.25 for better contrast
+      saturation: 1.4, // Increased from 1.3 to 1.4 for more vibrant colors
+      gamma: 0.75, // Decreased from 0.8 to 0.75 for darker mid-tones
+      hue: 5, // Added slight warm hue shift for expired film feel
     },
   },
 
@@ -128,10 +159,11 @@ export const skiaFilterEffects = {
     name: 'NT16',
     description: 'Neutral tone film',
     effects: {
-      brightness: -0.1,
-      contrast: 1.5,
-      saturation: 0.7,
-      hue: -5,
+      brightness: -0.2, // Reduced brightness for vintage, aged feel
+      contrast: 1.3, // Reduced contrast for softer, faded look
+      saturation: 0.5, // Heavy desaturation for vintage, warm tint
+      gamma: 0.9, // Added gamma for richer mid-tones
+      hue: 35, // Strong warm golden-yellow tint for vintage feel
     },
   },
 
@@ -139,10 +171,11 @@ export const skiaFilterEffects = {
     name: 'D3D',
     description: '3D depth effect',
     effects: {
-      brightness: 0.1,
-      contrast: 1.4,
-      saturation: 1.2,
-      gamma: 1.1,
+      brightness: -0.25, // Reduced brightness for dramatic vintage look
+      contrast: 1.7, // Enhanced contrast for dramatic effect
+      saturation: 0.4, // Heavy desaturation for monochromatic feel
+      gamma: 0.85, // Reduced gamma for deeper, richer tones
+      hue: -130, // Strong cool blue-green tint for dramatic effect
     },
   },
 
@@ -150,10 +183,11 @@ export const skiaFilterEffects = {
     name: '135 NE',
     description: 'Natural exposure',
     effects: {
-      brightness: 0.2,
-      contrast: 1.2,
-      saturation: 1.1,
-      hue: 10,
+      brightness: 0.15, // Slightly reduced for more natural exposure
+      contrast: 1.3, // Enhanced contrast for better definition
+      saturation: 1.15, // Slightly increased for natural vibrancy
+      gamma: 1.05, // Added gamma for better mid-tones
+      hue: 8, // Reduced warm hue shift for more neutral look
     },
   },
 
@@ -161,10 +195,11 @@ export const skiaFilterEffects = {
     name: 'D FunS',
     description: 'Fun saturated look',
     effects: {
-      brightness: 0.3,
-      contrast: 1.3,
-      saturation: 1.4,
-      gamma: 0.9,
+      brightness: -0.25, // Significantly reduced for dramatic, moody feel
+      contrast: 1.8, // Enhanced contrast for dramatic effect
+      saturation: 0.3, // Heavy desaturation for monochromatic blue-green look
+      gamma: 0.8, // Reduced gamma for deeper, richer tones
+      hue: -140, // Strong cool blue-green tint for dramatic effect
     },
   },
 
@@ -172,10 +207,11 @@ export const skiaFilterEffects = {
     name: 'IR',
     description: 'Infrared effect',
     effects: {
-      brightness: 0.1,
-      contrast: 1.6,
-      saturation: 0.5,
-      hue: 180,
+      brightness: -0.2, // Reduced brightness for infrared vintage feel
+      contrast: 1.7, // Enhanced contrast for dramatic infrared effect
+      saturation: 0.4, // Heavy desaturation for infrared monochromatic look
+      gamma: 0.9, // Added gamma for richer mid-tones
+      hue: 25, // Strong warm reddish-pink tint for infrared effect
     },
   },
 
@@ -183,10 +219,11 @@ export const skiaFilterEffects = {
     name: 'Classic U',
     description: 'Ultra classic look',
     effects: {
-      brightness: -0.1,
-      contrast: 1.3,
-      saturation: 0.9,
-      hue: 25,
+      brightness: -0.15, // Reduced brightness for vintage, aged feel
+      contrast: 1.4, // Enhanced contrast for better definition
+      saturation: 0.5, // Heavy desaturation for vintage, monochromatic look
+      gamma: 0.9, // Added gamma for richer mid-tones
+      hue: -25, // Strong cool blue-green tint for vintage feel
     },
   },
 
@@ -194,10 +231,11 @@ export const skiaFilterEffects = {
     name: 'Golf',
     description: 'Golf course tones',
     effects: {
-      brightness: 0.2,
-      contrast: 1.2,
-      saturation: 1.3,
-      gamma: 1.05,
+      brightness: -0.25, // Significantly reduced brightness for dramatic vintage look
+      contrast: 1.5, // Enhanced contrast for dramatic effect
+      saturation: 0.4, // Heavy desaturation for monochromatic feel
+      gamma: 0.85, // Added gamma for deeper, richer tones
+      hue: -140, // Strong cool blue-green tint for dramatic vintage effect
     },
   },
 
@@ -205,10 +243,11 @@ export const skiaFilterEffects = {
     name: 'CPM35',
     description: '35mm film simulation',
     effects: {
-      brightness: -0.1,
-      contrast: 1.4,
-      saturation: 1.1,
-      hue: 15,
+      brightness: -0.15, // Further reduced for darker, aged vintage look
+      contrast: 1.5, // Increased for better definition and depth
+      saturation: 0.6, // Further reduced for stronger sepia desaturation
+      gamma: 0.9, // Added gamma for richer mid-tones
+      hue: 25, // Increased warm hue shift for stronger sepia tint
     },
   },
 
@@ -216,10 +255,11 @@ export const skiaFilterEffects = {
     name: '135 SR',
     description: 'Super resolution',
     effects: {
-      brightness: 0.1,
-      contrast: 1.3,
-      saturation: 1.2,
-      gamma: 1.1,
+      brightness: -0.1, // Reduced brightness for dramatic contrast
+      contrast: 1.8, // Significantly increased for dramatic effect
+      saturation: 0.3, // Heavily desaturated for monochromatic look
+      gamma: 0.8, // Decreased for deeper shadows
+      hue: -160, // Strong cool blue-green shift
     },
   },
 
@@ -227,10 +267,11 @@ export const skiaFilterEffects = {
     name: 'D Half',
     description: 'Half frame effect',
     effects: {
-      brightness: 0.2,
-      contrast: 1.2,
-      saturation: 0.8,
-      gamma: 1.15,
+      brightness: 0.15, // Slightly reduced from 0.2 for more natural exposure
+      contrast: 1.3, // Increased from 1.2 for better half frame definition
+      saturation: 0.9, // Increased from 0.8 for better color balance
+      gamma: 1.1, // Slightly reduced from 1.15 for more natural mid-tones
+      hue: 2, // Added slight warm hue shift for half frame warmth
     },
   },
 
@@ -238,10 +279,11 @@ export const skiaFilterEffects = {
     name: 'D Slide',
     description: 'Slide film look',
     effects: {
-      brightness: 0.3,
-      contrast: 1.4,
-      saturation: 1.5,
-      gamma: 0.9,
+      brightness: 0.25, // Slightly reduced from 0.3 for more natural exposure
+      contrast: 1.5, // Increased from 1.4 for better slide film contrast
+      saturation: 1.6, // Increased from 1.5 for more vibrant slide film colors
+      gamma: 0.85, // Decreased from 0.9 for richer mid-tones
+      hue: 3, // Added slight warm hue shift for slide film warmth
     },
   },
 
@@ -250,10 +292,11 @@ export const skiaFilterEffects = {
     name: 'S Classic',
     description: 'Square format classic',
     effects: {
-      brightness: -0.1,
-      contrast: 1.3,
-      saturation: 0.9,
-      hue: 20,
+      brightness: -0.2, // Reduced brightness for vintage, aged feel
+      contrast: 1.5, // Enhanced contrast for better definition
+      saturation: 0.5, // Heavy desaturation for vintage, monochromatic look
+      gamma: 0.9, // Added gamma for richer mid-tones
+      hue: -120, // Strong cool blue-green tint for vintage feel
     },
   },
 
@@ -261,10 +304,11 @@ export const skiaFilterEffects = {
     name: 'HOGA',
     description: 'Holographic effect',
     effects: {
-      brightness: 0.1,
-      contrast: 1.4,
-      saturation: 1.1,
-      gamma: 1.1,
+      brightness: 0.15, // Enhanced brightness for holographic glow
+      contrast: 1.5, // Enhanced contrast for holographic definition
+      saturation: 1.3, // Increased saturation for vibrant holographic colors
+      gamma: 1.15, // Enhanced gamma for richer mid-tones
+      hue: 15, // Added warm hue shift for holographic warmth
     },
   },
 
@@ -272,10 +316,11 @@ export const skiaFilterEffects = {
     name: 'S 67',
     description: '6x7 format look',
     effects: {
-      brightness: -0.2,
-      contrast: 1.5,
-      saturation: 0.8,
-      hue: 15,
+      brightness: -0.25, // Further reduced brightness for dramatic vintage look
+      contrast: 1.6, // Enhanced contrast for better definition
+      saturation: 0.4, // Heavy desaturation for monochromatic feel
+      gamma: 0.85, // Added gamma for richer mid-tones
+      hue: -140, // Strong cool blue-cyan tint for dramatic effect
     },
   },
 
@@ -283,10 +328,11 @@ export const skiaFilterEffects = {
     name: 'KV88',
     description: 'Kodak vision 88',
     effects: {
-      brightness: 0.2,
-      contrast: 1.3,
-      saturation: 1.2,
-      gamma: 1.05,
+      brightness: 0.4, // Significantly increased for overexposed, luminous quality
+      contrast: 0.9, // Reduced contrast for softer, washed-out look
+      saturation: 0.4, // Heavy desaturation for monochromatic feel
+      gamma: 1.2, // Lifted mid-tones for faded appearance
+      hue: -120, // Strong cool blue-green tint for aged atmosphere
     },
   },
 
@@ -295,10 +341,11 @@ export const skiaFilterEffects = {
     name: 'Inst C',
     description: 'Instant camera classic',
     effects: {
-      brightness: 0.3,
-      contrast: 1.2,
-      saturation: 1.4,
-      gamma: 0.9,
+      brightness: -0.15, // Reduced for a muted, aged feel
+      contrast: 1.3, // Enhanced for better definition
+      saturation: 0.6, // Heavily desaturated for vintage, faded colors
+      gamma: 0.9, // Reduced for compressed mid-tones and film-like quality
+      hue: -30, // Strong cool blue-green tint for vintage effect
     },
   },
 
@@ -306,10 +353,11 @@ export const skiaFilterEffects = {
     name: 'Inst SQC',
     description: 'Square instant camera',
     effects: {
-      brightness: 0.2,
-      contrast: 1.3,
-      saturation: 1.3,
-      gamma: 1.0,
+      brightness: -0.05, // Slightly reduced brightness for natural instant camera look
+      contrast: 1.3, // Moderate contrast for better definition
+      saturation: 0.9, // Reduced saturation for authentic instant camera feel
+      gamma: 0.9, // Reduced gamma for warmer, vintage tones
+      hue: 12, // Enhanced warm hue shift for instant camera warmth
     },
   },
 
@@ -317,10 +365,11 @@ export const skiaFilterEffects = {
     name: 'PAF R',
     description: 'Polaroid AF look',
     effects: {
-      brightness: 0.1,
-      contrast: 1.4,
-      saturation: 1.1,
-      hue: 10,
+      brightness: 0.05, // Balanced brightness for natural luminosity
+      contrast: 1.3, // Good contrast for clear definition
+      saturation: 0.8, // Reduced saturation for natural tones
+      gamma: 1.05, // Added gamma for better mid-tones
+      hue: 5, // Reduced warm hue shift for natural balance
     },
   },
 };

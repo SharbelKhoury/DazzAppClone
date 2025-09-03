@@ -38,13 +38,22 @@ import RNFS from 'react-native-fs';
 import {Buffer} from 'buffer';
 import {getFilterMatrix} from '../utils/filterMatrixUtils';
 import {getSelectedCameraIcon} from '../utils/cameraIconUtils';
+
 // ImageManipulator removed - using OpenGL effects only
 
 // ImageCropPicker removed - using OpenGL effects only
 
 // ImageFilterKit removed - using OpenGL effects only
 
-// OpenGL Filter Overlay Component for Live Preview
+/**
+ * OpenGL Filter Overlay Component for Live Preview
+ * Renders real-time filter overlays on camera preview
+ * Applies visual effects without affecting actual photo capture
+ *
+ * @param {Array} activeFilters - Array of active filter IDs
+ * @param {string} cameraPosition - Current camera position (front/back)
+ * @returns {JSX.Element|null} - Filter overlay view or null if no filters
+ */
 const OpenGLFilterOverlay = ({activeFilters, cameraPosition}) => {
   if (activeFilters.length === 0) {
     return null;
@@ -54,92 +63,6 @@ const OpenGLFilterOverlay = ({activeFilters, cameraPosition}) => {
   const overlayStyle = getOpenGLFilterOverlay(filterId);
 
   return <View style={overlayStyle} pointerEvents="none" />;
-};
-
-// Skia Filter Preview Component
-const SkiaFilterPreview = ({imageUri, filterId}) => {
-  const skiaImage = useImage(imageUri);
-  const [filterMatrix, setFilterMatrix] = useState(null);
-
-  useEffect(() => {
-    // Get the color matrix for the selected filter
-    const getFilterMatrix = () => {
-      const filterConfig = openglFilterEffects[filterId];
-      if (!filterConfig || !filterConfig.filters) return null;
-
-      let brightness = 0;
-      let contrast = 1;
-      let saturation = 1;
-      let hue = 0;
-      let gamma = 1;
-
-      // Extract values from filter config
-      filterConfig.filters.forEach(filter => {
-        if (filter.name === 'Brightness') brightness = filter.value;
-        if (filter.name === 'Contrast') contrast = filter.value;
-        if (filter.name === 'Saturation') saturation = filter.value;
-        if (filter.name === 'Hue') hue = filter.value;
-        if (filter.name === 'Gamma') gamma = filter.value;
-      });
-
-      // Special handling for specific filters
-      if (filterId === 'grf') {
-        // Grayscale matrix for GR F filter
-        return [
-          0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
-          0.114, 0, 0, 0, 0, 0, 1, 0,
-        ];
-      }
-
-      // Create custom matrix based on filter effects
-      const brightnessOffset = brightness * 255;
-      return [
-        contrast,
-        0,
-        0,
-        0,
-        brightnessOffset,
-        0,
-        contrast,
-        0,
-        0,
-        brightnessOffset,
-        0,
-        0,
-        contrast,
-        0,
-        brightnessOffset,
-        0,
-        0,
-        0,
-        1,
-        0,
-      ];
-    };
-
-    setFilterMatrix(getFilterMatrix());
-  }, [filterId]);
-
-  if (!skiaImage || !filterMatrix) {
-    return (
-      <View style={styles.skiaFallback}>
-        <Image source={{uri: imageUri}} style={StyleSheet.absoluteFill} />
-      </View>
-    );
-  }
-
-  return (
-    <Canvas style={StyleSheet.absoluteFill}>
-      <SkiaImage
-        image={skiaImage}
-        x={0}
-        y={0}
-        width={400} // Adjust based on your layout
-        height={400}>
-        <ColorMatrix matrix={filterMatrix} />
-      </SkiaImage>
-    </Canvas>
-  );
 };
 
 const CameraComponent = ({navigation}) => {
@@ -185,7 +108,14 @@ const CameraComponent = ({navigation}) => {
     }),
   ).current;
 
-  // Calculate zoom value based on focal length
+  /**
+   * Calculate zoom value based on focal length
+   * Maps focal lengths to zoom multipliers for camera display
+   * Provides standardized zoom values across different camera hardware
+   *
+   * @param {number} focalLength - Focal length in millimeters
+   * @returns {number} - Zoom multiplier value
+   */
   const calculateZoomFromFocalLength = focalLength => {
     // Map focal lengths to zoom values:
     // 13mm = 1.0x (widest available - camera hardware limit)
@@ -207,7 +137,14 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
-  // Calculate temperature color overlay based on Kelvin value (INVERTED POLARITIES)
+  /**
+   * Calculate temperature color overlay based on Kelvin value (INVERTED POLARITIES)
+   * Creates color temperature overlays with inverted warm/cold effects
+   * Maps Kelvin values to RGBA color overlays for creative photography
+   *
+   * @param {number} tempValue - Temperature value (0-100)
+   * @returns {string} - RGBA color string for temperature overlay
+   */
   const getTemperatureColor = tempValue => {
     // Convert temperatureValue (0-100) to Kelvin (3000-7000)
     const kelvin = 3000 + (tempValue / 100) * 4000;
@@ -262,7 +199,13 @@ const CameraComponent = ({navigation}) => {
   const [bottomControlModal, setBottomControlModal] = useState(false);
   const devices = useCameraDevices();
 
-  // Test if OpenGL is working - Commented for future use
+  /**
+   * Test if OpenGL is working - Commented for future use
+   * Tests availability of OpenGL filter effects and overlay functions
+   * Sets openGLWorking state based on component availability
+   *
+   * @returns {boolean} - True if all OpenGL components are available
+   */
   /*
   const testOpenGL = () => {
     try {
@@ -299,7 +242,14 @@ const CameraComponent = ({navigation}) => {
   };
   */
 
-  // Manual device selection function that was working for front camera
+  /**
+   * Manual device selection function for camera selection
+   * Intelligently selects the best available camera based on position
+   * Prioritizes specific camera types to avoid AVFoundation errors
+   * Handles fallbacks for both front and back camera positions
+   *
+   * @returns {Object|null} - Selected camera device or null if none available
+   */
   const getDevice = () => {
     if (!devices) return null;
 
@@ -536,7 +486,14 @@ const CameraComponent = ({navigation}) => {
     return () => clearInterval(interval);
   }, [activeFilters]);
 
-  // Fetch latest media for gallery preview (from app's photos)
+  /**
+   * Fetch latest media for gallery preview (from app's photos)
+   * Scans temporary directory for photos taken by the app
+   * Filters for skia_filtered_ and filtered_ prefixed images
+   * Sorts by creation time and sets the most recent photo
+   *
+   * @returns {Promise<void>} - Updates latestMedia state with most recent photo
+   */
   const fetchLatestMedia = async () => {
     try {
       // Get all files from the app's temporary directory
@@ -590,261 +547,14 @@ const CameraComponent = ({navigation}) => {
     */
   }, []);
 
-  // Function to get combined filter effects for ImageFilter
-  const getCombinedFilters = () => {
-    try {
-      const allEffects = [];
-
-      console.log('Active filters state:', activeFilters);
-      console.log('Global active filters:', global.activeFilters);
-
-      activeFilters.forEach(filterId => {
-        try {
-          console.log('Processing filter ID:', filterId);
-
-          // Check if it's OpenGL effects
-          const openglConfig = openglFilterEffects[filterId];
-          if (openglConfig && openglConfig.filters) {
-            console.log('Using OpenGL filter config:', openglConfig);
-            openglConfig.filters.forEach(filter => {
-              allEffects.push(filter);
-            });
-          } else {
-            console.log('No OpenGL config found for filter ID:', filterId);
-          }
-        } catch (error) {
-          console.log('Error processing filter ID:', filterId, error);
-        }
-      });
-
-      console.log('Combined filters:', allEffects);
-      return allEffects;
-    } catch (error) {
-      console.log('Error getting combined filters:', error);
-      return [];
-    }
-  };
-
-  // Function to get filter overlay style for live preview
-  const getFilterOverlayStyle = () => {
-    try {
-      if (activeFilters.length === 0) return {};
-
-      const filterId = activeFilters[0]; // Only one filter active at a time
-      console.log('Getting overlay for filter ID:', filterId);
-
-      // Check if it's OpenGL effects
-      const openglOverlay = getOpenGLFilterOverlay(filterId);
-      console.log('OpenGL overlay result:', openglOverlay);
-
-      if (Object.keys(openglOverlay).length > 0) {
-        console.log('Using OpenGL overlay for:', filterId);
-        return openglOverlay;
-      }
-
-      // Fallback to empty object
-      console.log('No overlay found for:', filterId);
-      return {};
-    } catch (error) {
-      console.log('Error getting filter overlay style:', error);
-      return {};
-    }
-  };
-
-  // Function to apply OpenGL filter effects to photo using multiple approaches
-  const applyOpenGLFilterToPhoto = async (photoUri, filterId) => {
-    try {
-      console.log('🎨 Applying OpenGL filter to photo:', filterId);
-
-      const filterConfig = openglFilterEffects[filterId];
-      if (!filterConfig) {
-        console.log('🎨 No OpenGL filter config for:', filterId);
-        return photoUri;
-      }
-
-      console.log('🎨 OpenGL filter config:', filterConfig);
-
-      // Create color matrix based on filter effects
-      const createColorMatrix = () => {
-        let brightness = 0;
-        let contrast = 1;
-        let saturation = 1;
-        let hue = 0;
-        let gamma = 1;
-
-        // Extract values from filter config
-        filterConfig.filters.forEach(filter => {
-          if (filter.name === 'Brightness') brightness = filter.value;
-          if (filter.name === 'Contrast') contrast = filter.value;
-          if (filter.name === 'Saturation') saturation = filter.value;
-          if (filter.name === 'Hue') hue = filter.value;
-          if (filter.name === 'Gamma') gamma = filter.value;
-        });
-
-        // Special handling for GR F (black and white)
-        if (filterId === 'grf') {
-          return [
-            0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
-            0.114, 0, 0, 0, 0, 0, 1, 0,
-          ];
-        }
-
-        // Create advanced color matrix based on effects
-        const brightnessOffset = brightness * 255;
-        const contrastMatrix = [
-          contrast,
-          0,
-          0,
-          0,
-          brightnessOffset,
-          0,
-          contrast,
-          0,
-          0,
-          brightnessOffset,
-          0,
-          0,
-          contrast,
-          0,
-          brightnessOffset,
-          0,
-          0,
-          0,
-          1,
-          0,
-        ];
-
-        // Apply saturation
-        if (saturation !== 1) {
-          const r = 0.213;
-          const g = 0.715;
-          const b = 0.072;
-          const satMatrix = [
-            (1 - saturation) * r + saturation,
-            (1 - saturation) * r,
-            (1 - saturation) * r,
-            0,
-            0,
-            (1 - saturation) * g,
-            (1 - saturation) * g + saturation,
-            (1 - saturation) * g,
-            0,
-            0,
-            (1 - saturation) * b,
-            (1 - saturation) * b,
-            (1 - saturation) * b + saturation,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-          ];
-          return satMatrix;
-        }
-
-        return contrastMatrix;
-      };
-
-      const colorMatrix = createColorMatrix();
-      console.log('🎨 Color matrix created:', colorMatrix);
-
-      // Use working image processing approach
-      try {
-        const RNFS = require('react-native-fs');
-
-        console.log('🎨 Processing image with working approach...');
-
-        // Apply filter directly to the whole photo without cropping
-        if (filterId === 'grf') {
-          try {
-            // For GR F filter, create a grayscale effect using ColorMatrixImageFilter
-            const outputPath = `${
-              RNFS.TemporaryDirectoryPath
-            }/grf_filtered_${Date.now()}.jpg`;
-
-            console.log('🎨 Applying GR F black & white filter directly...');
-
-            // Create grayscale color matrix for GR F filter
-            const grayscaleMatrix = [
-              0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299,
-              0.587, 0.114, 0, 0, 0, 0, 0, 1, 0,
-            ];
-
-            if (
-              ColorMatrixImageFilter &&
-              typeof ColorMatrixImageFilter.processImage === 'function'
-            ) {
-              await ColorMatrixImageFilter.processImage(
-                photoUri,
-                outputPath,
-                grayscaleMatrix,
-              );
-              console.log(
-                '✅ GR F filter applied successfully to:',
-                outputPath,
-              );
-              return outputPath;
-            } else {
-              console.log(
-                '❌ ColorMatrixImageFilter not available for GR F filter',
-              );
-              return photoUri;
-            }
-          } catch (grfError) {
-            console.error('❌ GR F filter processing failed:', grfError);
-            console.log('🎨 Using original photo for GR F filter');
-            return photoUri;
-          }
-        } else {
-          // For other filters, try ColorMatrixImageFilter with proper error handling
-          try {
-            const outputPath = `${
-              RNFS.TemporaryDirectoryPath
-            }/filtered_${Date.now()}.jpg`;
-
-            console.log('🎨 Processing with ColorMatrixImageFilter...');
-
-            // Check if ColorMatrixImageFilter is properly imported
-            if (
-              ColorMatrixImageFilter &&
-              typeof ColorMatrixImageFilter.processImage === 'function'
-            ) {
-              await ColorMatrixImageFilter.processImage(
-                photoUri,
-                outputPath,
-                colorMatrix,
-              );
-              console.log('✅ ColorMatrixImageFilter applied successfully');
-              return outputPath;
-            } else {
-              console.log(
-                '❌ ColorMatrixImageFilter not properly imported or processImage not available',
-              );
-              console.log(
-                '🎨 ColorMatrixImageFilter object:',
-                ColorMatrixImageFilter,
-              );
-              return photoUri;
-            }
-          } catch (matrixError) {
-            console.error('❌ ColorMatrixImageFilter failed:', matrixError);
-            console.log('🎨 Using original photo with overlay effect');
-            return photoUri;
-          }
-        }
-      } catch (error) {
-        console.error('❌ Image processing failed:', error);
-        return photoUri;
-      }
-    } catch (error) {
-      console.error('❌ Error applying OpenGL filter:', error);
-      return photoUri;
-    }
-  };
-
-  // Function to save photo to gallery
+  /**
+   * Function to save photo to gallery
+   * Saves processed photos to device's camera roll
+   * Refreshes gallery preview after successful save
+   *
+   * @param {string} photoUri - URI of the photo to save
+   * @returns {Promise<boolean>} - True if save successful, false otherwise
+   */
   const savePhotoToGallery = async photoUri => {
     try {
       console.log('Attempting to save photo:', photoUri);
@@ -859,22 +569,16 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
-  // Function to render image through OpenGL
-  const renderImageWithOpenGL = async (imageUri, colorMatrix) => {
-    try {
-      console.log('🎨 Rendering image through OpenGL...');
-
-      // OpenGL image processing not implemented for file output
-      // Return original image for now
-      console.log('🎨 OpenGL image processing not available for file output');
-      return imageUri;
-    } catch (error) {
-      console.error('❌ OpenGL image rendering failed:', error);
-      return null;
-    }
-  };
-
-  // NEW: Function to apply Skia filter to photo using actual Skia Canvas
+  /**
+   * Function to apply Skia filter to photo using actual Skia Canvas
+   * Processes photos with Skia image processing library
+   * Creates color matrices for various filter effects
+   * Saves filtered images to temporary directory
+   *
+   * @param {string} photoUri - URI of the photo to process
+   * @param {string} filterId - ID of the filter to apply
+   * @returns {Promise<string>} - URI of the processed photo or original if failed
+   */
   const applySkiaFilterToPhoto = async (photoUri, filterId) => {
     try {
       console.log('🎨 Commencing Skia approach...');
@@ -1116,7 +820,15 @@ const CameraComponent = ({navigation}) => {
     ];
   };
 
-  // Helper function to combine two color matrices
+  /**
+   * Helper function to combine two color matrices
+   * Performs matrix multiplication for 5x4 color matrices
+   * Used to combine multiple filter effects into a single matrix
+   *
+   * @param {Array} matrix1 - First 5x4 color matrix
+   * @param {Array} matrix2 - Second 5x4 color matrix
+   * @returns {Array} - Combined 5x4 color matrix
+   */
   const combineColorMatrices = (matrix1, matrix2) => {
     // Matrix multiplication for 5x4 matrices
     const result = [];
@@ -1134,7 +846,15 @@ const CameraComponent = ({navigation}) => {
     return result;
   };
 
-  // MODIFIED: applyFiltersToPhoto function to use Skia
+  /**
+   * MODIFIED: applyFiltersToPhoto function to use Skia
+   * Applies active filters to captured photos using Skia processing
+   * Saves filtered photos to gallery with fallback to original
+   * Handles both filtered and unfiltered photo scenarios
+   *
+   * @param {string} photoUri - URI of the photo to process
+   * @returns {Promise<Object>} - Object containing processed photo info and save status
+   */
   const applyFiltersToPhoto = async photoUri => {
     try {
       if (activeFilters.length === 0) {
@@ -1177,7 +897,15 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
-  // MODIFIED: takePicture function
+  /**
+   * MODIFIED: takePicture function
+   * Captures photos using the camera with proper timing and validation
+   * Applies active filters to captured photos using Skia processing
+   * Saves photos to gallery and updates media preview
+   * Handles front/back camera timing differences
+   *
+   * @returns {Promise<void>} - Captures and processes photo
+   */
   const takePicture = async () => {
     console.log('Take picture called');
 
@@ -1256,15 +984,32 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
+  /**
+   * Opens the app gallery screen
+   * Navigates to AppGallery component to display captured photos
+   *
+   * @returns {void} - Navigates to gallery screen
+   */
   const openGallery = () => {
-    // Navigate to AppGallery instead of opening device gallery
     navigation.navigate('AppGallery');
   };
 
+  /**
+   * Opens the filter control screen
+   * Navigates to FilterControl component for filter selection
+   *
+   * @returns {void} - Navigates to filter control screen
+   */
   const openFilterControl = () => {
     navigation.navigate('FilterControl');
   };
-  // Flip camera using the official react-native-vision-camera approach
+  /**
+   * Flip camera using the official react-native-vision-camera approach
+   * Switches between front and back cameras with proper state management
+   * Prevents rapid camera switching and ensures proper initialization
+   *
+   * @returns {void} - Updates camera position state
+   */
   const flipCamera = () => {
     // Prevent rapid camera switching
     if (!isCameraReady) {
@@ -1284,6 +1029,12 @@ const CameraComponent = ({navigation}) => {
     setIsCameraReady(true);
   };
 
+  /**
+   * Toggles flash mode between off, on, and auto
+   * Cycles through available flash modes in sequence
+   *
+   * @returns {void} - Updates flashMode state
+   */
   const toggleFlash = () => {
     const flashModes = ['off', 'on', 'auto'];
     const currentIndex = flashModes.indexOf(flashMode);
@@ -1291,36 +1042,57 @@ const CameraComponent = ({navigation}) => {
     setFlashMode(flashModes[nextIndex]);
   };
 
+  /**
+   * Toggles grid overlay visibility
+   * Shows/hides the camera grid for composition assistance
+   *
+   * @returns {void} - Updates showGrid state
+   */
   const toggleGrid = () => {
     setShowGrid(!showGrid);
   };
 
+  /**
+   * Toggles level overlay visibility
+   * Shows/hides the camera level indicator for horizon alignment
+   *
+   * @returns {void} - Updates level state
+   */
   const toggleLevel = () => {
     setLevel(!level);
   };
 
+  /**
+   * Location Toggler to be correctly implemented later
+   * Toggles location mode for photo metadata
+   * Currently logs the state change for debugging
+   *
+   * @returns {void} - Updates locationMode state
+   */
   const toggleLocation = () => {
     setLocationMode(!locationMode);
     console.log('Location mode:', locationMode);
     /* todo integrate location workflow with the app */
-
-    /* todo integrate location workflow with the app */
-
-    /* todo integrate location workflow with the app */
-
-    /* todo integrate location workflow with the app */
-
-    /* todo integrate location workflow with the app */
-
-    /* todo integrate location workflow with the app */
-
+    /* ********************************************* */
     /* todo integrate location workflow with the app */
   };
 
+  /**
+   * Toggles zoom mode overlay visibility
+   * Shows/hides the zoom level indicator for focal length display
+   *
+   * @returns {void} - Updates zoomMode state
+   */
   const toggleZoomMode = () => {
     setZoomMode(!zoomMode);
   };
 
+  /**
+   * Toggles timer mode between off, 3s, and 10s
+   * Cycles through available timer modes in sequence
+   *
+   * @returns {void} - Updates timerMode state
+   */
   const toggleTimer = () => {
     const timerModes = ['off', '3s', '10s'];
     const currentIndex = timerModes.indexOf(timerMode);
@@ -1328,6 +1100,14 @@ const CameraComponent = ({navigation}) => {
     setTimerMode(timerModes[nextIndex]);
   };
 
+  /**
+   * Starts the camera timer countdown
+   * Initiates countdown based on selected timer mode (3s or 10s)
+   * Automatically takes photo after countdown completes
+   * Handles timer state management and error recovery
+   *
+   * @returns {Promise<void>} - Executes timer countdown and photo capture
+   */
   const startTimer = async () => {
     if (timerMode === 'off') {
       // No timer, take photo immediately
@@ -1364,6 +1144,13 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
+  /**
+   * Cancels the active camera timer
+   * Resets timer countdown and deactivates timer state
+   * Stops countdown before photo capture
+   *
+   * @returns {void} - Resets timer state
+   */
   const cancelTimer = () => {
     setTimerCountdown(0);
     setIsTimerActive(false);
@@ -1605,7 +1392,7 @@ const CameraComponent = ({navigation}) => {
       {/* Top Section */}
       {!isAppInBackground && (
         <View style={styles.topSection}>
-          {/* More Options Button */}
+          {/* 3 dots More Options Button */}
           <TouchableOpacity
             style={styles.moreOptionsButton}
             onPress={() => setModalActive(!modalActive)}>
@@ -1617,6 +1404,8 @@ const CameraComponent = ({navigation}) => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* More Options Modal */}
       {modalActive && !isAppInBackground && (
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.modalContent} onPress={toggleGrid}>
@@ -1860,6 +1649,7 @@ const CameraComponent = ({navigation}) => {
             </View>
           )}
         </TouchableOpacity>
+
         {/* Center Controls */}
         <View style={styles.centerControls}>
           {/* Top Row Controls */}
@@ -1930,6 +1720,8 @@ const CameraComponent = ({navigation}) => {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Temperature Control */}
           {tempActive && (
             <View style={styles.viewControlActive}>
               <View
@@ -2201,6 +1993,8 @@ const CameraComponent = ({navigation}) => {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Focal Length Control */}
           {viewControlActive && (
             <View style={styles.viewControlActive}>
               <TouchableOpacity
@@ -2400,6 +2194,7 @@ const CameraComponent = ({navigation}) => {
             )}
           </TouchableOpacity>
         </View>
+
         {/* Right Side - Selected Camera Icon */}
         <TouchableOpacity
           style={styles.selectedCameraContainer}
@@ -2418,6 +2213,8 @@ const CameraComponent = ({navigation}) => {
             </View>
           )}
         </TouchableOpacity>
+
+        {/* Selected Indicator Bottom Ratio Modal Control Button */}
         <TouchableOpacity
           onPress={() => setBottomControlModal(!bottomControlModal)}
           style={{
@@ -2432,6 +2229,8 @@ const CameraComponent = ({navigation}) => {
           }}>
           <View style={styles.selectedIndicator} />
         </TouchableOpacity>
+
+        {/* Bottom Control Modal */}
         {bottomControlModal && (
           <View style={styles.bottomControlModal}>
             <TouchableOpacity
@@ -2621,10 +2420,10 @@ const CameraComponent = ({navigation}) => {
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
-                    <Text
-                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      C1
-                    </Text>
+                    <Image
+                      source={require('../src/assets/colorprofiles/20250903_151814.jpg')}
+                      style={{width: 45, height: 35, tintColor: 'black'}}
+                    />
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[0] && (
                     <Image
@@ -2654,7 +2453,9 @@ const CameraComponent = ({navigation}) => {
                       alignItems: 'center',
                       marginRight: 20,
                     }}>
-                    <Text>C2</Text>
+                    <Images
+                      source={require('../src/assets/colorprofiles/20250903_151816.jpg')}
+                    />
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[1] && (
                     <Image
@@ -2684,10 +2485,10 @@ const CameraComponent = ({navigation}) => {
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
-                    <Text
-                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      C3
-                    </Text>
+                    <Image
+                      source={require('../src/assets/colorprofiles/20250903_151818.jpg')}
+                      style={{width: 45, height: 35, tintColor: 'black'}}
+                    />
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[2] && (
                     <Image
@@ -2739,10 +2540,10 @@ const CameraComponent = ({navigation}) => {
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
-                    <Text
-                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      1
-                    </Text>
+                    <Image
+                      source={require('../src/assets/icons/blocked.png')}
+                      style={{width: 15, height: 15, tintColor: 'black'}}
+                    />
                   </TouchableOpacity>
                   {timestamp == timestampArray[0] && (
                     <Image
@@ -2770,9 +2571,18 @@ const CameraComponent = ({navigation}) => {
                       borderColor: '#000',
                       justifyContent: 'center',
                       alignItems: 'center',
+                      backgroundColor: 'rgb(0, 0, 0)',
                       marginRight: 15,
                     }}>
-                    <Text>2</Text>
+                    <Text
+                      style={{
+                        color: 'rgb(227, 52, 52)',
+                        fontFamily: 'Courier',
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}>
+                      2 25 '22
+                    </Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[1] && (
                     <Image
@@ -2799,12 +2609,17 @@ const CameraComponent = ({navigation}) => {
                       borderRadius: 10,
                       borderWidth: 1.5,
                       borderColor: '#000',
+                      backgroundColor: 'rgb(0, 0, 0)',
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
                     <Text
-                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      3
+                      style={{
+                        color: 'rgb(241, 55, 55)',
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}>
+                      2 25 '22
                     </Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[2] && (
@@ -2831,13 +2646,19 @@ const CameraComponent = ({navigation}) => {
                       marginBottom: 20,
                       borderRadius: 10,
                       borderWidth: 1.5,
+                      backgroundColor: 'rgb(0, 0, 0)',
                       borderColor: '#000',
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
                     <Text
-                      style={{color: '#000', fontSize: 13, fontWeight: '600'}}>
-                      4
+                      style={{
+                        color: 'rgb(250, 57, 57)',
+                        fontFamily: 'Menlo',
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}>
+                      2 25 '22
                     </Text>
                   </TouchableOpacity>
                   {timestamp == timestampArray[3] && (
@@ -2856,6 +2677,7 @@ const CameraComponent = ({navigation}) => {
                     />
                   )}
                 </View>
+
                 <View style={{height: 100, flexDirection: 'column'}}>
                   <View
                     style={{
@@ -2864,7 +2686,8 @@ const CameraComponent = ({navigation}) => {
                       marginBottom: 10,
                     }}>
                     <TouchableOpacity
-                      onPress={() => setTimestampDate('Generated')}>
+                      onPress={() => setTimestampDate('Generated')}
+                      disabled={timestamp == timestampArray[0]}>
                       <Image
                         source={require('../src/assets/icons/checkmark.png')}
                         style={[
@@ -2872,9 +2695,12 @@ const CameraComponent = ({navigation}) => {
                             width: 15,
                             height: 15,
                             marginRight: 10,
-                            backgroundColor: '#000',
-                            tintColor: '#fff',
+                            backgroundColor:
+                              timestamp == timestampArray[0] ? '#666' : '#000',
+                            tintColor:
+                              timestamp == timestampArray[0] ? '#999' : '#fff',
                             borderRadius: 50,
+                            opacity: timestamp == timestampArray[0] ? 0.5 : 1,
                           },
                           timestampDate == 'Current-Date'
                             ? {
@@ -2886,8 +2712,15 @@ const CameraComponent = ({navigation}) => {
                         ]}
                       />
                     </TouchableOpacity>
-                    <Text style={styles.bottomControlModalRatioText}>
-                      Imported assets using selected aspect ratio.
+                    <Text
+                      style={[
+                        styles.bottomControlModalRatioText,
+                        timestamp == timestampArray[0] && {
+                          color: '#666',
+                          opacity: 0.5,
+                        },
+                      ]}>
+                      Display the date the material was generated.
                     </Text>
                   </View>
                   <View
@@ -2897,7 +2730,8 @@ const CameraComponent = ({navigation}) => {
                       marginBottom: 24,
                     }}>
                     <TouchableOpacity
-                      onPress={() => setTimestampDate('Current-Date')}>
+                      onPress={() => setTimestampDate('Current-Date')}
+                      disabled={timestamp == timestampArray[0]}>
                       <Image
                         source={require('../src/assets/icons/checkmark.png')}
                         style={[
@@ -2905,9 +2739,12 @@ const CameraComponent = ({navigation}) => {
                             width: 15,
                             height: 15,
                             marginRight: 10,
-                            backgroundColor: '#000',
-                            tintColor: '#fff',
+                            backgroundColor:
+                              timestamp == timestampArray[0] ? '#666' : '#000',
+                            tintColor:
+                              timestamp == timestampArray[0] ? '#999' : '#fff',
                             borderRadius: 50,
+                            opacity: timestamp == timestampArray[0] ? 0.5 : 1,
                           },
                           timestampDate == 'Generated'
                             ? {
@@ -2919,8 +2756,15 @@ const CameraComponent = ({navigation}) => {
                         ]}
                       />
                     </TouchableOpacity>
-                    <Text style={styles.bottomControlModalRatioText}>
-                      Imported assets using original aspect ratio.
+                    <Text
+                      style={[
+                        styles.bottomControlModalRatioText,
+                        timestamp == timestampArray[0] && {
+                          color: '#666',
+                          opacity: 0.5,
+                        },
+                      ]}>
+                      Display the current date.
                     </Text>
                   </View>
                 </View>
