@@ -36,7 +36,13 @@ import {
 import {Skia} from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
 import {Buffer} from 'buffer';
-import {getFilterMatrix} from '../utils/filterMatrixUtils';
+import {
+  getFilterMatrix,
+  setMatrixSystem,
+  getMatrixSystem,
+  MATRIX_SYSTEMS,
+} from '../utils/filterMatrixUtils';
+import '../utils/matrixSystemController'; // Load matrix system controller for console access
 import {getSelectedCameraIcon} from '../utils/cameraIconUtils';
 
 // ImageManipulator removed - using OpenGL effects only
@@ -603,6 +609,7 @@ const CameraComponent = ({navigation}) => {
       console.log('🎨 Filter config:', filterConfig);
 
       // Get the correct color matrix for the specific filter
+      console.log('🎨 Current matrix system:', getMatrixSystem());
       const colorMatrix = getFilterMatrix(
         filterId,
         openglFilterEffects,
@@ -2415,14 +2422,14 @@ const CameraComponent = ({navigation}) => {
                       marginRight: 15,
                       marginBottom: 20,
                       borderRadius: 10,
-                      borderWidth: 1.5,
+                      borderWidth: 0,
                       borderColor: '#000',
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
                     <Image
                       source={require('../src/assets/colorprofiles/20250903_151814.jpg')}
-                      style={{width: 45, height: 35, tintColor: 'black'}}
+                      style={{width: '100%', borderRadius: 10, height: '100%'}}
                     />
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[0] && (
@@ -2447,14 +2454,15 @@ const CameraComponent = ({navigation}) => {
                       height: 55,
                       marginBottom: 20,
                       borderRadius: 10,
-                      borderWidth: 1.5,
+                      borderWidth: 0,
                       borderColor: '#000',
                       justifyContent: 'center',
                       alignItems: 'center',
                       marginRight: 20,
                     }}>
-                    <Images
+                    <Image
                       source={require('../src/assets/colorprofiles/20250903_151816.jpg')}
+                      style={{width: '100%', borderRadius: 10, height: '100%'}}
                     />
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[1] && (
@@ -2480,14 +2488,14 @@ const CameraComponent = ({navigation}) => {
                       marginRight: 15,
                       marginBottom: 20,
                       borderRadius: 10,
-                      borderWidth: 1.5,
+                      borderWidth: 0,
                       borderColor: '#000',
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
                     <Image
-                      source={require('../src/assets/colorprofiles/20250903_151818.jpg')}
-                      style={{width: 45, height: 35, tintColor: 'black'}}
+                      source={require('../src/assets/colorprofiles/20250903_151902.jpg')}
+                      style={{width: '100%', borderRadius: 10, height: '100%'}}
                     />
                   </TouchableOpacity>
                   {colorProfile == colorProfileArray[2] && (
