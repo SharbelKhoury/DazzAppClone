@@ -8,7 +8,7 @@ import {
   listAvailableIndividualMatrices,
   getIndividualMatrixCount,
   hasIndividualMatrix,
-} from './skiaIndividualMatrices';
+} from '../skiaIndividualMatrices';
 
 import {
   getFilterMatrix,
@@ -16,7 +16,7 @@ import {
   getMatrixSystem,
   MATRIX_SYSTEMS,
   compareMatrixSystems,
-} from './filterMatrixUtils';
+} from '../filterMatrixUtils';
 
 /**
  * Test all individual matrices

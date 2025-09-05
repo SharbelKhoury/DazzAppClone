@@ -687,6 +687,33 @@ const CameraComponent = ({navigation}) => {
       // Draw the image with the filter
       canvas.drawImage(skiaImage, 0, 0, paint);
 
+      // Apply vignette effect specifically for hoga filter
+      if (filterId === 'hoga') {
+        console.log('🎨 Applying vignette effect for hoga filter');
+
+        // Create vignette paint
+        const vignettePaint = Skia.Paint();
+
+        // Create radial gradient for vignette (25px corner shadows)
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.max(width, height) / 2;
+
+        // Create gradient from transparent center to dark corners
+        const gradient = Skia.Shader.MakeRadialGradient(
+          {x: centerX, y: centerY},
+          radius,
+          [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.5)')], // 50% dark at corners
+          [0, 1],
+          0, // TileMode.Clamp = 0
+        );
+
+        vignettePaint.setShader(gradient);
+
+        // Draw vignette overlay
+        canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+      }
+
       // Get image and encode
       const image = surface.makeImageSnapshot();
       const imageDataOut = image.encodeToBytes();
@@ -1325,7 +1352,10 @@ const CameraComponent = ({navigation}) => {
           styles.cameraFrame,
           {
             // transform: [{scaleX: flipInterpolate}],
-            transform: [{rotateY: flipInterpolate}],
+            transform: [
+              {rotateY: flipInterpolate},
+              {scaleX: cameraPosition === 'front' ? -1 : 1}, // Horizontal flip for front camera
+            ],
             backgroundColor: 'black', // Ensure transparent background
           },
         ]}>

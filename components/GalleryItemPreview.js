@@ -496,8 +496,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   deleteButtonIcon: {
-    width: 25,
-    height: 25,
+    width: 23,
+    height: 23,
     tintColor: 'rgb(235, 235, 235)',
   },
   LiitButtonIcon: {

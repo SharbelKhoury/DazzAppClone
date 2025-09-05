@@ -31,26 +31,26 @@ export const skiaIndividualMatrices = {
 
   // GR DR - High contrast definition enhancement with shadows
   grdr: [
-    1.3,
-    0.0,
-    0.0,
+    0.7,
     0,
-    -0.1, // Red channel: high contrast, shadow effect
-    0.0,
-    1.3,
-    0.0,
     0,
-    -0.1, // Green channel: high contrast, shadow effect
-    0.0,
-    0.0,
-    1.3,
     0,
-    -0.1, // Blue channel: high contrast, shadow effect
+    -0.15, // Red boosted
+    0,
+    0.65,
+    0,
+    0,
+    -0.2, // Green same
+    0,
+    0,
+    0.6,
+    0,
+    -0.25, // Blue reduced
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // COLLAGE - Vibrant collage style
@@ -79,26 +79,26 @@ export const skiaIndividualMatrices = {
 
   // PULI - Bright vibrant enhancement
   puli: [
-    1.2,
-    0.05,
+    0.8,
+    0.0,
     0.0,
     0,
-    0.1, // Red channel: boosted red, slight green, moderate brightness
-    0.05,
-    1.2,
-    0.05,
-    0,
-    0.1, // Green channel: boosted green, slight red/blue, moderate brightness
+    0, // Red darker
     0.0,
-    0.05,
-    1.2,
+    0.8,
+    0.0,
     0,
-    0.1, // Blue channel: boosted blue, slight green, moderate brightness
+    0, // Green darker
+    0.0,
+    0.0,
+    0.8,
+    0,
+    0, // Blue darker
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // FXN - Dramatic cool vintage look with enhanced shadows
@@ -124,7 +124,28 @@ export const skiaIndividualMatrices = {
     1,
     0, // Alpha channel: unchanged
   ],
-
+  fqsr: [
+    0.27,
+    0,
+    0,
+    0,
+    -0.05, // Red darker, deeper blacks
+    0,
+    0.27,
+    0,
+    0,
+    -0.05, // Green
+    0,
+    0,
+    0.27,
+    0,
+    -0.05, // Blue
+    0,
+    0,
+    0,
+    1,
+    0, // Alpha unchanged
+  ],
   // FXN R - Film grain simulation with enhanced shadows
   fxnr: [
     0.7,
@@ -174,7 +195,7 @@ export const skiaIndividualMatrices = {
   ],
 
   // DCLASSIC - Digital classic look with vivid colors and more darkness
-  dclassic: [
+  colorful: [
     1.8,
     -0.5,
     -0.5,
@@ -195,6 +216,28 @@ export const skiaIndividualMatrices = {
     0,
     1,
     0, // Alpha unchanged
+  ],
+  dclassic: [
+    1.0,
+    0.0,
+    0.0,
+    0,
+    0, // Red channel: unchanged
+    0.0,
+    1.0,
+    0.0,
+    0,
+    0, // Green channel: unchanged
+    0.0,
+    0.0,
+    1.0,
+    0,
+    0, // Blue channel: unchanged
+    0,
+    0,
+    0,
+    1,
+    0, // Alpha channel: unchanged
   ],
 
   // GRF - Pure black and white grain film effect
@@ -251,17 +294,17 @@ export const skiaIndividualMatrices = {
     0.05,
     0.05,
     0,
-    0.025, // Red channel: less reduced red, minimal green/blue contribution, reduced brightness
+    0.05, // Red channel: less reduced red, minimal green/blue contribution, reduced brightness
     0.05,
     1.05,
     0.05,
     0,
-    0.025, // Green channel: less boosted green, minimal red/blue contribution, reduced brightness
+    0.05, // Green channel: less boosted green, minimal red/blue contribution, reduced brightness
     0.05,
     0.05,
     0.95,
     0,
-    0.025, // Blue channel: less reduced blue, minimal red/green contribution, reduced brightness
+    0.05, // Blue channel: less reduced blue, minimal red/green contribution, reduced brightness
     0,
     0,
     0,
@@ -271,74 +314,55 @@ export const skiaIndividualMatrices = {
 
   // D3D - 3D depth effect (very dark, cool blue-green tint)
   d3d: [
-    0.1,
-    0.05,
-    0.05,
+    0.65, 0, 0, 0, -0.2, 0, 0.65, 0, 0, -0.2, 0, 0, 0.65, 0, -0.2, 0, 0, 0, 1,
     0,
-    -0.6, // Red channel: very dark, minimal color contribution
-    0.05,
-    0.1,
-    0.05,
-    0,
-    -0.6, // Green channel: very dark, minimal color contribution
-    0.05,
-    0.05,
-    0.1,
-    0,
-    -0.6, // Blue channel: very dark, minimal color contribution
-    0,
-    0,
-    0,
-    1,
-    0, // Alpha channel: unchanged
   ],
-
   // CCD R - Vintage digital camera look (natural colors, no green tint)
   ccdr: [
-    1.1,
-    0.05,
-    0.05,
+    0.75,
     0,
-    0.05, // Red channel: slightly boosted red, minimal other contributions
-    0.05,
-    1.1,
-    0.05,
     0,
-    0.05, // Green channel: slightly boosted green, minimal other contributions
-    0.05,
-    0.05,
-    1.1,
     0,
-    0.05, // Blue channel: slightly boosted blue, minimal other contributions
+    -0.1, // Red higher for warmth
+    0,
+    0.65,
+    0,
+    0,
+    -0.2, // Green stable
+    0,
+    0,
+    0.55,
+    0,
+    -0.3, // Blue lower for less coolness
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // NT16 - Neutral tone film (almost invisible, natural)
   nt16: [
-    1.02,
+    0.6,
     0.01,
     0.01,
     0,
-    0.02, // Red channel: very subtle boost, minimal other contributions
+    -0.05, // Red: slightly reduced
     0.01,
-    1.02,
+    0.65,
     0.01,
     0,
-    0.02, // Green channel: very subtle boost, minimal other contributions
+    -0.05, // Green: dominant but subtle
     0.01,
     0.01,
-    1.02,
+    0.6,
     0,
-    0.02, // Blue channel: very subtle boost, minimal other contributions
+    -0.05, // Blue: reduced to avoid purple
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // INST C - Instant camera classic (vintage, faded colors, enhanced shadows)
@@ -367,50 +391,50 @@ export const skiaIndividualMatrices = {
 
   // CLASSIC U - Ultra classic look (darker, clean, smooth, enhanced shadows)
   classicu: [
-    0.8,
-    0.0,
-    0.0,
+    1.8,
+    -0.5,
+    -0.5,
     0,
-    -0.4, // Red channel: reduced red, no other color contributions, enhanced shadow
-    0.0,
-    0.8,
-    0.0,
+    -0.9775, // Red (-0.85 × 1.15 ≈ -0.9775)
+    -0.5,
+    1.8,
+    -0.5,
     0,
-    -0.4, // Green channel: reduced green, no other color contributions, enhanced shadow
-    0.0,
-    0.0,
-    0.8,
+    -0.9775, // Green
+    -0.5,
+    -0.5,
+    1.8,
     0,
-    -0.4, // Blue channel: reduced blue, no other color contributions, enhanced shadow
+    -0.9775, // Blue
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // GOLF - Golf course tones (enhanced greens)
   golf: [
-    0.9,
-    0.1,
-    0.0,
+    0.7,
     0,
-    0.0, // Red channel: slightly reduced red, slight green contribution
-    0.1,
-    1.2,
-    0.1,
     0,
-    0.0, // Green channel: boosted green, slight red/blue contribution
-    0.0,
-    0.1,
-    0.9,
     0,
-    0.0, // Blue channel: slightly reduced blue, slight green contribution
+    -0.15, // Red boosted
+    0,
+    0.65,
+    0,
+    0,
+    -0.2, // Green same
+    0,
+    0,
+    0.6,
+    0,
+    -0.25, // Blue reduced
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // INFRARED - Infrared effect (warm reddish-pink tint)
@@ -509,76 +533,121 @@ export const skiaIndividualMatrices = {
     0, // Alpha channel: unchanged
   ],
 
-  // DFUNS - Digital fun style
-  dfuns: [
-    1.15,
-    0.1,
-    0.0,
+  '135ne': [
+    0.84,
     0,
-    0.05, // Red channel: boosted red, slight green, slight brightness
-    0.1,
-    1.15,
-    0.1,
     0,
-    0.05, // Green channel: boosted green, slight red/blue, slight brightness
-    0.0,
-    0.1,
-    1.15,
     0,
-    0.05, // Blue channel: boosted blue, slight green, slight brightness
+    0, // Red: warmer
+    0,
+    0.76,
+    0,
+    0,
+    0, // Green: slightly darker
+    0,
+    0,
+    0.76,
+    0,
+    0, // Blue: reduced to remove coolness
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
+  ],
+  '135sr': [
+    0.907,
+    0,
+    0,
+    0,
+    0, // Red: reduced 10%
+    0,
+    0.76,
+    0,
+    0,
+    0, // Green: unchanged
+    0,
+    0,
+    0.667,
+    0,
+    0, // Blue: slightly increased to reduce warm dominance
+    0,
+    0,
+    0,
+    1,
+    0, // Alpha unchanged
+  ],
+
+  // DFUNS - Digital fun style
+  dfuns: [
+    0.78,
+    0,
+    0,
+    0,
+    -0.1, // Red
+    0,
+    0.78,
+    0,
+    0,
+    -0.1, // Green
+    0,
+    0,
+    0.78,
+    0,
+    -0.1, // Blue
+    0,
+    0,
+    0,
+    1,
+    0, // Alpha unchanged
   ],
 
   // IR - Infrared effect (warm reddish-pink tint)
   ir: [
-    1.3,
-    0.2,
+    0.944,
+    0.115,
     0.0,
     0,
-    0.1, // Red channel: boosted red, slight green contribution
-    0.2,
-    0.8,
+    0.1, // Red unchanged
+    0.115,
+    0.782,
     0.0,
     0,
-    0.1, // Green channel: reduced green, slight red contribution
+    0.115, // Green +15%
     0.0,
     0.0,
-    0.7,
+    0.667,
     0,
-    0.1, // Blue channel: reduced blue, no other contributions
+    0.115, // Blue +15%
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // CPM35 - Color Plus 35mm film
   cpm35: [
-    1.1,
-    0.05,
+    0.944,
+    0.115,
     0.0,
     0,
-    0.0, // Red channel: boosted red, slight green
-    0.05,
-    1.0,
-    0.05,
-    0,
-    0.0, // Green channel: neutral green, slight red/blue
+    0.1, // Red unchanged
+    0.115,
+    0.782,
     0.0,
-    0.05,
-    0.9,
     0,
-    0.0, // Blue channel: reduced blue, slight green
+    0.115, // Green +15%
+    0.0,
+    0.0,
+    0.667,
+    0,
+    0.115, // Blue +15%
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // DHALF - Digital half tone with shadows
@@ -607,21 +676,21 @@ export const skiaIndividualMatrices = {
 
   // DSLIDE - Digital slide film
   dslide: [
-    1.05,
+    1.0,
     0.0,
     0.0,
     0,
-    0.0, // Red channel: slight boost, no other contributions
+    0, // Red channel: unchanged
     0.0,
-    1.05,
+    1.0,
     0.0,
     0,
-    0.0, // Green channel: slight boost, no other contributions
+    0, // Green channel: unchanged
     0.0,
     0.0,
-    1.05,
+    1.0,
     0,
-    0.0, // Blue channel: slight boost, no other contributions
+    0, // Blue channel: unchanged
     0,
     0,
     0,
@@ -655,26 +724,26 @@ export const skiaIndividualMatrices = {
 
   // HOGA - Hoga film with shadows
   hoga: [
-    0.9,
-    0.05,
-    0.05,
+    0.78,
     0,
-    -0.1, // Red channel: slightly reduced, minimal other contributions, shadow
-    0.05,
-    0.9,
-    0.05,
     0,
-    -0.1, // Green channel: slightly reduced, minimal other contributions, shadow
-    0.05,
-    0.05,
-    0.9,
     0,
-    -0.1, // Blue channel: slightly reduced, minimal other contributions, shadow
+    -0.1, // Red
+    0,
+    0.78,
+    0,
+    0,
+    -0.1, // Green
+    0,
+    0,
+    0.78,
+    0,
+    -0.1, // Blue
     0,
     0,
     0,
     1,
-    0, // Alpha channel: unchanged
+    0, // Alpha unchanged
   ],
 
   // S67 - Super 67 film
@@ -703,6 +772,29 @@ export const skiaIndividualMatrices = {
 
   // KV88 - Kodak Vision 88
   kv88: [
+    0.715,
+    0.022,
+    0.022,
+    0,
+    -0.05, // Red: dominant, slightly brighter
+    0.022,
+    0.66,
+    0.022,
+    0,
+    -0.05, // Green: mid
+    0.011,
+    0.011,
+    0.605,
+    0,
+    -0.05, // Blue: reduced, avoids cool tones
+    0,
+    0,
+    0,
+    1,
+    0, // Alpha unchanged
+  ],
+
+  brightwarmtest1: [
     1.05,
     0.0,
     0.0,
