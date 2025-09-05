@@ -2959,7 +2959,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     paddingTop: 0,
-
     position: 'absolute',
     top: 210,
     right: 40,
