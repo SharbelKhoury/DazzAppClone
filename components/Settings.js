@@ -23,8 +23,10 @@ const Settings = ({navigation}) => {
   const [preserveSetting, setPreserveSetting] = useState(true);
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <>
+      <>
+        <TouchableOpacity
+          style={{marginLeft: -70}}
+          onPress={() => navigation.goBack()}>
           <Image
             source={require('../src/assets/icons/front-arrow.png')}
             style={{
@@ -38,9 +40,9 @@ const Settings = ({navigation}) => {
               tintColor: '#fff',
             }}
           />
-          <Text style={styles.text}>Settings</Text>
-        </>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        <Text style={styles.text}>Settings</Text>
+      </>
 
       <View
         style={[styles.divider, {marginTop: 25, marginLeft: 0, width: '110%'}]}

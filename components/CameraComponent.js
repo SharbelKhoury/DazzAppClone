@@ -124,23 +124,35 @@ const CameraComponent = ({navigation}) => {
    * @returns {number} - Zoom multiplier value
    */
   const calculateZoomFromFocalLength = focalLength => {
-    // Map focal lengths to zoom values:
-    // 13mm = 1.0x (widest available - camera hardware limit)
-    // 26mm = 2.0x (standard zoom)
-    // 35mm = 2.3x (medium zoom)
-    // 50mm = 3.0x (close zoom)
+    // Map focal lengths to zoom values for ultra-wide camera:
+    // 13mm = 0.5x (ultra-wide - camera hardware limit)
+    // 18mm = 0.7x (very wide)
+    // 24mm = 1.0x (wide)
+    // 26mm = 1.1x (slightly wide)
+    // 35mm = 1.5x (standard)
+    // 50mm = 2.1x (medium telephoto)
+    // 85mm = 3.6x (telephoto)
+    // 135mm = 5.7x (long telephoto)
 
     switch (focalLength) {
       case 13:
-        return 1.0; // Widest available - camera hardware limit
+        return 0.3; // Ultra-wide - even wider than 0.5x
+      case 18:
+        return 0.7; // Very wide
+      case 24:
+        return 1.0; // Wide
       case 26:
-        return 2.0; // Standard zoom
+        return 1.1; // Slightly wide
       case 35:
-        return 2.3; // Medium zoom
+        return 1.5; // Standard
       case 50:
-        return 3.0; // Close zoom
+        return 2.1; // Medium telephoto
+      case 85:
+        return 3.6; // Telephoto
+      case 135:
+        return 5.7; // Long telephoto
       default:
-        return 2.0; // Default to standard zoom
+        return 1.0; // Default to wide
     }
   };
 
