@@ -11,6 +11,7 @@ import {
   AppState,
   PanResponder,
   ScrollView,
+  Animated,
 } from 'react-native';
 
 import {
@@ -185,6 +186,29 @@ const CameraComponent = ({navigation}) => {
   ];
   const [cameraPosition, setCameraPosition] = useState('back');
   const [aspectRatio, setAspectRatio] = useState(aspectRatioArray[1]);
+
+  // Animation state for camera flip rotation
+  const rotation = useRef(new Animated.Value(0)).current;
+  const [isRotated, setIsRotated] = useState(false);
+
+  // Animation state for modal sliding
+  const modalSlideAnimation = useRef(new Animated.Value(0)).current;
+  const modalPanGesture = useRef(new Animated.Value(0)).current;
+
+  // Map animation value 0 → 1, 1 → 0 (horizontal rotation)
+  const flipInterpolate = rotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'], // rotate horizontally like a 3D flip
+  });
+
+  // Map modal animation value 0 → 1 (slide up from bottom)
+  const modalSlideInterpolate = modalSlideAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [300, 0], // slide up 300px from bottom
+  });
+
+  // Combine slide animation with pan gesture
+  const modalTransform = Animated.add(modalSlideInterpolate, modalPanGesture);
   const [aspectRatioType, setAspectRatioType] = useState('Selected');
   const timestampArray = ['none', '1', '2', '3'];
   const [timestampDate, setTimestampDate] = useState('Generated');
@@ -1017,23 +1041,100 @@ const CameraComponent = ({navigation}) => {
    *
    * @returns {void} - Updates camera position state
    */
+  // PanResponder for modal vertical sliding
+  const modalPanResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      // Only respond to vertical movements
+      return (
+        Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+        Math.abs(gestureState.dy) > 10
+      );
+    },
+    onPanResponderGrant: () => {
+      // Don't set offset, just reset to 0
+      modalPanGesture.setValue(0);
+    },
+    onPanResponderMove: (evt, gestureState) => {
+      // Only allow downward movement when modal is open
+      if (bottomControlModal && gestureState.dy > 0) {
+        modalPanGesture.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      if (gestureState.dy > 100) {
+        // Swipe down to close
+        toggleModal();
+      } else if (gestureState.dy < 5 && gestureState.dx < 5) {
+        // Tap to close (small movement = tap)
+        toggleModal();
+      } else {
+        // Snap back to original position
+        Animated.spring(modalPanGesture, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  });
+
+  // Function to toggle modal with slide animation
+  const toggleModal = () => {
+    if (bottomControlModal) {
+      // Close modal - slide down
+      Animated.timing(modalSlideAnimation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setBottomControlModal(false);
+        modalPanGesture.setValue(0);
+      });
+    } else {
+      // Open modal - slide up
+      setBottomControlModal(true);
+      Animated.timing(modalSlideAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
   const flipCamera = () => {
     // Prevent rapid camera switching
     if (!isCameraReady) {
       return; // Don't allow switching if camera is not ready
     }
     // console.log('Flipping camera from:', cameraPosition);
-    // Force camera to be inactive during switch
-    setIsCameraReady(false);
+    // Reset rotation to 0 first, then start flip animation sequence
+    rotation.setValue(0);
 
-    setTimeout(() => {
-      setCameraPosition(prevPosition => {
-        const newPosition = prevPosition === 'back' ? 'front' : 'back';
-        // console.log('Flipping camera to:', newPosition);
-        return newPosition;
-      });
-    }, 100);
-    setIsCameraReady(true);
+    // Start first flip animation: flip to the right
+    Animated.timing(rotation, {
+      toValue: 1, // flip to the right
+      duration: 700, // first phase duration
+      useNativeDriver: true,
+    }).start(({finished}) => {
+      if (finished) {
+        // Switch camera position at the midpoint (between first and second flip)
+        setCameraPosition(prevPosition => {
+          const newPosition = prevPosition === 'back' ? 'front' : 'back';
+          // console.log('Flipping camera to:', newPosition);
+          // Force camera to be ready immediately for instant switch
+          setIsCameraReady(true);
+          return newPosition;
+        });
+
+        // Start second flip animation: flip back to the left
+        Animated.timing(rotation, {
+          toValue: 0, // flip back to the left
+          duration: 0, // second phase duration (2x faster)
+          useNativeDriver: true,
+        }).start();
+      }
+    });
+    setIsRotated(!isRotated);
   };
 
   /**
@@ -1199,9 +1300,19 @@ const CameraComponent = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      {!isAppInBackground && <View style={styles.cameraFrameInside} />}
       {/* Camera View with Frame */}
-      <View ref={cameraContainerRef} style={styles.cameraFrame}>
+      <Animated.View
+        ref={cameraContainerRef}
+        style={[
+          styles.cameraFrame,
+          {
+            // transform: [{scaleX: flipInterpolate}],
+            transform: [{rotateY: flipInterpolate}],
+            backgroundColor: 'black', // Ensure transparent background
+          },
+        ]}>
+        {/* 
+        {!isAppInBackground && <View style={styles.cameraFrameInside} />} */}
         {device && !isAppInBackground ? (
           <Camera
             key={`${device.id}-${cameraPosition}-${
@@ -1301,7 +1412,7 @@ const CameraComponent = ({navigation}) => {
             />
           </View>
         )}
-      </View>
+      </Animated.View>
 
       {/* Zoom Level Indicator - Moved to left side */}
       {/*   {device && !isAppInBackground && (
@@ -2223,7 +2334,7 @@ const CameraComponent = ({navigation}) => {
 
         {/* Selected Indicator Bottom Ratio Modal Control Button */}
         <TouchableOpacity
-          onPress={() => setBottomControlModal(!bottomControlModal)}
+          onPress={toggleModal}
           style={{
             marginBottom: -45,
             marginLeft: -60,
@@ -2237,11 +2348,16 @@ const CameraComponent = ({navigation}) => {
           <View style={styles.selectedIndicator} />
         </TouchableOpacity>
 
-        {/* Bottom Control Modal */}
+        {/* Bottom Control Ratio Modal */}
         {bottomControlModal && (
-          <View style={styles.bottomControlModal}>
-            <TouchableOpacity
-              onPress={() => setBottomControlModal(!bottomControlModal)}>
+          <Animated.View
+            style={[
+              styles.bottomControlModal,
+              {
+                transform: [{translateY: modalTransform}],
+              },
+            ]}>
+            <View {...modalPanResponder.panHandlers}>
               <View
                 style={{
                   backgroundColor: 'rgb(183, 183, 183)',
@@ -2252,7 +2368,7 @@ const CameraComponent = ({navigation}) => {
                   marginLeft: 165,
                 }}
               />
-            </TouchableOpacity>
+            </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={[styles.bottomControlModalText, {marginTop: 15}]}>
                 Ratio
@@ -2778,7 +2894,7 @@ const CameraComponent = ({navigation}) => {
                 </View>
               </View>
             </ScrollView>
-          </View>
+          </Animated.View>
         )}
       </View>
     </View>
