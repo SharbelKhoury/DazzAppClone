@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Share,
 } from 'react-native';
 import RNFS from 'react-native-fs';
 import {launchImageLibrary} from 'react-native-image-picker';
@@ -349,9 +350,28 @@ const AppGallery = ({navigation}) => {
     );
   };
 
-  const shareSelectedPhotos = () => {
-    // Implement sharing functionality
-    Alert.alert('Share', 'Share functionality will be implemented');
+  const shareSelectedPhotos = async () => {
+    if (selectedPhotos.length === 0) return;
+
+    try {
+      if (selectedPhotos.length === 1) {
+        // Share single photo
+        await Share.share({
+          url: selectedPhotos[0].uri,
+          message: 'Check out this photo from Dazz App!',
+        });
+      } else {
+        // Share multiple photos
+        const urls = selectedPhotos.map(photo => photo.uri);
+        await Share.share({
+          urls: urls,
+          message: `Check out these ${selectedPhotos.length} photos from Dazz App!`,
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing photos:', error);
+      Alert.alert('Error', 'Failed to share the photos');
+    }
   };
 
   const deletePhoto = async photo => {

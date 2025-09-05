@@ -1107,32 +1107,28 @@ const CameraComponent = ({navigation}) => {
       return; // Don't allow switching if camera is not ready
     }
     // console.log('Flipping camera from:', cameraPosition);
-    // Reset rotation to 0 first, then start flip animation sequence
-    rotation.setValue(0);
+    // Determine animation direction based on current camera position
+    const isBackToFront = cameraPosition === 'back';
+    const startValue = isBackToFront ? 0 : 1;
+    const endValue = isBackToFront ? 1 : 0;
 
-    // Start first flip animation: flip to the right
+    // Reset rotation to start value first, then start flip animation sequence
+    rotation.setValue(startValue);
+
+    // Start flip animation based on camera position
     Animated.timing(rotation, {
-      toValue: 1, // flip to the right
-      duration: 700, // first phase duration
+      toValue: endValue, // flip in the correct direction
+      duration: 700, // animation duration
       useNativeDriver: true,
     }).start(({finished}) => {
-      if (finished) {
-        // Switch camera position at the midpoint (between first and second flip)
-        setCameraPosition(prevPosition => {
-          const newPosition = prevPosition === 'back' ? 'front' : 'back';
-          // console.log('Flipping camera to:', newPosition);
-          // Force camera to be ready immediately for instant switch
-          setIsCameraReady(true);
-          return newPosition;
-        });
-
-        // Start second flip animation: flip back to the left
-        Animated.timing(rotation, {
-          toValue: 0, // flip back to the left
-          duration: 0, // second phase duration (2x faster)
-          useNativeDriver: true,
-        }).start();
-      }
+      // Switch camera position at the midpoint
+      setCameraPosition(prevPosition => {
+        const newPosition = prevPosition === 'back' ? 'front' : 'back';
+        // console.log('Flipping camera to:', newPosition);
+        // Force camera to be ready immediately for instant switch
+        setIsCameraReady(true);
+        return newPosition;
+      });
     });
     setIsRotated(!isRotated);
   };
@@ -2967,7 +2963,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 210,
     right: 40,
-    backgroundColor: 'rgba(230, 230, 230, 0.74)',
+    backgroundColor: 'rgba(230, 230, 230, 0.97)',
     zIndex: 10,
     width: 260,
     height: 260,
@@ -3313,7 +3309,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: '#fff',
     marginLeft: -50,
     marginBottom: -15,
@@ -3348,9 +3344,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   shutterInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 50,
     backgroundColor: '#fff',
   },
   selectedCameraContainer: {
