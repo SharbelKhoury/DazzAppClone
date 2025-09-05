@@ -372,6 +372,16 @@ const CameraComponent = ({navigation}) => {
     };
   }, []);
 
+  // Cleanup effect for animation values
+  useEffect(() => {
+    return () => {
+      // Stop all animations and reset values to prevent warnings
+      rotation.stopAnimation();
+      modalSlideAnimation.stopAnimation();
+      modalPanGesture.stopAnimation();
+    };
+  }, []);
+
   // Add camera initialization safety
   useEffect(() => {
     // Only initialize camera after permission is granted

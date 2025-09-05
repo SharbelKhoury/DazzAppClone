@@ -286,6 +286,16 @@ const AppGallery = ({navigation}) => {
     if (isSelectionMode) {
       togglePhotoSelection(photo);
     } else {
+      // Extract filter ID from filename
+      let filterId = null;
+      let filterMatch = photo.name.match(/skia_filtered_([^_]+)_/);
+      if (!filterMatch) {
+        filterMatch = photo.name.match(/filtered_([^_]+)_/);
+      }
+      if (filterMatch) {
+        filterId = filterMatch[1];
+      }
+
       // Navigate to GalleryItemPreview with the selected photo
       navigation.navigate('GalleryItemPreview', {
         item: {
@@ -296,6 +306,7 @@ const AppGallery = ({navigation}) => {
             photo.timestamp instanceof Date
               ? photo.timestamp.toISOString()
               : photo.timestamp,
+          filterId: filterId, // Pass the filter ID
         },
       });
     }
