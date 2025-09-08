@@ -296,7 +296,11 @@ const AppGallery = ({navigation}) => {
         filterId = filterMatch[1];
       }
 
-      // Navigate to GalleryItemPreview with the selected photo
+      // Find the current index in the filtered photos list
+      const filteredPhotos = getFilteredPhotos();
+      const currentIndex = filteredPhotos.findIndex(p => p.uri === photo.uri);
+
+      // Navigate to GalleryItemPreview with the selected photo and navigation data
       navigation.navigate('GalleryItemPreview', {
         item: {
           uri: photo.uri,
@@ -308,6 +312,20 @@ const AppGallery = ({navigation}) => {
               : photo.timestamp,
           filterId: filterId, // Pass the filter ID
         },
+        mediaList: filteredPhotos.map(p => ({
+          uri: p.uri,
+          fileName: p.name,
+          fileSize: p.size,
+          timestamp:
+            p.timestamp instanceof Date
+              ? p.timestamp.toISOString()
+              : p.timestamp,
+          filterId:
+            p.name.match(/skia_filtered_([^_]+)_/)?.[1] ||
+            p.name.match(/filtered_([^_]+)_/)?.[1] ||
+            null,
+        })),
+        currentIndex: currentIndex >= 0 ? currentIndex : 0,
       });
     }
   };
@@ -421,7 +439,23 @@ const AppGallery = ({navigation}) => {
       } else if (response.assets && response.assets[0]) {
         const item = response.assets[0];
         navigation.navigate('GalleryItemPreview', {
-          item,
+          item: {
+            uri: item.uri,
+            fileName: item.fileName,
+            fileSize: item.fileSize,
+            timestamp: item.timestamp,
+            filterId: null, // Imported items don't have filters
+          },
+          mediaList: [
+            {
+              uri: item.uri,
+              fileName: item.fileName,
+              fileSize: item.fileSize,
+              timestamp: item.timestamp,
+              filterId: null,
+            },
+          ],
+          currentIndex: 0,
         });
       }
     });

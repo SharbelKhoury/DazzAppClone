@@ -16,17 +16,30 @@ import {
 import RNFS from 'react-native-fs';
 import {cameraCategories} from '../utils/cameraData';
 
+const SWIPE_THRESHOLD = 120;
 const {width, height} = Dimensions.get('window');
 
 const GalleryItemPreview = ({navigation, route}) => {
-  const {item} = route.params || {};
+  const {item, mediaList, currentIndex} = route.params || {};
+  const [index, setIndex] = useState(currentIndex || 0);
+  const currentItem = mediaList && mediaList[index] ? mediaList[index] : item;
   const [isVideo, setIsVideo] = useState(false);
+
+  // Debug logging
+  console.log('🎯 GalleryItemPreview initialized:', {
+    hasItem: !!item,
+    hasMediaList: !!mediaList,
+    mediaListLength: mediaList?.length,
+    currentIndex,
+    index,
+    hasCurrentItem: !!currentItem,
+  });
 
   // Animation for slide down gesture
   const slideAnimation = useRef(new Animated.Value(0)).current;
   // Animation for diagonal slide gesture
   const diagonalSlideAnimation = useRef(new Animated.Value(0)).current;
-
+  const horizontalSlide = useRef(new Animated.Value(0)).current;
   // Interpolate slide animation to translateY
   const slideInterpolate = slideAnimation.interpolate({
     inputRange: [0, 1],
@@ -65,10 +78,11 @@ const GalleryItemPreview = ({navigation, route}) => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Respond to downward movements OR diagonal movements (top-right to bottom-left)
+        // Respond to downward movements, diagonal movements, OR horizontal movements
         const isDownward = gestureState.dy > 10;
         const isDiagonal = gestureState.dy > 10 && gestureState.dx < -10; // Moving down and left
-        return isDownward || isDiagonal;
+        const isHorizontal = Math.abs(gestureState.dx) > 10; // Horizontal swipe
+        return isDownward || isDiagonal || isHorizontal;
       },
       onPanResponderGrant: () => {
         // Reset animation values when gesture starts
@@ -76,22 +90,81 @@ const GalleryItemPreview = ({navigation, route}) => {
         diagonalSlideAnimation.setValue(0);
       },
       onPanResponderMove: (evt, gestureState) => {
+        const {dx, dy} = gestureState;
+
         // Check if it's a diagonal movement (top-right to bottom-left)
-        if (gestureState.dy > 0 && gestureState.dx < 0) {
+        if (dy > 0 && dx < 0) {
           // Diagonal movement: calculate distance from start point
-          const distance = Math.sqrt(
-            gestureState.dy * gestureState.dy +
-              gestureState.dx * gestureState.dx,
-          );
+          const distance = Math.sqrt(dx * dx + dy * dy);
           const progress = Math.min(distance / 800, 1); // Reduced from 400 to 800 (2x slower)
           diagonalSlideAnimation.setValue(progress);
-        } else if (gestureState.dy > 0) {
+        } else if (dy > 0) {
           // Pure downward movement
-          const progress = Math.min(gestureState.dy / 800, 1); // Reduced from 400 to 800 (2x slower)
+          const progress = Math.min(dy / 800, 1); // Reduced from 400 to 800 (2x slower)
           slideAnimation.setValue(progress);
+        }
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // Horizontal swipe
+          horizontalSlide.setValue(dx);
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
+        const {dx, dy} = gestureState;
+
+        console.log('🎯 PanResponder Release:', {
+          dx,
+          dy,
+          index,
+          mediaListLength: mediaList?.length,
+        });
+
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
+          console.log('🎯 Horizontal swipe detected:', {
+            dx,
+            dy,
+            threshold: SWIPE_THRESHOLD,
+          });
+
+          if (dx < 0 && mediaList && index < mediaList.length - 1) {
+            // Swipe left -> next item
+            console.log('🎯 Swiping left to next item');
+            Animated.timing(horizontalSlide, {
+              toValue: -width,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => {
+              setIndex(prev => prev + 1);
+              horizontalSlide.setValue(width);
+              Animated.spring(horizontalSlide, {
+                toValue: 0,
+                useNativeDriver: true,
+              }).start();
+            });
+          } else if (dx > 0 && index > 0) {
+            // Swipe right -> previous item
+            console.log('🎯 Swiping right to previous item');
+            Animated.timing(horizontalSlide, {
+              toValue: width,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => {
+              setIndex(prev => prev - 1);
+              horizontalSlide.setValue(-width);
+              Animated.spring(horizontalSlide, {
+                toValue: 0,
+                useNativeDriver: true,
+              }).start();
+            });
+          } else {
+            console.log('🎯 Horizontal swipe but at boundary or no mediaList');
+            Animated.spring(horizontalSlide, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+          }
+          return;
+        }
         // Check if it's a diagonal movement
         if (gestureState.dy > 0 && gestureState.dx < 0) {
           const distance = Math.sqrt(
@@ -135,20 +208,20 @@ const GalleryItemPreview = ({navigation, route}) => {
   ).current;
 
   useEffect(() => {
-    if (item) {
+    if (currentItem) {
       // Check if it's a video based on file extension or media type
       const isVideoFile =
-        item.type === 'video' ||
-        item.fileName?.toLowerCase().includes('.mp4') ||
-        item.fileName?.toLowerCase().includes('.mov') ||
-        item.fileName?.toLowerCase().includes('.avi') ||
-        item.uri?.toLowerCase().includes('.mp4') ||
-        item.uri?.toLowerCase().includes('.mov') ||
-        item.uri?.toLowerCase().includes('.avi');
+        currentItem.type === 'video' ||
+        currentItem.fileName?.toLowerCase().includes('.mp4') ||
+        currentItem.fileName?.toLowerCase().includes('.mov') ||
+        currentItem.fileName?.toLowerCase().includes('.avi') ||
+        currentItem.uri?.toLowerCase().includes('.mp4') ||
+        currentItem.uri?.toLowerCase().includes('.mov') ||
+        currentItem.uri?.toLowerCase().includes('.avi');
 
       setIsVideo(isVideoFile);
     }
-  }, [item]);
+  }, [currentItem]);
 
   const handleBack = () => {
     navigation.goBack();
@@ -156,9 +229,9 @@ const GalleryItemPreview = ({navigation, route}) => {
 
   const handleShare = async () => {
     try {
-      if (item?.uri) {
+      if (currentItem?.uri) {
         await Share.share({
-          url: item.uri,
+          url: currentItem.uri,
           message: 'Check out this photo/video from Dazz App!',
         });
       }
@@ -179,9 +252,9 @@ const GalleryItemPreview = ({navigation, route}) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            if (item?.uri) {
+            if (currentItem?.uri) {
               // Remove the 'file://' prefix if present
-              const filePath = item.uri.replace('file://', '');
+              const filePath = currentItem.uri.replace('file://', '');
 
               // Check if file exists before deleting
               const fileExists = await RNFS.exists(filePath);
@@ -217,7 +290,7 @@ const GalleryItemPreview = ({navigation, route}) => {
     ]); */
   };
 
-  if (!item) {
+  if (!currentItem) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
@@ -237,7 +310,12 @@ const GalleryItemPreview = ({navigation, route}) => {
         styles.container,
         {
           transform: [
-            {translateX: diagonalSlideInterpolateX},
+            {
+              translateX: Animated.add(
+                horizontalSlide,
+                diagonalSlideInterpolateX,
+              ),
+            },
             {
               translateY: Animated.add(
                 slideInterpolate,
@@ -274,7 +352,7 @@ const GalleryItemPreview = ({navigation, route}) => {
             <Text style={styles.videoIcon}>🎥</Text>
             <Text style={styles.videoText}>Video File</Text>
             <Text style={styles.videoSubtext}>
-              {item.fileName || 'Video preview not available'}
+              {currentItem.fileName || 'Video preview not available'}
             </Text>
             <TouchableOpacity style={styles.playButton}>
               <Text style={styles.playButtonText}>▶️ Play</Text>
@@ -282,7 +360,7 @@ const GalleryItemPreview = ({navigation, route}) => {
           </View>
         ) : (
           <Image
-            source={{uri: item.uri}}
+            source={{uri: currentItem.uri}}
             style={styles.image}
             resizeMode="contain"
           />
@@ -294,17 +372,17 @@ const GalleryItemPreview = ({navigation, route}) => {
         {/* Info Panel */}
         <View style={styles.infoPanel}>
           <Text style={styles.fileName}>
-            #{getFilterName(item.filterId || item.activeFilter)}
+            #{getFilterName(currentItem.filterId || currentItem.activeFilter)}
           </Text>
-          {/* <Text style={styles.fileName}>{item.fileName || 'Untitled'}</Text> */}
-          {/* {item.fileSize && (
+          {/* <Text style={styles.fileName}>{currentItem.fileName || 'Untitled'}</Text> */}
+          {/* {currentItem.fileSize && (
             <Text style={styles.fileSize}>
-              {(item.fileSize / 1024 / 1024).toFixed(2)} MB
+              {(currentItem.fileSize / 1024 / 1024).toFixed(2)} MB
             </Text>
           )} */}
-          {/* {item.timestamp && (
+          {/* {currentItem.timestamp && (
             <Text style={styles.timestamp}>
-              {new Date(item.timestamp).toLocaleDateString()}
+              {new Date(currentItem.timestamp).toLocaleDateString()}
             </Text>
           )} */}
         </View>
