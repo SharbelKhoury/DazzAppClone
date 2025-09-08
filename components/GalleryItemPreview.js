@@ -50,9 +50,11 @@ const GalleryItemPreview = ({navigation, route}) => {
 
     // Search through all camera categories to find the filter
     for (const category of cameraCategories) {
-      const camera = category.cameras.find(cam => cam.id === filterId);
-      if (camera) {
-        return camera.name;
+      if (category.cameras && Array.isArray(category.cameras)) {
+        const camera = category.cameras.find(cam => cam.id === filterId);
+        if (camera) {
+          return camera.name;
+        }
       }
     }
     return 'Original'; // Default fallback

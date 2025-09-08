@@ -37,6 +37,7 @@ import {
 import {Skia} from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
 import {Buffer} from 'buffer';
+import {captureRef} from 'react-native-view-shot';
 import {
   getFilterMatrix,
   setMatrixSystem,
@@ -224,6 +225,15 @@ const CameraComponent = ({navigation}) => {
   const [aspectRatioType, setAspectRatioType] = useState('Selected');
   const timestampArray = ['none', '1', '2', '3'];
   const [timestampDate, setTimestampDate] = useState('Generated');
+
+  // Combined images state
+  const [capturedPhotos, setCapturedPhotos] = useState([]);
+  const [isCapturingCombined, setIsCapturingCombined] = useState(false);
+  const [combinedCaptureStep, setCombinedCaptureStep] = useState(0); // 0: ready, 1: first photo, 2: second photo
+  const combinationModeStatus =
+    combinedCaptureStep === 1 ? '1/2' : combinedCaptureStep === 2 ? '2/2' : '';
+  const [isCombinationMode, setIsCombinationMode] = useState(false); // Track if we're in combination mode
+  const [tempCombinationView, setTempCombinationView] = useState(null); // Temporary view for combination
   const [timestamp, setTimestamp] = useState(timestampArray[0]);
   const colorProfileArray = ['400TX', 'VEL X5', '100ACR'];
   const [colorProfile, setColorProfile] = useState(colorProfileArray[2]);
@@ -238,6 +248,7 @@ const CameraComponent = ({navigation}) => {
   const [latestMedia, setLatestMedia] = useState(null);
   const cameraRef = useRef(null); // Ref for Camera component
   const cameraContainerRef = useRef(null); // Ref for camera container (for ViewShot)
+  const tempCombinationViewRef = useRef(null); // Ref for temporary combination view
   const [bottomControlModal, setBottomControlModal] = useState(false);
   const devices = useCameraDevices();
 
@@ -901,7 +912,8 @@ const CameraComponent = ({navigation}) => {
   };
 
   /**
-   * Helper function to combine two color matrices
+   * Helper function to combine two color matrices that is used especially here for
+   * combining the temperature matrix with the filter matrix.
    * Performs matrix multiplication for 5x4 color matrices
    * Used to combine multiple filter effects into a single matrix
    *
@@ -1000,6 +1012,12 @@ const CameraComponent = ({navigation}) => {
       return;
     }
 
+    // Check if we're in combination mode
+    if (isCombinationMode) {
+      await handleCombinationPhoto();
+      return;
+    }
+
     try {
       setIsProcessing(true);
       setIsPhotoEnabled(true);
@@ -1072,6 +1090,320 @@ const CameraComponent = ({navigation}) => {
    */
   const openGallery = () => {
     navigation.navigate('AppGallery');
+  };
+
+  const takeCombinedImages = () => {
+    console.log('🎯 Starting combination mode');
+
+    if (isCombinationMode) {
+      // If already in combination mode, cancel it
+      setIsCombinationMode(false);
+      setCombinedCaptureStep(0);
+      setCapturedPhotos([]);
+      Alert.alert(
+        'Combination Mode Cancelled',
+        'Returned to normal photo mode',
+      );
+      return;
+    }
+
+    // Start combination mode
+    setIsCombinationMode(true);
+    setCombinedCaptureStep(0);
+    setCapturedPhotos([]);
+
+    Alert.alert(
+      'Combination Mode Started!',
+      'Please proceed taking first photo using the main shutter button.',
+      [
+        {
+          text: 'OK',
+          onPress: () => console.log('Ready for first photo'),
+        },
+      ],
+    );
+  };
+
+  /**
+   * Handles photo capture when in combination mode
+   */
+  const handleCombinationPhoto = async () => {
+    try {
+      setIsProcessing(true);
+      setIsPhotoEnabled(true);
+
+      // Wait for camera to be ready
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      if (cameraPosition === 'front') {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Take the photo
+      const photo = await cameraRef.current.takePhoto({
+        qualityPrioritization: 'quality',
+        flash: flashMode,
+      });
+
+      console.log('🎯 Photo captured for combination:', photo.path);
+
+      // Apply filters to the captured photo but don't save to gallery yet
+      const filteredPhotoUri = await applySkiaFilterToPhoto(
+        photo.path,
+        activeFilters[0] || 'original',
+      );
+
+      if (filteredPhotoUri) {
+        // Add to captured photos array (don't save to gallery yet)
+        const newPhotos = [
+          ...capturedPhotos,
+          {
+            uri: filteredPhotoUri,
+            timestamp: new Date().toISOString(),
+            step: combinedCaptureStep + 1,
+          },
+        ];
+
+        console.log('🎯 Updated photos array:', newPhotos);
+        console.log('🎯 Current capture step:', combinedCaptureStep);
+        console.log('🎯 Next capture step will be:', combinedCaptureStep + 1);
+
+        setCapturedPhotos(newPhotos);
+        setCombinedCaptureStep(combinedCaptureStep + 1);
+
+        if (combinedCaptureStep === 0) {
+          // First photo captured
+          console.log('🎯 First photo captured, showing alert');
+          Alert.alert(
+            'First photo captured!',
+            'Please proceed taking 2nd photo using the main shutter button.',
+            [
+              {
+                text: 'OK',
+                onPress: () => console.log('Ready for second photo'),
+              },
+            ],
+          );
+        } else if (combinedCaptureStep === 1) {
+          // Second photo captured, now combine them
+          console.log('🎯 Second photo captured, starting combination process');
+          await combineAndSaveImages(newPhotos);
+        }
+      } else {
+        console.error('❌ Failed to get filtered photo URI');
+        Alert.alert('Error', 'Failed to process photo');
+      }
+    } catch (error) {
+      console.error('❌ handleCombinationPhoto failed:', error);
+      Alert.alert('Error', 'Failed to capture photo');
+    } finally {
+      setIsProcessing(false);
+      setIsPhotoEnabled(false);
+    }
+  };
+
+  /**
+   * Combines two captured images into one and saves the result
+   * @param {Array} photos - Array of captured photo objects
+   */
+  const combineAndSaveImages = async photos => {
+    try {
+      console.log('🎯 Combining images:', photos);
+      console.log('🎯 Photo 1 URI:', photos[0]?.uri);
+      console.log('🎯 Photo 2 URI:', photos[1]?.uri);
+      console.log('🎯 Photos array length:', photos.length);
+
+      if (photos.length !== 2) {
+        console.error('❌ Expected 2 photos, got:', photos.length);
+        Alert.alert('Error', 'Need exactly 2 photos to combine');
+        return;
+      }
+
+      // Check if photo URIs exist and are valid
+      if (!photos[0]?.uri || !photos[1]?.uri) {
+        console.error('❌ Missing photo URIs:', {
+          photo1: photos[0]?.uri,
+          photo2: photos[1]?.uri,
+        });
+        Alert.alert('Error', 'Missing photo URIs');
+        return;
+      }
+
+      // Create a temporary view to combine the images
+      console.log('🎯 About to create combined image...');
+      const combinedImageUri = await createCombinedImage(
+        photos[0].uri,
+        photos[1].uri,
+      );
+      console.log('🎯 Combined image URI:', combinedImageUri);
+
+      if (combinedImageUri) {
+        // Save the combined image to device gallery (like it was working at 12:32 PM)
+        console.log('🎯 About to save combined image to device gallery...');
+        const saved = await savePhotoToGallery(combinedImageUri);
+        console.log('🎯 Save result:', saved);
+
+        if (saved) {
+          // Clean up temporary individual photos
+          await cleanupTemporaryPhotos(photos);
+
+          // Update the app gallery to show the new combined image
+          fetchLatestMedia();
+
+          // Reset the combined capture state and exit combination mode
+          setCapturedPhotos([]);
+          setCombinedCaptureStep(0);
+          setIsCombinationMode(false);
+
+          Alert.alert(
+            'Success!',
+            'Combined image saved to gallery. Returned to normal photo mode.',
+            [
+              {
+                text: 'OK',
+                onPress: () => console.log('Combined image saved successfully'),
+              },
+            ],
+          );
+        } else {
+          Alert.alert('Error', 'Failed to save combined image');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to combine images');
+      }
+    } catch (error) {
+      console.error('❌ combineAndSaveImages failed:', error);
+      Alert.alert('Error', 'Failed to combine images');
+    }
+  };
+
+  /**
+   * Creates a combined image from two photo URIs using react-native-view-shot with 50% opacity overlay
+   * @param {string} photo1Uri - First photo URI
+   * @param {string} photo2Uri - Second photo URI
+   * @returns {Promise<string>} - Combined image URI
+   */
+  const createCombinedImage = async (photo1Uri, photo2Uri) => {
+    try {
+      console.log('🎯 Creating combined image from:', photo1Uri, photo2Uri);
+
+      // Create a temporary view for combining images
+      const timestamp = new Date().getTime();
+      const combinedPath = `${RNFS.TemporaryDirectoryPath}/skia_filtered_combined_${timestamp}.jpg`;
+
+      // Set the temporary view state for rendering with 50% opacity overlay
+      setTempCombinationView(
+        <View
+          style={{
+            width: 1080,
+            height: 1080,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            backgroundColor: 'transparent',
+          }}>
+          {/* First image as base */}
+          <Image
+            source={{uri: photo1Uri}}
+            style={{
+              width: 1080,
+              height: 1080,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+            }}
+            resizeMode="cover"
+          />
+          {/* Second image overlaid with 50% opacity */}
+          <Image
+            source={{uri: photo2Uri}}
+            style={{
+              width: 1080,
+              height: 1080,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              opacity: 0.5,
+            }}
+            resizeMode="cover"
+          />
+        </View>,
+      );
+
+      // Wait a moment for the view to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Capture the view as an image using the tempCombinationViewRef
+      const uri = await captureRef(tempCombinationViewRef, {
+        format: 'jpg',
+        quality: 0.8,
+        result: 'tmpfile',
+      });
+
+      if (uri) {
+        // Copy to our desired location with proper naming
+        await RNFS.copyFile(uri, combinedPath);
+        console.log(
+          '🎯 Combined image created with view-shot overlay:',
+          combinedPath,
+        );
+
+        // Clear the temporary view
+        setTempCombinationView(null);
+
+        return combinedPath;
+      } else {
+        throw new Error('Failed to capture view');
+      }
+    } catch (error) {
+      console.error('❌ createCombinedImage failed:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+
+      // Clear the temporary view on error
+      setTempCombinationView(null);
+
+      // Fallback: just copy the first image with proper naming for AppGallery
+      try {
+        const timestamp = new Date().getTime();
+        const fallbackPath = `${RNFS.TemporaryDirectoryPath}/skia_filtered_combined_${timestamp}.jpg`;
+        await RNFS.copyFile(photo1Uri, fallbackPath);
+        console.log('🎯 Fallback combined image created:', fallbackPath);
+        return fallbackPath;
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        return null;
+      }
+    }
+  };
+
+  /**
+   * Cleans up temporary individual photos after combining them
+   * @param {Array} photos - Array of photo objects to clean up
+   */
+  const cleanupTemporaryPhotos = async photos => {
+    try {
+      console.log('🧹 Cleaning up temporary photos:', photos);
+
+      for (const photo of photos) {
+        try {
+          // Check if the file exists before trying to delete it
+          const exists = await RNFS.exists(photo.uri);
+          if (exists) {
+            await RNFS.unlink(photo.uri);
+            console.log('🗑️ Deleted temporary photo:', photo.uri);
+          }
+        } catch (error) {
+          console.error(
+            '❌ Failed to delete temporary photo:',
+            photo.uri,
+            error,
+          );
+        }
+      }
+    } catch (error) {
+      console.error('❌ cleanupTemporaryPhotos failed:', error);
+    }
   };
 
   /**
@@ -1345,6 +1677,23 @@ const CameraComponent = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
+
+      {/* Temporary view for image combination */}
+      {tempCombinationView && (
+        <View
+          ref={tempCombinationViewRef}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 1080,
+            height: 1080,
+            zIndex: 1000,
+          }}>
+          {tempCombinationView}
+        </View>
+      )}
+
       {/* Camera View with Frame */}
       <Animated.View
         ref={cameraContainerRef}
@@ -1833,11 +2182,24 @@ const CameraComponent = ({navigation}) => {
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.controlButton}
-                onPress={toggleGrid}>
+                style={[
+                  styles.controlButton,
+                  isCombinationMode && styles.controlButtonActive,
+                ]}
+                onPress={takeCombinedImages}>
                 <View style={styles.gridIcon}>
-                  <View style={styles.gridSquare1} />
-                  <View style={styles.gridSquare2} />
+                  <View
+                    style={[
+                      styles.gridSquare1,
+                      isCombinationMode && styles.gridSquareActive,
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.gridSquare2,
+                      isCombinationMode && styles.gridSquareActive,
+                    ]}
+                  />
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1886,7 +2248,14 @@ const CameraComponent = ({navigation}) => {
               </TouchableOpacity>
             </View>
           )}
-
+          {/* Combination Mode Overlay */}
+          {isCombinationMode && (
+            <View style={styles.combinationModeOverlay}>
+              <Text style={styles.combinationModeText}>
+                Please take or import 2 photos {combinationModeStatus}
+              </Text>
+            </View>
+          )}
           {/* Temperature Control */}
           {tempActive && (
             <View style={styles.viewControlActive}>
@@ -3338,6 +3707,14 @@ const styles = StyleSheet.create({
     top: 4,
     left: 6,
   },
+  controlButtonActive: {
+    //backgroundColor: 'rgba(255, 100, 0, 0.3)', // Orange tint
+    borderRadius: 25,
+  },
+  gridSquareActive: {
+    borderColor: 'rgb(255, 55, 0)', // Orange border
+    backgroundColor: 'rgba(255, 34, 0, 0.16)', // Orange background
+  },
   clock: {
     width: 26,
     height: 26,
@@ -3549,6 +3926,22 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingTop: 10,
     justifyContent: 'space-between',
+  },
+  combinationModeOverlay: {
+    position: 'absolute',
+    top: -130,
+    left: 15,
+    width: 195,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  combinationModeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 
