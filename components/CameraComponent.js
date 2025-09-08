@@ -3756,7 +3756,7 @@ const styles = StyleSheet.create({
     width: 30,
     marginTop: -6,
     height: 30,
-    tintColor: 'rgb(255, 85, 0)',
+    tintColor: 'rgb(255, 55, 0)',
   },
   flashIcon4: {
     width: 30,
