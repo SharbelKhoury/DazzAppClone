@@ -1092,6 +1092,123 @@ const CameraComponent = ({navigation}) => {
     navigation.navigate('AppGallery');
   };
 
+  /**
+   * Function to process multiple media items with filters
+   * Applies the currently active filter to all selected photos
+   * Saves processed photos to gallery with progress feedback
+   *
+   * @param {Array} mediaItems - Array of selected media items
+   * @returns {Promise<Object>} - Processing results summary
+   */
+  const processMultipleMediaWithFilters = async mediaItems => {
+    const results = {
+      total: mediaItems.length,
+      processed: 0,
+      saved: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    console.log(
+      `🎯 Starting batch processing of ${mediaItems.length} media items`,
+    );
+
+    for (let i = 0; i < mediaItems.length; i++) {
+      const mediaItem = mediaItems[i];
+      console.log(
+        `🎯 Processing item ${i + 1}/${mediaItems.length}: ${
+          mediaItem.fileName
+        }`,
+      );
+
+      try {
+        // Only process photos (not videos for now)
+        if (
+          mediaItem.type === 'image/jpeg' ||
+          mediaItem.type === 'image/jpg' ||
+          mediaItem.type === 'image/png'
+        ) {
+          const result = await applyFiltersToPhoto(mediaItem.uri);
+          results.processed++;
+
+          if (result.saved) {
+            results.saved++;
+            console.log(
+              `✅ Successfully processed and saved: ${mediaItem.fileName}`,
+            );
+          } else {
+            results.failed++;
+            results.errors.push(`Failed to save: ${mediaItem.fileName}`);
+            console.log(`❌ Failed to save: ${mediaItem.fileName}`);
+          }
+        } else {
+          console.log(
+            `⏭️ Skipping non-image file: ${mediaItem.fileName} (${mediaItem.type})`,
+          );
+          results.errors.push(`Skipped non-image: ${mediaItem.fileName}`);
+        }
+      } catch (error) {
+        results.failed++;
+        results.errors.push(
+          `Error processing ${mediaItem.fileName}: ${error.message}`,
+        );
+        console.error(`❌ Error processing ${mediaItem.fileName}:`, error);
+      }
+    }
+
+    console.log(`🎯 Batch processing complete:`, results);
+    return results;
+  };
+
+  const selectPhotosFromGalleryToApplyFilters = () => {
+    const options = {
+      mediaType: 'mixed', // Allow both photos and videos
+      includeBase64: false,
+      maxHeight: 2000,
+      maxWidth: 2000,
+      quality: 1,
+      selectionLimit: 0, // 0 means unlimited selection
+      includeExtra: true,
+    };
+
+    launchImageLibrary(options, async response => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+        Alert.alert('Error', 'Failed to open media gallery');
+      } else if (response.assets && response.assets.length > 0) {
+        const selectedMedia = response.assets;
+        console.log('Selected media:', selectedMedia.length, 'items');
+
+        // Show processing alert
+        Alert.alert(
+          'Processing Media',
+          `Processing ${selectedMedia.length} media items with current filter...`,
+          [{text: 'OK'}],
+        );
+
+        // Process all selected media items
+        const results = await processMultipleMediaWithFilters(selectedMedia);
+
+        // Show results
+        const successMessage = `Processing complete!\n\n✅ Processed: ${results.processed}\n💾 Saved: ${results.saved}\n❌ Failed: ${results.failed}`;
+
+        if (results.errors.length > 0) {
+          Alert.alert(
+            'Processing Results',
+            `${successMessage}\n\nErrors:\n${results.errors
+              .slice(0, 3)
+              .join('\n')}${results.errors.length > 3 ? '\n...' : ''}`,
+            [{text: 'OK'}],
+          );
+        } else {
+          Alert.alert('Processing Complete', successMessage, [{text: 'OK'}]);
+        }
+      }
+    });
+  };
+
   const takeCombinedImages = () => {
     console.log('🎯 Starting combination mode');
 
@@ -1482,6 +1599,12 @@ const CameraComponent = ({navigation}) => {
     }
   };
 
+  /**
+   * Flips the camera between front and back positions
+   * Prevents rapid camera switching and ensures proper initialization
+   *
+   * @returns {void} - Updates camera position state
+   */
   const flipCamera = () => {
     // Prevent rapid camera switching
     if (!isCameraReady) {
@@ -2172,7 +2295,7 @@ const CameraComponent = ({navigation}) => {
             <View style={styles.topControls}>
               <TouchableOpacity
                 style={styles.controlButton}
-                onPress={openGallery}>
+                onPress={selectPhotosFromGalleryToApplyFilters}>
                 <View style={styles.galleryButtonIcon}>
                   {/* <View style={styles.cameraOutline} /> */}
                   <Image
@@ -2577,7 +2700,7 @@ const CameraComponent = ({navigation}) => {
                       position: 'absolute',
                       bottom: -8,
                       right: '40%',
-                      fontSize: 7,
+                      fontSize: 10,
                       fontWeight: '600',
                     },
                     focalLength == focalLengthArray[0]
@@ -2629,7 +2752,7 @@ const CameraComponent = ({navigation}) => {
                       bottom: -8,
                       left: '50%',
                       marginLeft: -3.5,
-                      fontSize: 7,
+                      fontSize: 10,
                       fontWeight: '600',
                     },
                     focalLength == focalLengthArray[1]
