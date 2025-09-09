@@ -52,7 +52,7 @@ const Settings = ({navigation}) => {
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}>
         <View style={styles.settingsContainer}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Subscription')}>
             <View style={styles.settingsItem}>
               <Text style={styles.text}>Dazz Pro</Text>
               <Image

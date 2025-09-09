@@ -28,7 +28,7 @@ const AppGallery = ({navigation}) => {
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('All Photos');
+  const [selectedFilter, setSelectedFilter] = useState('ALL PHOTOS');
   const [filterStats, setFilterStats] = useState({});
 
   // Create a map of all filter IDs to their display names and icons
@@ -177,7 +177,7 @@ const AppGallery = ({navigation}) => {
   const loadCameraIcon = filterName => {
     if (
       !filterName ||
-      filterName === 'All Photos' ||
+      filterName === 'ALL PHOTOS' ||
       filterName === 'Unknown'
     ) {
       return require('../src/assets/icons/camera.png');
@@ -254,7 +254,7 @@ const AppGallery = ({navigation}) => {
       });
 
       // Add "All Photos" count
-      stats['All Photos'] = sortedPhotos.length;
+      stats['ALL PHOTOS'] = sortedPhotos.length;
 
       setFilterStats(stats);
     } catch (error) {
@@ -462,7 +462,7 @@ const AppGallery = ({navigation}) => {
   };
 
   const getFilteredPhotos = () => {
-    if (selectedFilter === 'All Photos') {
+    if (selectedFilter === 'ALL PHOTOS') {
       return appPhotos;
     }
 
@@ -477,7 +477,7 @@ const AppGallery = ({navigation}) => {
   };
 
   const getFilterDisplayName = filterName => {
-    if (filterName === 'All Photos') return 'All Photos';
+    if (filterName === 'ALL PHOTOS') return 'ALL PHOTOS';
 
     // Use the comprehensive filter map for better matching
     const comprehensiveMap = createComprehensiveFilterMap();
@@ -488,7 +488,7 @@ const AppGallery = ({navigation}) => {
   };
 
   const getFilterIcon = filterName => {
-    if (filterName === 'All Photos') {
+    if (filterName === 'ALL PHOTOS') {
       return require('../src/assets/icons/gallery-plus.png');
     }
 
@@ -530,11 +530,11 @@ const AppGallery = ({navigation}) => {
           </View>
         )}
 
-        <View style={styles.photoOverlay}>
+        {/* <View style={styles.photoOverlay}>
           <Text style={styles.photoDate}>
             {new Date(item.timestamp).toLocaleDateString()}
           </Text>
-        </View>
+        </View> */}
       </TouchableOpacity>
     );
   };
@@ -589,7 +589,7 @@ const AppGallery = ({navigation}) => {
                         source={filterIcon}
                         style={[
                           styles.filterOptionIcon,
-                          (filterName === 'All Photos' ||
+                          (filterName === 'ALL PHOTOS' ||
                             filterName === 'Unknown') && {
                             tintColor: '#fff',
                           },
@@ -809,14 +809,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   photoGrid: {
-    paddingHorizontal: 10,
-    paddingBottom: 20,
+    paddingHorizontal: 1,
+    paddingBottom: 0,
   },
   photoItem: {
     flex: 1,
-    margin: 5,
+    margin: 1,
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 0,
     overflow: 'hidden',
     backgroundColor: '#1a1a1a',
   },
