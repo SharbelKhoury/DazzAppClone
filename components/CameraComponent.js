@@ -33,6 +33,14 @@ import {
   Image as SkiaImage,
   useImage,
   ColorMatrix,
+  Shader,
+  ImageShader,
+  Fill,
+  Group,
+  FilterMode,
+  MipmapMode,
+  drawAsImage,
+  ImageFormat,
 } from '@shopify/react-native-skia';
 import {Skia} from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
@@ -46,6 +54,11 @@ import {
 } from '../utils/filterMatrixUtils';
 import '../utils/matrixSystemController'; // Load matrix system controller for console access
 import {getSelectedCameraIcon} from '../utils/cameraIconUtils';
+import {base64 as grfLutBase64} from '../filtersLUT/grf';
+import {base64 as irLutBase64} from '../filtersLUT/ir';
+import {base64 as dexpLutBase64} from '../filtersLUT/dexp';
+import {base64 as dfunsLutBase64} from '../filtersLUT/dfuns';
+import {base64 as cpm35LutBase64} from '../filtersLUT/cpm35';
 
 // ImageManipulator removed - using OpenGL effects only
 
@@ -642,6 +655,123 @@ const CameraComponent = ({navigation}) => {
    * @param {string} filterId - ID of the filter to apply
    * @returns {Promise<string>} - URI of the processed photo or original if failed
    */
+  // Create LUT filter element like the working example
+  const createLUTFilterElement = (
+    photoUrl,
+    imageWidth,
+    imageHeight,
+    filterId,
+  ) => {
+    const shader = Skia.RuntimeEffect.Make(`
+      uniform shader image;
+      uniform shader luts;
+    
+      // Simple noise function
+      float rand(float2 co) {
+        return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+    
+      half4 main(float2 xy) {
+        // Original image processing
+        vec4 color = image.eval(xy);
+        
+        int r = int(color.r * 255.0 / 4);
+        int g = int(color.g * 255.0 / 4);
+        int b = int(color.b * 255.0 / 4);
+        
+        float lutX = float(int(mod(float(b), 8.0)) * 64 + r);
+        float lutY = float(int((b / 8) * 64 + g));
+        
+        vec4 lutsColor = luts.eval(float2(lutX, lutY));
+        
+        // Generate noise
+        float noiseIntensity = 0.04; // Adjust this to control noise strength
+        float noise = rand(xy) * noiseIntensity;
+        
+        // Blend noise with the image (simple additive blend)
+        vec4 noisyColor = lutsColor + vec4(noise, noise, noise, 0.0);
+        
+        return noisyColor;
+      }
+    `);
+
+    // Import LUT based on filter ID
+    let lutBase64;
+    try {
+      if (filterId === 'grf') {
+        lutBase64 = grfLutBase64;
+      } else if (filterId === 'ir') {
+        lutBase64 = irLutBase64;
+      } else if (filterId === 'dexp') {
+        lutBase64 = dexpLutBase64;
+      } else if (filterId === 'dfuns') {
+        lutBase64 = dfunsLutBase64;
+      } else if (filterId === 'cpm35') {
+        lutBase64 = cpm35LutBase64;
+      } else {
+        // For other filters, you can add more imports here
+        throw new Error(`No LUT found for filter: ${filterId}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to load LUT for filter:', filterId, error);
+      return null;
+    }
+
+    const lutData = Skia.Data.fromBase64(lutBase64);
+    const lutImage = Skia.Image.MakeImageFromEncoded(lutData);
+    const data = Skia.Data.fromBase64(photoUrl);
+    const capturedImage = Skia.Image.MakeImageFromEncoded(data);
+
+    if (!capturedImage || !shader || !lutImage) {
+      return null;
+    }
+
+    return (
+      /*     <Group
+        clip={{
+          rect: {
+            x: 0,
+            y: 0,
+            width: imageWidth,
+            height: imageHeight,
+          },
+        }}> */
+      <Group>
+        <Fill />
+        <Shader source={shader} uniforms={{}}>
+          <ImageShader
+            fit="cover"
+            image={capturedImage}
+            rect={{
+              x: 0,
+              y: 0,
+              width: imageWidth,
+              height: imageHeight,
+            }}
+            sampling={{
+              filter: FilterMode.Linear,
+              mipmap: MipmapMode.None,
+            }}
+          />
+          <ImageShader
+            fit="cover"
+            image={lutImage}
+            rect={{
+              x: 0,
+              y: 0,
+              width: 512,
+              height: 512,
+            }}
+            sampling={{
+              filter: FilterMode.Linear,
+              mipmap: MipmapMode.None,
+            }}
+          />
+        </Shader>
+      </Group>
+    );
+  };
+
   const applySkiaFilterToPhoto = async (photoUri, filterId) => {
     try {
       console.log('🎨 Commencing Skia approach...');
@@ -661,42 +791,109 @@ const CameraComponent = ({navigation}) => {
       const width = skiaImage.width();
       const height = skiaImage.height();
 
-      // Create color matrix
-      const filterConfig = openglFilterEffects[filterId];
-      console.log('🎨 Filter config:', filterConfig);
-
-      // Get the correct color matrix for the specific filter
-      console.log('🎨 Current matrix system:', getMatrixSystem());
-      const colorMatrix = getFilterMatrix(
-        filterId,
-        openglFilterEffects,
-        createColorMatrixFromFilter,
-      );
-      console.log('🎨 Color matrix:', colorMatrix);
-
-      // Create temperature color matrix based on current temperature value
-      const temperatureMatrix = createTemperatureColorMatrix(temperatureValue);
-      console.log('🌡️ Temperature matrix:', temperatureMatrix);
-
-      // Combine filter and temperature matrices
-      const combinedMatrix = combineColorMatrices(
-        colorMatrix,
-        temperatureMatrix,
-      );
-      console.log('🎨 Combined matrix:', combinedMatrix);
-
-      const colorFilter = Skia.ColorFilter.MakeMatrix(combinedMatrix);
-
-      // Create paint
-      const paint = Skia.Paint();
-      paint.setColorFilter(colorFilter);
-
-      // Create surface and draw
+      // Create surface and canvas
       const surface = Skia.Surface.Make(width, height);
       const canvas = surface.getCanvas();
 
-      // Draw the image with the filter
-      canvas.drawImage(skiaImage, 0, 0, paint);
+      // Apply LUT-based filtering for 'grf', 'ir', 'dexp', 'dfuns', and 'cpm35' filters
+      if (
+        filterId === 'grf' ||
+        filterId === 'ir' ||
+        filterId === 'dexp' ||
+        filterId === 'dfuns' ||
+        filterId === 'cpm35'
+      ) {
+        console.log(`🎨 Applying LUT-based filtering for ${filterId} filter`);
+
+        try {
+          console.log(
+            '🎨 Using drawAsImage method like the working example...',
+          );
+
+          // Create LUT filter element like the working example
+          const filteredElement = createLUTFilterElement(
+            imageData,
+            width,
+            height,
+            filterId,
+          );
+
+          if (!filteredElement) {
+            throw new Error('Failed to create LUT filter element');
+          }
+
+          // Use drawAsImage like the working example
+          const skImage = await drawAsImage(filteredElement, {
+            width: width,
+            height: height,
+          });
+
+          // Draw the processed image to canvas
+          canvas.drawImage(skImage, 0, 0);
+
+          console.log('✅ drawAsImage LUT method completed successfully');
+        } catch (lutError) {
+          console.error(
+            '❌ LUT filtering failed, falling back to matrix:',
+            lutError,
+          );
+
+          // Fallback to matrix-based filtering for grf
+          const filterConfig = openglFilterEffects[filterId];
+          const colorMatrix = getFilterMatrix(
+            filterId,
+            openglFilterEffects,
+            createColorMatrixFromFilter,
+          );
+          const temperatureMatrix =
+            createTemperatureColorMatrix(temperatureValue);
+          const combinedMatrix = combineColorMatrices(
+            colorMatrix,
+            temperatureMatrix,
+          );
+          const colorFilter = Skia.ColorFilter.MakeMatrix(combinedMatrix);
+          const paint = Skia.Paint();
+          paint.setColorFilter(colorFilter);
+          canvas.drawImage(skiaImage, 0, 0, paint);
+        }
+      } else {
+        // Use original matrix-based filtering for all other filters
+        console.log('🎨 Using matrix-based filtering for', filterId);
+
+        // Create color matrix
+        const filterConfig = openglFilterEffects[filterId];
+        console.log('🎨 Filter config:', filterConfig);
+
+        // Get the correct color matrix for the specific filter
+        console.log('🎨 Current matrix system:', getMatrixSystem());
+        const colorMatrix = getFilterMatrix(
+          filterId,
+          openglFilterEffects,
+          createColorMatrixFromFilter,
+        );
+        console.log('🎨 Color matrix:', colorMatrix);
+
+        // Create temperature color matrix based on current temperature value
+        const temperatureMatrix =
+          createTemperatureColorMatrix(temperatureValue);
+        console.log('🌡️ Temperature matrix:', temperatureMatrix);
+
+        // Combine filter and temperature matrices
+        const combinedMatrix = combineColorMatrices(
+          colorMatrix,
+          temperatureMatrix,
+        );
+        console.log('🎨 Combined matrix:', combinedMatrix);
+
+        const colorFilter = Skia.ColorFilter.MakeMatrix(combinedMatrix);
+
+        // Create paint
+        const paint = Skia.Paint();
+        paint.setColorFilter(colorFilter);
+
+        // Draw the image with the filter
+        canvas.drawImage(skiaImage, 0, 0, paint);
+      }
 
       // Apply vignette effect specifically for hoga filter
       if (filterId === 'hoga') {
@@ -705,17 +902,17 @@ const CameraComponent = ({navigation}) => {
         // Create vignette paint
         const vignettePaint = Skia.Paint();
 
-        // Create radial gradient for vignette (25px corner shadows)
+        // Create radial gradient for vignette (reduced size as requested)
         const centerX = width / 2;
         const centerY = height / 2;
         const radius = Math.max(width, height) / 2;
 
-        // Create gradient from transparent center to dark corners
+        // Create gradient from transparent center to dark corners (reduced shadow size)
         const gradient = Skia.Shader.MakeRadialGradient(
           {x: centerX, y: centerY},
           radius,
           [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.5)')], // 50% dark at corners
-          [0, 1],
+          [0, 0.5], // Reduced from 0.5 to 0.25 for half the shadow size
           0, // TileMode.Clamp = 0
         );
 
@@ -723,6 +920,193 @@ const CameraComponent = ({navigation}) => {
 
         // Draw vignette overlay
         canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+      }
+
+      // Apply vignette effect specifically for hoga filter
+      if (filterId === 'dfuns') {
+        console.log('🎨 Applying vignette effect for dfuns filter');
+
+        // Create vignette paint
+        const vignettePaint = Skia.Paint();
+
+        // Create radial gradient for vignette (reduced size as requested)
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.max(width, height) / 2;
+
+        // Create gradient from transparent center to dark corners (reduced shadow size)
+        const gradient = Skia.Shader.MakeRadialGradient(
+          {x: centerX, y: centerY},
+          radius,
+          [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.25)')], // 50% dark at corners
+          [0, 0.001], // Reduced from 0.5 to 0.25 for half the shadow size
+          0, // TileMode.Clamp = 0
+        );
+
+        vignettePaint.setShader(gradient);
+
+        // Draw vignette overlay
+        canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+      }
+
+      // Apply vignette effect specifically for hoga filter
+      if (filterId === 'cpm35') {
+        console.log('🎨 Applying vignette effect for cpm35 filter');
+
+        // Create vignette paint
+        const vignettePaint = Skia.Paint();
+
+        // Create radial gradient for vignette (reduced size as requested)
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.max(width, height) / 2;
+
+        // Create gradient from transparent center to dark corners (reduced shadow size)
+        const gradient = Skia.Shader.MakeRadialGradient(
+          {x: centerX, y: centerY},
+          radius,
+          [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.25)')], // 50% dark at corners
+          [0, 0.001], // Reduced from 0.5 to 0.25 for half the shadow size
+          0, // TileMode.Clamp = 0
+        );
+
+        vignettePaint.setShader(gradient);
+
+        // Draw vignette overlay
+        canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+      }
+
+      if (filterId === 'dexp') {
+        console.log('🎨 Applying vignette effect for dexp filter');
+
+        // 1. Yellow weak background overlay
+        const yellowPaint = Skia.Paint();
+        yellowPaint.setColor(Skia.Color('rgba(0, 0, 0, 0.2)')); // Weak yellow overlay
+        canvas.drawRect(Skia.XYWHRect(0, 0, width, height), yellowPaint);
+
+        // 2. Red vignette at bottom (20% from bottom, full width)
+        const redVignettePaint = Skia.Paint();
+        const bottomStartY = height * 0.8; // Start from 80% height (20% from bottom)
+        const bottomHeight = height * 0.2; // 20% of image height
+
+        // Create linear gradient from transparent to red at bottom
+        const redGradient = Skia.Shader.MakeLinearGradient(
+          {x: 0, y: bottomStartY}, // Start point (top of bottom area)
+          {x: 0, y: height}, // End point (bottom of image)
+          [Skia.Color('transparent'), Skia.Color('rgba(255, 0, 0, 0.25)')], // Red with 0.25 opacity
+          [0, 4],
+          0, // TileMode.Clamp = 0
+        );
+
+        redVignettePaint.setShader(redGradient);
+
+        // Draw red vignette at bottom
+        canvas.drawRect(
+          Skia.XYWHRect(0, bottomStartY, width, bottomHeight),
+          redVignettePaint,
+        );
+
+        // 3. Black vignette at top (20% from top, full width)
+        const blackVignettePaint = Skia.Paint();
+        const topStartY = 0; // Start from top
+        const topHeight = height * 0.2; // 20% of image height
+
+        // Create linear gradient from black to transparent (top to bottom)
+        const blackGradient = Skia.Shader.MakeLinearGradient(
+          {x: 0, y: topStartY}, // Start point (top of image)
+          {x: 0, y: topHeight}, // End point (20% down from top)
+          [Skia.Color('rgba(0, 0, 0, 0.3)'), Skia.Color('transparent')], // Black to transparent
+          [0, 1],
+          0, // TileMode.Clamp = 0
+        );
+
+        blackVignettePaint.setShader(blackGradient);
+
+        // Draw black vignette at top
+        canvas.drawRect(
+          Skia.XYWHRect(0, topStartY, width, topHeight),
+          blackVignettePaint,
+        );
+      }
+
+      if (filterId === 'dfuns') {
+        console.log('🎨 Applying corner vignette effect for dfuns filter');
+
+        // Create corner vignette paint
+        const cornerVignettePaint = Skia.Paint();
+        const cornerSize = Math.min(width, height) * 0.2; // 30% of image size for larger coverage
+
+        // Create radial gradient for corner vignette
+        const cornerGradient = Skia.Shader.MakeRadialGradient(
+          {x: 0, y: 0}, // Center point (will be adjusted per corner)
+          cornerSize,
+          [Skia.Color('rgba(0, 0, 0, 0.4)'), Skia.Color('transparent')], // Dark to transparent
+          [0, 1],
+          0, // TileMode.Clamp = 0
+        );
+
+        cornerVignettePaint.setShader(cornerGradient);
+
+        // Top-left corner
+        const topLeftGradient = Skia.Shader.MakeRadialGradient(
+          {x: 0, y: 0}, // Center at the very corner point
+          cornerSize,
+          [Skia.Color('rgba(0, 0, 0, 0.4)'), Skia.Color('transparent')],
+          [0, 1],
+          0,
+        );
+        cornerVignettePaint.setShader(topLeftGradient);
+        canvas.drawRect(
+          Skia.XYWHRect(0, 0, cornerSize, cornerSize),
+          cornerVignettePaint,
+        );
+
+        // Top-right corner
+        const topRightGradient = Skia.Shader.MakeRadialGradient(
+          {x: width, y: 0}, // Center at the very corner point
+          cornerSize,
+          [Skia.Color('rgba(0, 0, 0, 0.4)'), Skia.Color('transparent')],
+          [0, 1],
+          0,
+        );
+        cornerVignettePaint.setShader(topRightGradient);
+        canvas.drawRect(
+          Skia.XYWHRect(width - cornerSize, 0, cornerSize, cornerSize),
+          cornerVignettePaint,
+        );
+
+        // Bottom-left corner
+        const bottomLeftGradient = Skia.Shader.MakeRadialGradient(
+          {x: 0, y: height}, // Center at the very corner point
+          cornerSize,
+          [Skia.Color('rgba(0, 0, 0, 0.4)'), Skia.Color('transparent')],
+          [0, 1],
+          0,
+        );
+        cornerVignettePaint.setShader(bottomLeftGradient);
+        canvas.drawRect(
+          Skia.XYWHRect(0, height - cornerSize, cornerSize, cornerSize),
+          cornerVignettePaint,
+        );
+
+        // Bottom-right corner
+        const bottomRightGradient = Skia.Shader.MakeRadialGradient(
+          {x: width, y: height}, // Center at the very corner point
+          cornerSize,
+          [Skia.Color('rgba(0, 0, 0, 0.3)'), Skia.Color('transparent')],
+          [0, 1],
+          0,
+        );
+        cornerVignettePaint.setShader(bottomRightGradient);
+        canvas.drawRect(
+          Skia.XYWHRect(
+            width - cornerSize,
+            height - cornerSize,
+            cornerSize,
+            cornerSize,
+          ),
+          cornerVignettePaint,
+        );
       }
 
       // Get image and encode
@@ -745,26 +1129,9 @@ const CameraComponent = ({navigation}) => {
     } catch (error) {
       console.error('❌ Alternative Skia approach failed:', error);
 
-      // Fallback to ColorMatrixImageFilter
-      try {
-        const filterConfig = openglFilterEffects[filterId];
-        const colorMatrix = createColorMatrixFromFilter(filterConfig);
-        const outputPath = `${
-          RNFS.TemporaryDirectoryPath
-        }/filtered_${filterId}_${Date.now()}.jpg`;
-
-        await ColorMatrixImageFilter.processImage(
-          photoUri,
-          outputPath,
-          colorMatrix,
-        );
-        // Refresh gallery preview to show the new filtered photo
-        fetchLatestMedia();
-        return outputPath;
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError);
-        return photoUri;
-      }
+      // Fallback - return original photo without filtering
+      console.log('🔄 Returning original photo without filtering as fallback');
+      return photoUri;
     }
   };
 
