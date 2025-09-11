@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    //borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   actionButton: {
     paddingHorizontal: 20,
