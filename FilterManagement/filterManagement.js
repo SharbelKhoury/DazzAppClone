@@ -346,7 +346,7 @@ export const applySkiaFilterToPhoto = async (
     const surface = Skia.Surface.Make(width, height);
     const canvas = surface.getCanvas();
 
-    // Apply LUT-based filtering for 'grf', 'ir', 'dexp', 'dfuns', 'cpm35', 'classicu', 'grdr', 'nt16', and 'dclassic' filters
+    // Apply LUT-based filtering for 'grf', 'ir', 'dexp', 'dfuns', 'cpm35', 'classicu', 'grdr', 'nt16', 'dclassic', 'ccdr', 'puli', and 'fqsr' filters
     if (
       filterId === 'grf' ||
       filterId === 'ir' ||
@@ -356,7 +356,10 @@ export const applySkiaFilterToPhoto = async (
       filterId === 'classicu' ||
       filterId === 'grdr' ||
       filterId === 'nt16' ||
-      filterId === 'dclassic'
+      filterId === 'dclassic' ||
+      filterId === 'ccdr' ||
+      filterId === 'puli' ||
+      filterId === 'fqsr'
     ) {
       console.log(`🎨 Applying LUT-based filtering for ${filterId} filter`);
 
@@ -514,6 +517,57 @@ export const applySkiaFilterToPhoto = async (
       canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
     }
 
+    // Apply vignette effect specifically for puli filter
+    if (filterId === 'puli') {
+      console.log('🎨 Applying vignette effect for puli filter');
+
+      // Create vignette paint
+      const vignettePaint = Skia.Paint();
+
+      // Create radial gradient for vignette (reduced size as requested)
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.max(width, height) / 2;
+
+      // Create gradient from transparent center to dark corners (reduced shadow size)
+      const gradient = Skia.Shader.MakeRadialGradient(
+        {x: centerX, y: centerY},
+        radius,
+        [Skia.Color('transparent'), Skia.Color('rgba(255, 255, 255, 0.1)')], // 50% dark at corners
+        [0, 0.001], // Reduced from 0.5 to 0.25 for half the shadow size
+        0, // TileMode.Clamp = 0
+      );
+      vignettePaint.setShader(gradient);
+
+      // Draw vignette overlay
+      canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+    }
+
+    // Apply vignette effect specifically for fqsr filter
+    if (filterId === 'fqsr') {
+      console.log('🎨 Applying vignette effect for fqsr filter');
+
+      // Create vignette paint
+      const vignettePaint = Skia.Paint();
+
+      // Create radial gradient for vignette
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.max(width, height) / 2;
+
+      // Create gradient from transparent center to dark brown corners
+      const gradient = Skia.Shader.MakeRadialGradient(
+        {x: centerX, y: centerY},
+        radius,
+        [Skia.Color('transparent'), Skia.Color('rgba(0, 0, 0, 0.1)')], // Dark brown with 0.5 opacity
+        [0, 0.005], // Standard vignette effect
+        0, // TileMode.Clamp = 0
+      );
+      vignettePaint.setShader(gradient);
+
+      // Draw vignette overlay
+      canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+    }
     // Apply vignette effect specifically for dfuns filter
     if (filterId === 'dfuns') {
       console.log('🎨 Applying vignette effect for dfuns filter');
@@ -595,6 +649,32 @@ export const applySkiaFilterToPhoto = async (
       canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
     }
 
+    if (filterId === 'ccdr') {
+      console.log('🎨 Applying vignette effect for ccdr filter');
+
+      // Create vignette paint
+      const vignettePaint = Skia.Paint();
+
+      // Create radial gradient for vignette
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.max(width, height) / 2;
+
+      // Create gradient from transparent center to dark corners
+      const gradient = Skia.Shader.MakeRadialGradient(
+        {x: centerX, y: centerY},
+        radius,
+        [Skia.Color('transparent'), Skia.Color('rgba(16, 15, 5, 0.32)')], // 30% dark at corners
+        [0, 0.004], // Moderate vignette effect
+        0, // TileMode.Clamp = 0
+      );
+
+      vignettePaint.setShader(gradient);
+
+      // Draw vignette overlay
+      canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+    }
+
     // Apply gradient split overlay effect specifically for nt16 filter
     if (filterId === 'nt16') {
       console.log('🎨 Applying gradient split overlay effect for nt16 filter');
@@ -636,13 +716,21 @@ export const applySkiaFilterToPhoto = async (
       const gradient = Skia.Shader.MakeRadialGradient(
         {x: centerX, y: centerY},
         radius,
-        [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.1)')], // 50% dark at corners
+        [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.48)')], // 50% dark at corners
+        [0, 0.005], // Reduced shadow size
+        0, // TileMode.Clamp
+      );
+
+      const gradient2 = Skia.Shader.MakeRadialGradient(
+        {x: centerX, y: centerY},
+        radius,
+        [Skia.Color('transparent'), Skia.Color('rgba(255, 255, 255, 0.15)')], // 50% dark at corners
         [0, 0.005], // Reduced shadow size
         0, // TileMode.Clamp
       );
 
       vignettePaint.setShader(gradient);
-
+      vignettePaint.setShader(gradient2);
       // Draw vignette overlay
       canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
     }

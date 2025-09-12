@@ -45,6 +45,18 @@ export const loadLUT = async filterId => {
         const dclassicModule = await import('../filtersLUT/dclassic');
         lutBase64 = dclassicModule.base64;
         break;
+      case 'ccdr':
+        const ccdrModule = await import('../filtersLUT/ccdr');
+        lutBase64 = ccdrModule.base64;
+        break;
+      case 'puli':
+        const puliModule = await import('../filtersLUT/puli');
+        lutBase64 = puliModule.base64;
+        break;
+      case 'fqsr':
+        const fqsrModule = await import('../filtersLUT/fqsr');
+        lutBase64 = fqsrModule.base64;
+        break;
       default:
         throw new Error(`No LUT found for filter: ${filterId}`);
     }
