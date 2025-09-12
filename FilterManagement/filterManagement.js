@@ -27,12 +27,7 @@ import {
   getMatrixSystem,
   MATRIX_SYSTEMS,
 } from '../utils/filterMatrixUtils';
-import {base64 as grfLutBase64} from '../filtersLUT/grf';
-import {base64 as irLutBase64} from '../filtersLUT/ir';
-import {base64 as dexpLutBase64} from '../filtersLUT/dexp';
-import {base64 as dfunsLutBase64} from '../filtersLUT/dfuns';
-import {base64 as cpm35LutBase64} from '../filtersLUT/cpm35';
-import {base64 as classicuLutBase64} from '../filtersLUT/classicu';
+import {loadLUT} from './lutLoader';
 
 /**
  * Helper function to create color matrix from filter config
@@ -222,7 +217,7 @@ const combineColorMatrices = (matrix1, matrix2) => {
  * @param {string} filterId - ID of the filter to apply
  * @returns {JSX.Element|null} - Skia filter element or null if failed
  */
-export const createLUTFilterElement = (
+export const createLUTFilterElement = async (
   photoUrl,
   imageWidth,
   imageHeight,
@@ -261,27 +256,10 @@ export const createLUTFilterElement = (
     }
   `);
 
-  // Import LUT based on filter ID
-  let lutBase64;
-  try {
-    if (filterId === 'grf') {
-      lutBase64 = grfLutBase64;
-    } else if (filterId === 'ir') {
-      lutBase64 = irLutBase64;
-    } else if (filterId === 'dexp') {
-      lutBase64 = dexpLutBase64;
-    } else if (filterId === 'dfuns') {
-      lutBase64 = dfunsLutBase64;
-    } else if (filterId === 'cpm35') {
-      lutBase64 = cpm35LutBase64;
-    } else if (filterId === 'classicu') {
-      lutBase64 = classicuLutBase64;
-    } else {
-      // For other filters, you can add more imports here
-      throw new Error(`No LUT found for filter: ${filterId}`);
-    }
-  } catch (error) {
-    console.error('❌ Failed to load LUT for filter:', filterId, error);
+  // Load LUT dynamically to avoid build issues
+  const lutBase64 = await loadLUT(filterId);
+  if (!lutBase64) {
+    console.error('❌ Failed to load LUT for filter:', filterId);
     return null;
   }
 
@@ -368,14 +346,17 @@ export const applySkiaFilterToPhoto = async (
     const surface = Skia.Surface.Make(width, height);
     const canvas = surface.getCanvas();
 
-    // Apply LUT-based filtering for 'grf', 'ir', 'dexp', 'dfuns', 'cpm35', and 'classicu' filters
+    // Apply LUT-based filtering for 'grf', 'ir', 'dexp', 'dfuns', 'cpm35', 'classicu', 'grdr', 'nt16', and 'dclassic' filters
     if (
       filterId === 'grf' ||
       filterId === 'ir' ||
       filterId === 'dexp' ||
       filterId === 'dfuns' ||
       filterId === 'cpm35' ||
-      filterId === 'classicu'
+      filterId === 'classicu' ||
+      filterId === 'grdr' ||
+      filterId === 'nt16' ||
+      filterId === 'dclassic'
     ) {
       console.log(`🎨 Applying LUT-based filtering for ${filterId} filter`);
 
@@ -383,7 +364,7 @@ export const applySkiaFilterToPhoto = async (
         console.log('🎨 Using drawAsImage method like the working example...');
 
         // Create LUT filter element like the working example
-        const filteredElement = createLUTFilterElement(
+        const filteredElement = await createLUTFilterElement(
           imageData,
           width,
           height,
@@ -579,6 +560,85 @@ export const applySkiaFilterToPhoto = async (
         [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.25)')], // 50% dark at corners
         [0, 0.001], // Reduced from 0.5 to 0.25 for half the shadow size
         0, // TileMode.Clamp = 0
+      );
+
+      vignettePaint.setShader(gradient);
+
+      // Draw vignette overlay
+      canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+    }
+
+    // Apply vignette effect specifically for grdr filter
+    if (filterId === 'grdr') {
+      console.log('🎨 Applying vignette effect for grdr filter');
+
+      // Create vignette paint
+      const vignettePaint = Skia.Paint();
+
+      // Create radial gradient for vignette
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.max(width, height) / 2;
+
+      // Create gradient from transparent center to dark corners
+      const gradient = Skia.Shader.MakeRadialGradient(
+        {x: centerX, y: centerY},
+        radius,
+        [Skia.Color('transparent'), Skia.Color('rgba(0, 0, 0, 0.38)')], // 30% dark at corners
+        [0, 0.004], // Moderate vignette effect
+        0, // TileMode.Clamp = 0
+      );
+
+      vignettePaint.setShader(gradient);
+
+      // Draw vignette overlay
+      canvas.drawRect(Skia.XYWHRect(0, 0, width, height), vignettePaint);
+    }
+
+    // Apply gradient split overlay effect specifically for nt16 filter
+    if (filterId === 'nt16') {
+      console.log('🎨 Applying gradient split overlay effect for nt16 filter');
+
+      // Create gradient paint
+      const gradientPaint = Skia.Paint();
+
+      // Create linear gradient from white (top) to black (bottom)
+      const gradient = Skia.Shader.MakeLinearGradient(
+        {x: 0, y: 0}, // Start point (top)
+        {x: 0, y: height}, // End point (bottom)
+        [
+          Skia.Color('rgba(151, 111, 111, 0.38)'), // White at top
+          Skia.Color('rgba(38, 50, 71, 0.38)'), // Black at bottom
+        ],
+        [0, 1], // Color stops
+        0, // TileMode.Clamp = 0
+      );
+
+      gradientPaint.setShader(gradient);
+
+      // Draw gradient overlay across entire image
+      canvas.drawRect(Skia.XYWHRect(0, 0, width, height), gradientPaint);
+    }
+
+    // Apply vignette effect specifically for dclassic filter
+    if (filterId === 'dclassic') {
+      console.log('🎨 Applying vignette effect for dclassic filter');
+
+      // Create vignette paint
+      const vignettePaint = Skia.Paint();
+
+      // Create radial gradient for vignette (same as hoga)
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.max(width, height) / 2;
+
+      // Create gradient from transparent center to dark corners
+      const gradient = Skia.Shader.MakeRadialGradient(
+        {x: centerX, y: centerY},
+        radius,
+        [Skia.Color('transparent'), Skia.Color('rgba(0,0,0,0.1)')], // 50% dark at corners
+        [0, 0.005], // Reduced shadow size
+        0, // TileMode.Clamp
       );
 
       vignettePaint.setShader(gradient);

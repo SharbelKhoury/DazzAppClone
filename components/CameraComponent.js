@@ -686,6 +686,15 @@ const CameraComponent = ({navigation}) => {
       const filterId = activeFilters[0];
       console.log('🎯 Processing filter:', filterId);
 
+      // Handle original filter - no processing needed
+      if (filterId === 'original') {
+        console.log(
+          '🎯 Original filter - saving original photo without processing',
+        );
+        const saved = await savePhotoToGallery(photoUri);
+        return {uri: photoUri, saved, filtersApplied: false};
+      }
+
       // Apply Skia filter to the photo
       const filteredPhotoUri = await applySkiaFilterToPhoto(
         photoUri,
