@@ -28,6 +28,7 @@ import {
   MATRIX_SYSTEMS,
 } from '../utils/filterMatrixUtils';
 import {loadLUT} from './lutLoader';
+import {Grayscale} from 'react-native-color-matrix-image-filters';
 
 /**
  * Helper function to create color matrix from filter config
@@ -346,9 +347,22 @@ export const applySkiaFilterToPhoto = async (
     const surface = Skia.Surface.Make(width, height);
     const canvas = surface.getCanvas();
 
-    // Apply LUT-based filtering for 'grf', 'ir', 'dexp', 'dfuns', 'cpm35', 'classicu', 'grdr', 'nt16', 'dclassic', 'ccdr', 'puli', and 'fqsr' filters
-    if (
-      filterId === 'grf' ||
+    // Apply fast grayscale filter for 'grf' using color-matrix library
+    if (filterId === 'grf') {
+      console.log('🎨 Applying fast grayscale filter for grf filter');
+
+      // Use the fast grayscale filter from color-matrix library
+      const grayscaleMatrix = [
+        0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+        0.114, 0, 0, 0, 0, 0, 1, 0,
+      ];
+      const colorFilter = Skia.ColorFilter.MakeMatrix(grayscaleMatrix);
+      const paint = Skia.Paint();
+      paint.setColorFilter(colorFilter);
+      canvas.drawImage(skiaImage, 0, 0, paint);
+    }
+    // Apply LUT-based filtering for 'ir', 'dexp', 'dfuns', 'cpm35', 'classicu', 'grdr', 'nt16', 'dclassic', 'ccdr', 'puli', and 'fqsr' filters
+    else if (
       filterId === 'ir' ||
       filterId === 'dexp' ||
       filterId === 'dfuns' ||

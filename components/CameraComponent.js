@@ -1,4 +1,16 @@
 import React, {useState, useRef, useEffect} from 'react';
+import {
+  Grayscale,
+  Sepia,
+  Tint,
+  ColorMatrix,
+  concatColorMatrices,
+  invert,
+  contrast,
+  saturate,
+  sepia,
+  tint,
+} from 'react-native-color-matrix-image-filters';
 import 'react-native-reanimated';
 import {
   View,
@@ -42,6 +54,7 @@ import {
   applySkiaFilterToPhoto,
   createLUTFilterElement,
 } from '../FilterManagement/filterManagement';
+import {hueRotate} from 'react-native-image-filter-kit';
 
 // ImageManipulator removed - using OpenGL effects only
 
@@ -774,6 +787,14 @@ const CameraComponent = ({navigation}) => {
         flash: flashMode,
       });
 
+      // INSERT_YOUR_CODE
+      // setSelectedImage(
+      //   photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`,
+      // );
+      // setModalActive(true);
+
+      // return;
+
       console.log('🎯 Photo captured successfully:', photo.path);
       console.log('🎯 Camera position during capture:', cameraPosition);
       console.log('🎯 Photo object:', JSON.stringify(photo, null, 2));
@@ -786,6 +807,7 @@ const CameraComponent = ({navigation}) => {
       // Apply filters to captured photo and save to gallery
       console.log('🎯 About to apply filters to photo path:', photo.path);
       console.log('🎯 Active filters:', activeFilters);
+
       const result = await applyFiltersToPhoto(photo.path);
       console.log(
         '🎯 Filter application result:',
@@ -1542,6 +1564,54 @@ const CameraComponent = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
+      {/* \ // */}
+      {/* INSERT_YOUR_CODE */}
+      {/* Image Modal */}
+
+      {/* {modalActive && selectedImage && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            zIndex: 2000,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 40,
+              right: 20,
+              zIndex: 2100,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              borderRadius: 20,
+              padding: 8,
+            }}
+            onPress={() => setModalActive(false)}>
+            <Text style={{color: '#fff', fontSize: 18}}>Close</Text>
+          </TouchableOpacity>
+
+          <ColorMatrix
+            style={{width: '90%', height: '70%'}}
+            matrix={concatColorMatrices(sepia(), tint(1.25), invert())}>
+            <Image
+              source={{uri: selectedImage}}
+              style={{
+                width: '90%',
+                height: '70%',
+                resizeMode: 'contain',
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: '#fff',
+              }}
+            />
+          </ColorMatrix>
+        </View>
+      )} */}
 
       {/* Temporary view for image combination */}
       {tempCombinationView && (
@@ -1558,7 +1628,6 @@ const CameraComponent = ({navigation}) => {
           {tempCombinationView}
         </View>
       )}
-
       {/* Camera View with Frame */}
       <Animated.View
         ref={cameraContainerRef}
@@ -1584,7 +1653,8 @@ const CameraComponent = ({navigation}) => {
             style={styles.camera}
             device={device}
             isActive={isCameraReady && !!device && !isAppInBackground}
-            photo={isPhotoEnabled}
+            // photo={isPhotoEnabled}
+            photo={true}
             zoom={calculateZoomFromFocalLength(focalLength)}
             //video={true}
             //audio={true}
@@ -1675,7 +1745,6 @@ const CameraComponent = ({navigation}) => {
           </View>
         )}
       </Animated.View>
-
       {/* Zoom Level Indicator - Moved to left side */}
       {/*   {device && !isAppInBackground && (
         <View style={[styles.zoomIndicator, {left: 40, right: 'auto'}]}>
@@ -1684,7 +1753,6 @@ const CameraComponent = ({navigation}) => {
           </Text>
         </View>
       )} */}
-
       {/* Temperature Overlay - Changes camera tint based on Kelvin value */}
       {device && !isAppInBackground && (
         <View
@@ -1696,7 +1764,6 @@ const CameraComponent = ({navigation}) => {
           ]}
         />
       )}
-
       {/* OpenGL Filter Overlay for All Filters */}
       {activeFilters.length > 0 && !isAppInBackground && (
         <>
@@ -1722,7 +1789,6 @@ const CameraComponent = ({navigation}) => {
           )} */}
         </>
       )}
-
       {/* Debug Info - Commented for future use */}
       {/*
         {__DEV__ && (
@@ -1756,7 +1822,6 @@ const CameraComponent = ({navigation}) => {
           </View>
         )}
         */}
-
       {/* Grid Overlay - Inside Camera Frame */}
       {showGrid && !isAppInBackground && (
         <View style={styles.gridOverlay}>
@@ -1768,7 +1833,6 @@ const CameraComponent = ({navigation}) => {
           <View style={styles.gridHorizontalLine2} />
         </View>
       )}
-
       {/* Top Section */}
       {!isAppInBackground && (
         <View style={styles.topSection}>
@@ -1784,7 +1848,6 @@ const CameraComponent = ({navigation}) => {
           </TouchableOpacity>
         </View>
       )}
-
       {/* More Options Modal */}
       {modalActive && !isAppInBackground && (
         <View style={styles.modalContainer}>
@@ -1906,12 +1969,10 @@ const CameraComponent = ({navigation}) => {
           </TouchableOpacity>
         </View>
       )}
-
       {/* Focal Length Indicator */}
       {/* <View style={styles.focalLengthContainer}>
         <Text style={styles.focalLengthText}>35mm</Text>
       </View> */}
-
       {/* Middle Control Bar */}
       {!isAppInBackground && (
         <View style={styles.middleControlBar}>
@@ -2013,7 +2074,6 @@ const CameraComponent = ({navigation}) => {
           )}
         </View>
       )}
-
       {/* Bottom Control Bar */}
       <View style={styles.bottomControlBar}>
         {/* Left Side - Gallery Preview */}
