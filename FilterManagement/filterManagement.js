@@ -1,4 +1,18 @@
 import React from 'react';
+import {Image, View} from 'react-native';
+import {
+  Grayscale,
+  Sepia,
+  Tint,
+  ColorMatrix as ColorMatrixFilter,
+  concatColorMatrices,
+  invert,
+  contrast,
+  saturate,
+  sepia,
+  tint,
+  grayscale,
+} from 'react-native-color-matrix-image-filters';
 import {
   Canvas,
   Image as SkiaImage,
@@ -27,8 +41,926 @@ import {
   getMatrixSystem,
   MATRIX_SYSTEMS,
 } from '../utils/filterMatrixUtils';
-import {loadLUT} from './lutLoader';
-import {Grayscale} from 'react-native-color-matrix-image-filters';
+import {
+  loadLUT,
+  getCachedLUT,
+  getCachedLUTImage,
+  getCachedShader,
+} from './lutLoader';
+
+// Helper function to create temperature matrix based on temperature value
+const createTemperatureMatrix = temperatureValue => {
+  // Convert temperature value (0-100) to temperature adjustment (-1 to 1)
+  const tempAdjustment = (temperatureValue - 50) / 50;
+
+  // Create warm/cool temperature effect
+  if (tempAdjustment > 0) {
+    // Warm temperature (orange/red tint)
+    return [
+      1 + tempAdjustment * 0.3,
+      0,
+      0,
+      0,
+      tempAdjustment * 0.1,
+      0,
+      1 + tempAdjustment * 0.1,
+      0,
+      0,
+      tempAdjustment * 0.05,
+      0,
+      0,
+      1 - tempAdjustment * 0.2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ];
+  } else {
+    // Cool temperature (blue tint)
+    const coolAdjustment = Math.abs(tempAdjustment);
+    return [
+      1 - coolAdjustment * 0.2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1 - coolAdjustment * 0.1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1 + coolAdjustment * 0.3,
+      0,
+      coolAdjustment * 0.1,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ];
+  }
+};
+
+// Helper function to combine filter matrix with temperature matrix
+const combineWithTemperature = (filterMatrix, temperatureValue, tempActive) => {
+  if (!tempActive || temperatureValue === 50) {
+    return filterMatrix;
+  }
+
+  const tempMatrix = createTemperatureMatrix(temperatureValue);
+  return concatColorMatrices(filterMatrix, tempMatrix);
+};
+
+// Function to get the appropriate filter component based on filter ID
+export const getFilterComponent = (
+  filterId,
+  imageUri,
+  temperatureValue = 50,
+  tempActive = false,
+) => {
+  switch (filterId) {
+    case 'grf':
+      return (
+        <Grayscale>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </Grayscale>
+      );
+    case 'sepia':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            sepia(),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'invert':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            invert(),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'contrast':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            contrast(2.0),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'saturate':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            saturate(2.0),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    // New filter IDs with various effects
+    case 'classicu':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.6), tint(1.1), contrast(1.2)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'cpm35':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.4), saturate(0.8)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'grdr':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.4), contrast(1.6)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'nt16':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.8), saturate(0.6)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'dclassic':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.7), tint(1.2)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'ccdr':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.3), saturate(1.4)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'puli':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.5), contrast(1.5)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'fqsr':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.2), saturate(1.3)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'collage':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.3), tint(1.3), contrast(1.1)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'fxn':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.7), saturate(0.7)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'fxnr':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.6), contrast(1.4)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'dqs':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.6), saturate(1.1)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'ct2f':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.8), tint(1.1)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'd3d':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.9), saturate(0.5)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'instc':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.4), contrast(1.3), saturate(1.2)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'golf':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.2), saturate(1.5)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'infrared':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(invert(), contrast(1.5)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'vintage':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.9), tint(1.2), contrast(1.1)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'monochrome':
+      if (tempActive && temperatureValue !== 50) {
+        // Combine grayscale with temperature
+        const grayscaleMatrix = [
+          0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+          0.114, 0, 0, 0, 0, 0, 1, 0,
+        ];
+        const combinedMatrix = combineWithTemperature(
+          grayscaleMatrix,
+          temperatureValue,
+          tempActive,
+        );
+        return (
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combinedMatrix}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+        );
+      } else {
+        return (
+          <Grayscale>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </Grayscale>
+        );
+      }
+    case '135ne':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.4), saturate(0.9)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case '135sr':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.5), contrast(1.3)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'dhalf':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(
+              saturate(0.6),
+              contrast(0.9),
+              [
+                1, 0, 0, 0, 0, 0, 1.02, 0, 0, 0, 0, 0, 0.98, 0, 0, 0, 0, 0, 1,
+                0,
+              ],
+            ),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'dslide':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.3), contrast(1.5)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'sclassic':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.7), tint(1.1), contrast(1.2)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'hoga':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.6), saturate(0.8)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 's67':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(0.6), contrast(1.4), saturate(1.1)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'kv88':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.3), saturate(1.2)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    case 'instsqc':
+      // Generate random color for background
+      const randomColors = [
+        '#FF6B6B',
+        '#4ECDC4',
+        '#45B7D1',
+        '#96CEB4',
+        '#FFEAA7',
+        '#DDA0DD',
+        '#98D8C8',
+        '#F7DC6F',
+        '#BB8FCE',
+        '#85C1E9',
+        '#F8C471',
+        '#82E0AA',
+        '#F1948A',
+        '#85C1E9',
+        '#D7BDE2',
+      ];
+      const randomColor =
+        randomColors[Math.floor(Math.random() * randomColors.length)];
+
+      return (
+        <View
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#FFFFFF', // White margins
+            paddingTop: 30,
+            paddingBottom: 30,
+            paddingLeft: 15,
+            paddingRight: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {/* Random colored background square */}
+          <View
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: randomColor,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderTopLeftRadius: 3,
+              borderTopRightRadius: 3,
+              borderBottomLeftRadius: 3,
+              borderBottomRightRadius: 3,
+              shadowColor: '#000000',
+              shadowOffset: {
+                width: 0,
+                height: 4,
+              },
+              shadowOpacity: 0.3,
+              shadowRadius: 2,
+              elevation: 4,
+            }}>
+            {/* Original photo without any filter */}
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '90%',
+                height: '90%',
+                resizeMode: 'cover',
+                borderTopLeftRadius: 5,
+                borderTopRightRadius: 5,
+                borderBottomLeftRadius: 5,
+                borderBottomRightRadius: 5,
+              }}
+            />
+          </View>
+        </View>
+      );
+    case 'pafr':
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(contrast(1.5), saturate(1.1)),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+    default:
+      // Default combination filter
+      return (
+        <ColorMatrixFilter
+          style={{width: '100%', height: '100%'}}
+          matrix={combineWithTemperature(
+            concatColorMatrices(sepia(), tint(1.25), invert()),
+            temperatureValue,
+            tempActive,
+          )}>
+          <Image
+            source={{uri: imageUri}}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+            }}
+          />
+        </ColorMatrixFilter>
+      );
+  }
+};
+
+/**
+ * Apply Grayscale filter using Skia with the exact same matrix as react-native-color-matrix-image-filters Grayscale component
+ * This ensures we get the same result as the Grayscale component but with better reliability
+ * @param {string} photoUri - URI of the photo to process
+ * @param {Object} ref - React ref (not used in this implementation, kept for compatibility)
+ * @returns {Promise<string>} - URI of the processed photo or original if failed
+ */
+export const applyGrayscaleFilterToPhoto = async (photoUri, ref) => {
+  try {
+    console.log(
+      '🎨 Applying Grayscale filter using Skia with Grayscale component matrix',
+    );
+
+    // Read the image file
+    const imageData = await RNFS.readFile(photoUri, 'base64');
+    const data = Skia.Data.fromBase64(imageData);
+    const skiaImage = Skia.Image.MakeImageFromEncoded(data);
+
+    if (!skiaImage) {
+      throw new Error('Failed to create Skia image');
+    }
+
+    const width = skiaImage.width();
+    const height = skiaImage.height();
+
+    // Create a temporary file path for the processed image with correct naming convention
+    const tempPath = `${
+      RNFS.TemporaryDirectoryPath
+    }/skia_filtered_grf_${Date.now()}.jpg`;
+
+    // Create surface and canvas
+    const surface = Skia.Surface.Make(width, height);
+    const canvas = surface.getCanvas();
+
+    // Apply the exact same grayscale matrix that react-native-color-matrix-image-filters Grayscale component uses
+    // This matrix converts RGB to grayscale using the standard luminance formula
+    const grayscaleMatrix = [
+      0.299,
+      0.587,
+      0.114,
+      0,
+      0, // Red channel
+      0.299,
+      0.587,
+      0.114,
+      0,
+      0, // Green channel
+      0.299,
+      0.587,
+      0.114,
+      0,
+      0, // Blue channel
+      0,
+      0,
+      0,
+      1,
+      0, // Alpha channel (unchanged)
+    ];
+
+    const colorFilter = Skia.ColorFilter.MakeMatrix(grayscaleMatrix);
+    const paint = Skia.Paint();
+    paint.setColorFilter(colorFilter);
+    canvas.drawImage(skiaImage, 0, 0, paint);
+
+    // Make image from surface
+    const image = surface.makeImageSnapshot();
+    if (!image) {
+      throw new Error('Failed to create image from surface');
+    }
+
+    // Encode image to bytes
+    const imageDataOut = image.encodeToBytes();
+    if (!imageDataOut) {
+      throw new Error('Failed to encode image');
+    }
+
+    // Convert to base64
+    const base64String = Buffer.from(imageDataOut).toString('base64');
+
+    // Save to temporary file
+    await RNFS.writeFile(tempPath, base64String, 'base64');
+
+    console.log(
+      '✅ Grayscale filter applied successfully using Grayscale component matrix:',
+      tempPath,
+    );
+    return tempPath;
+  } catch (error) {
+    console.error('❌ Grayscale filter application failed:', error);
+    return photoUri; // Return original URI if filtering fails
+  }
+};
 
 /**
  * Helper function to create color matrix from filter config
@@ -224,54 +1156,85 @@ export const createLUTFilterElement = async (
   imageHeight,
   filterId,
 ) => {
-  const shader = Skia.RuntimeEffect.Make(`
-    uniform shader image;
-    uniform shader luts;
-  
-    // Simple noise function
-    float rand(float2 co) {
-      return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    }
-  
-    half4 main(float2 xy) {
-      // Original image processing
-      vec4 color = image.eval(xy);
-      
-      int r = int(color.r * 255.0 / 4);
-      int g = int(color.g * 255.0 / 4);
-      int b = int(color.b * 255.0 / 4);
-      
-      float lutX = float(int(mod(float(b), 8.0)) * 64 + r);
-      float lutY = float(int((b / 8) * 64 + g));
-      
-      vec4 lutsColor = luts.eval(float2(lutX, lutY));
-      
-      // Generate noise
-      float noiseIntensity = 0.04; // Adjust this to control noise strength
-      float noise = rand(xy) * noiseIntensity;
-      
-      // Blend noise with the image (simple additive blend)
-      vec4 noisyColor = lutsColor + vec4(noise, noise, noise, 0.0);
-      
-      return noisyColor;
-    }
-  `);
+  console.log(
+    `⚡ Creating LUT filter element for ${filterId} using cached resources...`,
+  );
 
-  // Load LUT dynamically to avoid build issues
-  const lutBase64 = await loadLUT(filterId);
-  if (!lutBase64) {
-    console.error('❌ Failed to load LUT for filter:', filterId);
-    return null;
+  // Use cached shader for better performance
+  let shader = getCachedShader();
+  if (!shader) {
+    console.error(
+      '❌ Cached shader not found, falling back to dynamic compilation',
+    );
+    // Fallback to dynamic shader creation if cache is not initialized
+    shader = Skia.RuntimeEffect.Make(`
+      uniform shader image;
+      uniform shader luts;
+    
+      // Simple noise function
+      float rand(float2 co) {
+        return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+    
+      half4 main(float2 xy) {
+        // Original image processing
+        vec4 color = image.eval(xy);
+        
+        int r = int(color.r * 255.0 / 4);
+        int g = int(color.g * 255.0 / 4);
+        int b = int(color.b * 255.0 / 4);
+        
+        float lutX = float(int(mod(float(b), 8.0)) * 64 + r);
+        float lutY = float(int((b / 8) * 64 + g));
+        
+        vec4 lutsColor = luts.eval(float2(lutX, lutY));
+        
+        // Generate noise
+        float noiseIntensity = 0.04; // Adjust this to control noise strength
+        float noise = rand(xy) * noiseIntensity;
+        
+        // Blend noise with the image (simple additive blend)
+        vec4 noisyColor = lutsColor + vec4(noise, noise, noise, 0.0);
+        
+        return noisyColor;
+      }
+    `);
+    if (!shader) {
+      console.error('❌ Failed to create fallback shader');
+      return null;
+    }
   }
 
-  const lutData = Skia.Data.fromBase64(lutBase64);
-  const lutImage = Skia.Image.MakeImageFromEncoded(lutData);
+  // Use cached LUT image for better performance
+  let lutImage = getCachedLUTImage(filterId);
+  if (!lutImage) {
+    console.error(
+      `❌ Cached LUT image not found for ${filterId}, falling back to dynamic loading`,
+    );
+    // Fallback to dynamic LUT loading if cache is not initialized
+    const lutBase64 = await loadLUT(filterId);
+    if (!lutBase64) {
+      console.error('❌ Failed to load LUT for filter:', filterId);
+      return null;
+    }
+    const lutData = Skia.Data.fromBase64(lutBase64);
+    lutImage = Skia.Image.MakeImageFromEncoded(lutData);
+    if (!lutImage) {
+      console.error('❌ Failed to create fallback LUT image');
+      return null;
+    }
+  }
+
+  // Process the captured image
   const data = Skia.Data.fromBase64(photoUrl);
   const capturedImage = Skia.Image.MakeImageFromEncoded(data);
 
   if (!capturedImage || !shader || !lutImage) {
+    console.error('❌ Missing required resources for LUT filter');
     return null;
   }
+
+  console.log(`✅ Using cached resources for ${filterId} filter`);
 
   return (
     <Group>
@@ -347,11 +1310,19 @@ export const applySkiaFilterToPhoto = async (
     const surface = Skia.Surface.Make(width, height);
     const canvas = surface.getCanvas();
 
-    // Apply fast grayscale filter for 'grf' using color-matrix library
+    // Apply fast grayscale filter for 'grf' using react-native-color-matrix-image-filters
     if (filterId === 'grf') {
-      console.log('🎨 Applying fast grayscale filter for grf filter');
+      console.log(
+        '🎨 Applying Grayscale filter for grf filter using react-native-color-matrix-image-filters',
+      );
 
-      // Use the fast grayscale filter from color-matrix library
+      // For grf filter, we need to use the Grayscale component approach
+      // This should be called from the camera component where React components can be rendered
+      console.log(
+        '⚠️ grf filter requires Grayscale component - should be handled in camera component',
+      );
+
+      // Fallback to Skia matrix for now
       const grayscaleMatrix = [
         0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
         0.114, 0, 0, 0, 0, 0, 1, 0,
@@ -376,32 +1347,46 @@ export const applySkiaFilterToPhoto = async (
       filterId === 'fqsr'
     ) {
       console.log(`🎨 Applying LUT-based filtering for ${filterId} filter`);
+      const lutStartTime = Date.now();
 
       try {
-        console.log('🎨 Using drawAsImage method like the working example...');
+        console.log('🎨 Using cached LUT resources for optimal performance...');
 
-        // Create LUT filter element like the working example
+        // Create LUT filter element using cached resources
+        const elementStartTime = Date.now();
         const filteredElement = await createLUTFilterElement(
           imageData,
           width,
           height,
           filterId,
         );
+        const elementEndTime = Date.now();
+        console.log(
+          `⚡ LUT element creation took ${elementEndTime - elementStartTime}ms`,
+        );
 
         if (!filteredElement) {
           throw new Error('Failed to create LUT filter element');
         }
 
-        // Use drawAsImage like the working example
+        // Use drawAsImage with cached resources
+        const drawStartTime = Date.now();
         const skImage = await drawAsImage(filteredElement, {
           width: width,
           height: height,
         });
+        const drawEndTime = Date.now();
+        console.log(
+          `⚡ drawAsImage rendering took ${drawEndTime - drawStartTime}ms`,
+        );
 
         // Draw the processed image to canvas
         canvas.drawImage(skImage, 0, 0);
 
-        console.log('✅ drawAsImage LUT method completed successfully');
+        const lutEndTime = Date.now();
+        console.log(
+          `✅ LUT filtering completed in ${lutEndTime - lutStartTime}ms total`,
+        );
       } catch (lutError) {
         console.error(
           '❌ LUT filtering failed, falling back to matrix:',

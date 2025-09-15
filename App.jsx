@@ -1,5 +1,5 @@
 import {StyleSheet, Text, View} from 'react-native';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 
@@ -11,10 +11,24 @@ import Settings from './components/Settings';
 import AppGallery from './components/AppGallery';
 import Subscription from './components/Subscription';
 import Sample from './components/Sample';
+import {initializeLUTCache} from './FilterManagement/lutLoader';
 
 const Stack = createStackNavigator();
 
 const App = () => {
+  // Initialize LUT cache at app startup for better performance
+  useEffect(() => {
+    const initializeCache = async () => {
+      try {
+        await initializeLUTCache();
+      } catch (error) {
+        console.error('❌ Failed to initialize LUT cache:', error);
+      }
+    };
+
+    initializeCache();
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator

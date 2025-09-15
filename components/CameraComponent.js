@@ -25,6 +25,7 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
 import {
   Camera,
@@ -53,6 +54,7 @@ import {getSelectedCameraIcon} from '../utils/cameraIconUtils';
 import {
   applySkiaFilterToPhoto,
   createLUTFilterElement,
+  getFilterComponent,
 } from '../FilterManagement/filterManagement';
 import {hueRotate} from 'react-native-image-filter-kit';
 
@@ -97,6 +99,81 @@ const CameraComponent = ({navigation}) => {
   const [viewControlActive, setViewControlActive] = useState(false);
   const [modalActive, setModalActive] = useState(false);
   const [temperatureValue, setTemperatureValue] = useState(50); // Temperature control value (0-100)
+  const modalFilterRef = useRef(null); // Ref for capturing the filtered modal image
+
+  // Function to navigate to subscription
+  const openSubscription = () => {
+    navigation.navigate('Subscription');
+  };
+
+  // Function to handle close with save
+  const handleCloseWithSave = async () => {
+    try {
+      // Save the filtered image first
+      await handleSaveFilteredImage();
+      // Then close the modal
+      setModalActive(false);
+      setSelectedImage(null);
+    } catch (error) {
+      console.error('❌ Error saving image before close:', error);
+      // Close modal even if save fails
+      setModalActive(false);
+      setSelectedImage(null);
+    }
+  };
+
+  // Function to capture and save the filtered image from modal
+  const handleSaveFilteredImage = async () => {
+    try {
+      if (modalFilterRef.current && selectedImage) {
+        console.log('🎨 Capturing filtered image from modal...');
+
+        // Wait for the component to render
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Capture the filtered image
+        const uri = await captureRef(modalFilterRef.current, {
+          format: 'jpg',
+          quality: 1,
+          result: 'tmpfile',
+        });
+
+        if (uri) {
+          // Get the current active filter to determine naming
+          const currentFilter = activeFilters[0] || 'unknown';
+          const tempPath = `${
+            RNFS.TemporaryDirectoryPath
+          }/skia_filtered_${currentFilter}_${Date.now()}.jpg`;
+
+          // Copy the captured filtered image to the temp path
+          await RNFS.copyFile(uri, tempPath);
+
+          console.log('🎨 Saved filtered image to:', tempPath);
+
+          // Save the photo to gallery
+          const saved = await savePhotoToGallery(tempPath);
+
+          if (saved) {
+            console.log('✅ Filtered image saved to gallery');
+            fetchLatestMedia();
+            //Alert.alert('Photo Saved!', 'Filtered photo saved to gallery!');
+
+            // Close the modal
+            setModalActive(false);
+            setSelectedImage(null);
+          } else {
+            console.log('❌ Failed to save filtered image');
+            Alert.alert('Error', 'Failed to save photo to gallery');
+          }
+        } else {
+          throw new Error('Failed to capture filtered image');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error saving filtered image:', error);
+      Alert.alert('Error', 'Failed to save filtered photo');
+    }
+  };
 
   // PanResponder for temperature control
   const panResponder = useRef(
@@ -629,14 +706,22 @@ const CameraComponent = ({navigation}) => {
    */
   const savePhotoToGallery = async photoUri => {
     try {
-      console.log('Attempting to save photo:', photoUri);
+      console.log('🎯 savePhotoToGallery: Attempting to save photo:', photoUri);
+      console.log('🎯 savePhotoToGallery: Photo URI type:', typeof photoUri);
+      console.log('🎯 savePhotoToGallery: Photo URI exists:', !!photoUri);
+
       await CameraRoll.save(photoUri);
-      console.log('Photo saved successfully');
+      console.log('✅ savePhotoToGallery: Photo saved successfully');
+
       // Refresh gallery preview to show the new photo
       fetchLatestMedia();
       return true;
     } catch (error) {
-      console.error('Error saving to gallery:', error);
+      console.error('❌ savePhotoToGallery: Error saving to gallery:', error);
+      console.error(
+        '❌ savePhotoToGallery: Error details:',
+        JSON.stringify(error, null, 2),
+      );
       return false;
     }
   };
@@ -691,29 +776,92 @@ const CameraComponent = ({navigation}) => {
   const applyFiltersToPhoto = async photoUri => {
     try {
       if (activeFilters.length === 0) {
-        // No filters to apply, just save original to gallery
-        const saved = await savePhotoToGallery(photoUri);
-        return {uri: photoUri, saved, filtersApplied: false};
+        console.log(
+          '🎯 applyFiltersToPhoto: No filters active - saving original photo with correct naming',
+        );
+        // No filters to apply, but we need to save with correct naming for AppGallery
+        const tempPath = `${
+          RNFS.TemporaryDirectoryPath
+        }/skia_filtered_original_${Date.now()}.jpg`;
+        await RNFS.copyFile(photoUri, tempPath);
+        const saved = await savePhotoToGallery(tempPath);
+        console.log(
+          '🎯 applyFiltersToPhoto: Save result for original photo:',
+          saved,
+        );
+        return {uri: tempPath, saved, filtersApplied: false};
       }
 
       const filterId = activeFilters[0];
       console.log('🎯 Processing filter:', filterId);
 
-      // Handle original filter - no processing needed
+      // Handle original filter - no processing needed but save with correct naming
       if (filterId === 'original') {
         console.log(
-          '🎯 Original filter - saving original photo without processing',
+          '🎯 Original filter - saving original photo with correct naming',
         );
-        const saved = await savePhotoToGallery(photoUri);
-        return {uri: photoUri, saved, filtersApplied: false};
+        const tempPath = `${
+          RNFS.TemporaryDirectoryPath
+        }/skia_filtered_original_${Date.now()}.jpg`;
+        await RNFS.copyFile(photoUri, tempPath);
+        const saved = await savePhotoToGallery(tempPath);
+        return {uri: tempPath, saved, filtersApplied: false};
       }
 
-      // Apply Skia filter to the photo
-      const filteredPhotoUri = await applySkiaFilterToPhoto(
-        photoUri,
-        filterId,
-        temperatureValue,
-      );
+      // Handle filters that use react-native-color-matrix-image-filters
+      const colorMatrixFilters = [
+        'grf',
+        'sepia',
+        'invert',
+        'contrast',
+        'saturate',
+        'classicu',
+        'cpm35',
+        'grdr',
+        'nt16',
+        'dclassic',
+        'ccdr',
+        'puli',
+        'fqsr',
+        'collage',
+        'fxn',
+        'fxnr',
+        'dqs',
+        'ct2f',
+        'd3d',
+        'instc',
+        'golf',
+        'infrared',
+        'vintage',
+        'monochrome',
+        '135ne',
+        '135sr',
+        'dhalf',
+        'dslide',
+        'sclassic',
+        'hoga',
+        's67',
+        'kv88',
+        'instsqc',
+        'pafr',
+      ];
+
+      if (colorMatrixFilters.includes(filterId)) {
+        console.log(
+          `🎯 Processing ${filterId} filter - modal will handle the filtering`,
+        );
+
+        // For color matrix filters, we don't process here since the modal will capture and save the filtered image
+        // Just return the original photo URI - the modal will handle the rest
+        return {uri: photoUri, saved: false, filtersApplied: false};
+      } else {
+        // Apply Skia filter to the photo for all other filters
+        filteredPhotoUri = await applySkiaFilterToPhoto(
+          photoUri,
+          filterId,
+          temperatureValue,
+        );
+      }
 
       // Save the filtered photo to gallery
       const saved = await savePhotoToGallery(filteredPhotoUri);
@@ -776,10 +924,10 @@ const CameraComponent = ({navigation}) => {
       setIsProcessing(true);
       setIsPhotoEnabled(true);
 
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 20));
 
       if (cameraPosition === 'front') {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 30));
       }
 
       const photo = await cameraRef.current.takePhoto({
@@ -788,12 +936,58 @@ const CameraComponent = ({navigation}) => {
       });
 
       // INSERT_YOUR_CODE
-      // setSelectedImage(
-      //   photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`,
-      // );
-      // setModalActive(true);
+      // Check if we should show the modal for color matrix filters
+      const colorMatrixFilters = [
+        'grf',
+        'sepia',
+        'invert',
+        'contrast',
+        'saturate',
+        'classicu',
+        'cpm35',
+        'grdr',
+        'nt16',
+        'dclassic',
+        'ccdr',
+        'puli',
+        'fqsr',
+        'collage',
+        'fxn',
+        'fxnr',
+        'dqs',
+        'ct2f',
+        'd3d',
+        'instc',
+        'golf',
+        'infrared',
+        'vintage',
+        'monochrome',
+        '135ne',
+        '135sr',
+        'dhalf',
+        'dslide',
+        'sclassic',
+        'hoga',
+        's67',
+        'kv88',
+        'instsqc',
+        'pafr',
+      ];
+      const shouldShowModal = activeFilters.some(filter =>
+        colorMatrixFilters.includes(filter),
+      );
 
-      // return;
+      if (shouldShowModal) {
+        setSelectedImage(
+          photo.path.startsWith('file://')
+            ? photo.path
+            : `file://${photo.path}`,
+        );
+        setModalActive(true);
+
+        // Don't return early - continue with the normal photo processing
+        // The modal will show the filtered image, and we'll save it to gallery
+      }
 
       console.log('🎯 Photo captured successfully:', photo.path);
       console.log('🎯 Camera position during capture:', cameraPosition);
@@ -805,8 +999,16 @@ const CameraComponent = ({navigation}) => {
       );
 
       // Apply filters to captured photo and save to gallery
-      console.log('🎯 About to apply filters to photo path:', photo.path);
-      console.log('🎯 Active filters:', activeFilters);
+      console.log(
+        '🎯 takePicture: About to apply filters to photo path:',
+        photo.path,
+      );
+      console.log('🎯 takePicture: Active filters:', activeFilters);
+      console.log(
+        '🎯 takePicture: Active filters length:',
+        activeFilters.length,
+      );
+      console.log('🎯 takePicture: Should show modal:', shouldShowModal);
 
       const result = await applyFiltersToPhoto(photo.path);
       console.log(
@@ -822,19 +1024,25 @@ const CameraComponent = ({navigation}) => {
           const filterNames = activeFilters
             .map(id => openglFilterEffects[id]?.name || id)
             .join(', ');
-          const message = result.filtersApplied
-            ? `✅ Applied ${activeFilters.length} filter(s): ${filterNames}\n\nPhoto saved to gallery!`
-            : `❌ Failed to apply ${activeFilters.length} filter(s): ${filterNames}\n\nPhoto saved without filters.`;
 
-          Alert.alert('Photo Saved!', message);
+          // Don't show error message for "original" filter since it's expected to not apply any filter
+          if (activeFilters[0] === 'original') {
+            //Alert.alert('Photo Saved!', `✅ Original photo saved to gallery!`);
+          } else {
+            const message = result.filtersApplied
+              ? `✅ Applied ${activeFilters.length} filter(s): ${filterNames}\n\nPhoto saved to gallery!`
+              : `❌ Failed to apply ${activeFilters.length} filter(s): ${filterNames}\n\nPhoto saved without filters.`;
+
+            Alert.alert('Photo Saved!', message);
+          }
         } else {
           Alert.alert('Photo Saved!', 'Photo captured and saved to gallery!');
         }
       } else {
-        Alert.alert(
-          'Photo Captured!',
-          'Photo captured but failed to save to gallery.',
-        );
+        //Alert.alert(
+        //  'Photo Captured!',
+        //  'Photo captured but failed to save to gallery.',
+        //);
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -1564,11 +1772,12 @@ const CameraComponent = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
+
       {/* \ // */}
       {/* INSERT_YOUR_CODE */}
       {/* Image Modal */}
 
-      {/* {modalActive && selectedImage && (
+      {modalActive && selectedImage && (
         <View
           style={{
             position: 'absolute',
@@ -1576,42 +1785,130 @@ const CameraComponent = ({navigation}) => {
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)',
+            backgroundColor: 'rgba(0,0,0,1)',
             zIndex: 2000,
+            paddingTop: 150,
+            paddingBottom: 150,
             justifyContent: 'center',
             alignItems: 'center',
           }}>
           <TouchableOpacity
             style={{
               position: 'absolute',
-              top: 40,
+              bottom: 131,
               right: 20,
               zIndex: 2100,
-              backgroundColor: 'rgba(0,0,0,0.6)',
+              //backgroundColor: 'rgba(0,0,0,0.6)',
               borderRadius: 20,
               padding: 8,
             }}
-            onPress={() => setModalActive(false)}>
-            <Text style={{color: '#fff', fontSize: 18}}>Close</Text>
-          </TouchableOpacity>
-
-          <ColorMatrix
-            style={{width: '90%', height: '70%'}}
-            matrix={concatColorMatrices(sepia(), tint(1.25), invert())}>
+            onPress={handleCloseWithSave}>
+            {/* <Text style={{color: '#fff', fontSize: 18}}>Close</Text> */}
             <Image
-              source={{uri: selectedImage}}
+              source={require('../src/assets/icons/close.png')}
               style={{
-                width: '90%',
-                height: '70%',
-                resizeMode: 'contain',
-                borderRadius: 12,
-                borderWidth: 2,
-                borderColor: '#fff',
+                width: 16,
+                height: 16,
+                tintColor: 'rgba(255, 255, 255, 0.46)',
               }}
             />
-          </ColorMatrix>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              bottom: 50,
+              alignSelf: 'center',
+              zIndex: 2100,
+              width: '80%',
+            }}
+            onPress={openSubscription}>
+            <LinearGradient
+              colors={['#007AFF', '#FF3B30']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0}}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 15,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                minWidth: 200,
+              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                }}>
+                <Image
+                  source={require('../src/assets/icons/logo-main.png')}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderTopRightRadius: 15,
+                    borderBottomRightRadius: 15,
+                    marginRight: 8,
+                    resizeMode: 'contain',
+                  }}
+                />
+                <View
+                  style={{
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    paddingLeft: 10,
+                  }}>
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontSize: 16,
+                      fontWeight: 'bold',
+                    }}>
+                    Dazz Pro
+                  </Text>
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontSize: 10,
+                      opacity: 0.9,
+                    }}>
+                    Join Dazz Pro to save this work.
+                  </Text>
+                </View>
+                <Image
+                  source={require('../src/assets/icons/back-arrow.png')}
+                  style={{
+                    width: 13,
+                    height: 13,
+                    marginLeft: 70,
+                    tintColor: 'rgb(88, 88, 88)',
+                  }}
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View
+            ref={modalFilterRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'transparent',
+              position: 'absolute',
+              top: 150,
+              left: 0,
+              bottom: 150,
+            }}>
+            {getFilterComponent(
+              activeFilters[0] || 'default',
+              selectedImage,
+              temperatureValue,
+              tempActive,
+            )}
+          </View>
         </View>
-      )} */}
+      )}
 
       {/* Temporary view for image combination */}
       {tempCombinationView && (
