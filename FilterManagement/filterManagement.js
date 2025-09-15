@@ -107,7 +107,11 @@ const createTemperatureMatrix = temperatureValue => {
 };
 
 // Helper function to combine filter matrix with temperature matrix
-const combineWithTemperature = (filterMatrix, temperatureValue, tempActive) => {
+export const combineWithTemperature = (
+  filterMatrix,
+  temperatureValue,
+  tempActive,
+) => {
   if (!tempActive || temperatureValue === 50) {
     return filterMatrix;
   }
@@ -635,31 +639,62 @@ export const getFilterComponent = (
         </ColorMatrixFilter>
       );
     case 'dhalf':
-      return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(
-              saturate(0.6),
-              contrast(0.9),
-              [
-                1, 0, 0, 0, 0, 0, 1.02, 0, 0, 0, 0, 0, 0.98, 0, 0, 0, 0, 0, 1,
-                0,
-              ],
-            ),
-            temperatureValue,
-            tempActive,
-          )}>
-          <Image
-            source={{uri: imageUri}}
-            style={{
-              width: '100%',
-              height: '100%',
-              resizeMode: 'cover',
-            }}
-          />
-        </ColorMatrixFilter>
-      );
+      // Check if we have dual photos for dhalf filter
+      if (imageUri && imageUri.includes('dhalf_merged')) {
+        // This is a merged dual photo - show it as is
+        return (
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                saturate(0.6),
+                contrast(0.9),
+                [
+                  1, 0, 0, 0, 0, 0, 1.02, 0, 0, 0, 0, 0, 0.98, 0, 0, 0, 0, 0, 1,
+                  0,
+                ],
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+        );
+      } else {
+        // Regular single photo with dhalf filter
+        return (
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                saturate(0.6),
+                contrast(0.9),
+                [
+                  1, 0, 0, 0, 0, 0, 1.02, 0, 0, 0, 0, 0, 0.98, 0, 0, 0, 0, 0, 1,
+                  0,
+                ],
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+        );
+      }
     case 'dslide':
       return (
         <ColorMatrixFilter

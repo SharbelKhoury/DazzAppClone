@@ -4,6 +4,7 @@ import {
   Sepia,
   Tint,
   ColorMatrix,
+  ColorMatrixFilter,
   concatColorMatrices,
   invert,
   contrast,
@@ -34,7 +35,6 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import {launchImageLibrary} from 'react-native-image-picker';
-import {ColorMatrixImageFilter} from 'react-native-color-matrix-image-filters';
 import {
   openglFilterEffects,
   getOpenGLFilterOverlay,
@@ -55,6 +55,7 @@ import {
   applySkiaFilterToPhoto,
   createLUTFilterElement,
   getFilterComponent,
+  combineWithTemperature,
 } from '../FilterManagement/filterManagement';
 import {hueRotate} from 'react-native-image-filter-kit';
 
@@ -101,9 +102,125 @@ const CameraComponent = ({navigation}) => {
   const [temperatureValue, setTemperatureValue] = useState(50); // Temperature control value (0-100)
   const modalFilterRef = useRef(null); // Ref for capturing the filtered modal image
 
+  // Dual photo capture states for dhalf filter
+  const [dhalfPhotoCount, setDhalfPhotoCount] = useState(0); // 0: ready, 1: first photo taken, 2: both photos taken
+  const [dhalfCapturedPhotos, setDhalfCapturedPhotos] = useState([]); // Array to store the two photos
+  const [dhalfInstructionText, setDhalfInstructionText] = useState(''); // Instruction text for user
+  const [isCapturingForSave, setIsCapturingForSave] = useState(false); // Track when capturing for save
+
   // Function to navigate to subscription
   const openSubscription = () => {
     navigation.navigate('Subscription');
+  };
+
+  // Function to handle dual photo capture for dhalf filter
+  const handleDhalfDualPhoto = async () => {
+    try {
+      setIsProcessing(true);
+      setIsPhotoEnabled(true);
+
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      if (cameraPosition === 'front') {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+
+      const photo = await cameraRef.current.takePhoto({
+        qualityPrioritization: 'quality',
+        flash: flashMode,
+      });
+
+      console.log('🎯 Dhalf photo captured:', photo.path);
+
+      // Add photo to captured photos array
+      const newPhotos = [
+        ...dhalfCapturedPhotos,
+        {
+          uri: photo.path.startsWith('file://')
+            ? photo.path
+            : `file://${photo.path}`,
+          path: photo.path,
+        },
+      ];
+
+      console.log('🎯 Dhalf photos array updated:', newPhotos);
+      console.log(
+        '🎯 Photo URIs:',
+        newPhotos.map(p => p.uri),
+      );
+
+      setDhalfCapturedPhotos(newPhotos);
+      setDhalfPhotoCount(dhalfPhotoCount + 1);
+
+      // Update instruction text
+      if (dhalfPhotoCount === 0) {
+        setDhalfInstructionText('Please take or import a photo (1/2)');
+      } else if (dhalfPhotoCount === 1) {
+        setDhalfInstructionText('Both photos captured! Processing...');
+        // Both photos captured, now merge them
+        await mergeDhalfPhotos(newPhotos);
+      }
+    } catch (error) {
+      console.error('❌ handleDhalfDualPhoto failed:', error);
+      Alert.alert('Error', 'Failed to capture photo');
+    } finally {
+      setIsProcessing(false);
+      setIsPhotoEnabled(false);
+    }
+  };
+
+  // Function to merge two dhalf photos with black separator
+  const mergeDhalfPhotos = async photos => {
+    try {
+      console.log('🎯 Merging dhalf photos:', photos);
+
+      if (photos.length !== 2) {
+        console.error(
+          '❌ Expected 2 photos for dhalf merge, got:',
+          photos.length,
+        );
+        return;
+      }
+
+      // Create a merged image with black separator
+      const mergedImageUri = await createDhalfMergedImage(photos);
+
+      if (mergedImageUri) {
+        // Set the merged image and show modal
+        setSelectedImage(mergedImageUri);
+        setModalActive(true);
+
+        // Reset dhalf states (but keep photos for modal display)
+        setDhalfPhotoCount(0);
+        setDhalfInstructionText('');
+      }
+    } catch (error) {
+      console.error('❌ mergeDhalfPhotos failed:', error);
+      Alert.alert('Error', 'Failed to merge photos');
+    }
+  };
+
+  // Function to create merged image with black separator
+  const createDhalfMergedImage = async photos => {
+    try {
+      console.log('🎯 Creating dhalf merged image with photos:', photos);
+
+      // Create a temporary merged image path
+      const mergedImagePath = `${
+        RNFS.TemporaryDirectoryPath
+      }/dhalf_merged_${Date.now()}.jpg`;
+
+      // For now, we'll create a simple merged image by copying the first photo
+      // The actual dual photo display will be handled in the modal
+      // We'll use a special URI to identify this as a dual photo case
+      await RNFS.copyFile(photos[0].path, mergedImagePath);
+
+      console.log('🎯 Dhalf merged image created at:', mergedImagePath);
+      return `file://${mergedImagePath}`;
+    } catch (error) {
+      console.error('❌ createDhalfMergedImage failed:', error);
+      return null;
+    }
   };
 
   // Function to handle close with save
@@ -127,6 +244,9 @@ const CameraComponent = ({navigation}) => {
     try {
       if (modalFilterRef.current && selectedImage) {
         console.log('🎨 Capturing filtered image from modal...');
+
+        // Set capturing state to true for proper positioning during save
+        setIsCapturingForSave(true);
 
         // Wait for the component to render
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -156,7 +276,18 @@ const CameraComponent = ({navigation}) => {
           if (saved) {
             console.log('✅ Filtered image saved to gallery');
             fetchLatestMedia();
-            //Alert.alert('Photo Saved!', 'Filtered photo saved to gallery!');
+
+            if (currentFilter === 'dhalf') {
+              /* Alert.alert(
+                'Photo Saved!',
+                '✅ Dual photo merged and saved to gallery!',
+              ); */
+            } else {
+              //Alert.alert('Photo Saved!', 'Filtered photo saved to gallery!');
+            }
+
+            // Reset capturing state
+            setIsCapturingForSave(false);
 
             // Close the modal
             setModalActive(false);
@@ -836,7 +967,7 @@ const CameraComponent = ({navigation}) => {
         'monochrome',
         '135ne',
         '135sr',
-        'dhalf',
+        // 'dhalf' - handled separately for dual photo capture
         'dslide',
         'sclassic',
         'hoga',
@@ -920,6 +1051,16 @@ const CameraComponent = ({navigation}) => {
       return;
     }
 
+    // Check if dhalf filter is active and handle dual photo capture
+    if (activeFilters.includes('dhalf')) {
+      // Initialize instruction text for first photo
+      if (dhalfPhotoCount === 0) {
+        setDhalfInstructionText('Please take or import a photo (1/2)');
+      }
+      await handleDhalfDualPhoto();
+      return;
+    }
+
     try {
       setIsProcessing(true);
       setIsPhotoEnabled(true);
@@ -964,7 +1105,7 @@ const CameraComponent = ({navigation}) => {
         'monochrome',
         '135ne',
         '135sr',
-        'dhalf',
+        // 'dhalf' - handled separately for dual photo capture
         'dslide',
         'sclassic',
         'hoga',
@@ -1773,6 +1914,15 @@ const CameraComponent = ({navigation}) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
+      {/* Dhalf dual photo instruction text */}
+      {dhalfInstructionText && activeFilters.includes('dhalf') && (
+        <View style={styles.dhalfInstructionContainer}>
+          <Text style={styles.dhalfInstructionText}>
+            {dhalfInstructionText}
+          </Text>
+        </View>
+      )}
+
       {/* \ // */}
       {/* INSERT_YOUR_CODE */}
       {/* Image Modal */}
@@ -1894,17 +2044,112 @@ const CameraComponent = ({navigation}) => {
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: 'transparent',
+              backgroundColor: '#000000',
               position: 'absolute',
-              top: 150,
+              top: 0,
               left: 0,
-              bottom: 150,
             }}>
-            {getFilterComponent(
-              activeFilters[0] || 'default',
-              selectedImage,
-              temperatureValue,
-              tempActive,
+            {activeFilters[0] === 'dhalf' ? (
+              // Special handling for dhalf - show dual photos side by side with half height each
+              (() => {
+                console.log('🎯 Modal rendering dhalf filter');
+                console.log('🎯 dhalfCapturedPhotos:', dhalfCapturedPhotos);
+                console.log(
+                  '🎯 dhalfCapturedPhotos length:',
+                  dhalfCapturedPhotos.length,
+                );
+                console.log('🎯 Photo 1 URI:', dhalfCapturedPhotos[0]?.uri);
+                console.log('🎯 Photo 2 URI:', dhalfCapturedPhotos[1]?.uri);
+
+                return (
+                  <View
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      paddingTop: 150,
+                      paddingBottom: 150,
+                      marginTop: isCapturingForSave ? 0 : 150,
+                    }}>
+                    {/* First photo with dhalf filter - 48.5% width, 125% height */}
+                    <View
+                      style={{
+                        width: '48.5%',
+                        height: '125%',
+                        alignSelf: 'center',
+                      }}>
+                      {dhalfCapturedPhotos[0]?.uri ? (
+                        getFilterComponent(
+                          'dhalf',
+                          dhalfCapturedPhotos[0].uri,
+                          temperatureValue,
+                          tempActive,
+                        )
+                      ) : (
+                        <View
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: '#333',
+                          }}
+                        />
+                      )}
+                    </View>
+                    {/* Black separator - 2% width, 125% height */}
+                    <View
+                      style={{
+                        width: '2%',
+                        height: '125%',
+                        backgroundColor: '#000000',
+                        alignSelf: 'center',
+                      }}
+                    />
+                    {/* Second photo with dhalf filter - 48.5% width, 125% height */}
+                    <View
+                      style={{
+                        width: '48.5%',
+                        height: '125%',
+                        alignSelf: 'center',
+                      }}>
+                      {dhalfCapturedPhotos[1]?.uri ? (
+                        getFilterComponent(
+                          'dhalf',
+                          dhalfCapturedPhotos[1].uri,
+                          temperatureValue,
+                          tempActive,
+                        )
+                      ) : (
+                        <View
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: '#333',
+                          }}
+                        />
+                      )}
+                    </View>
+                  </View>
+                );
+              })()
+            ) : (
+              <View
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingTop: 150,
+                  paddingBottom: 150,
+                }}>
+                {getFilterComponent(
+                  activeFilters[0] || 'default',
+                  selectedImage,
+                  temperatureValue,
+                  tempActive,
+                )}
+              </View>
             )}
           </View>
         </View>
@@ -3544,6 +3789,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  dhalfInstructionContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  dhalfInstructionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   galleryPlus: {
     tintColor: '#fff',
