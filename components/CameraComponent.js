@@ -106,7 +106,6 @@ const CameraComponent = ({navigation}) => {
   const [dhalfPhotoCount, setDhalfPhotoCount] = useState(0); // 0: ready, 1: first photo taken, 2: both photos taken
   const [dhalfCapturedPhotos, setDhalfCapturedPhotos] = useState([]); // Array to store the two photos
   const [dhalfInstructionText, setDhalfInstructionText] = useState(''); // Instruction text for user
-  const [isCapturingForSave, setIsCapturingForSave] = useState(false); // Track when capturing for save
 
   // Function to navigate to subscription
   const openSubscription = () => {
@@ -245,9 +244,6 @@ const CameraComponent = ({navigation}) => {
       if (modalFilterRef.current && selectedImage) {
         console.log('🎨 Capturing filtered image from modal...');
 
-        // Set capturing state to true for proper positioning during save
-        setIsCapturingForSave(true);
-
         // Wait for the component to render
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -285,9 +281,6 @@ const CameraComponent = ({navigation}) => {
             } else {
               //Alert.alert('Photo Saved!', 'Filtered photo saved to gallery!');
             }
-
-            // Reset capturing state
-            setIsCapturingForSave(false);
 
             // Close the modal
             setModalActive(false);
@@ -2044,10 +2037,11 @@ const CameraComponent = ({navigation}) => {
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: '#000000',
+              backgroundColor: 'transparent',
               position: 'absolute',
-              top: 0,
+              top: 150,
               left: 0,
+              bottom: 150,
             }}>
             {activeFilters[0] === 'dhalf' ? (
               // Special handling for dhalf - show dual photos side by side with half height each
@@ -2069,15 +2063,12 @@ const CameraComponent = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      paddingTop: 150,
-                      paddingBottom: 150,
-                      marginTop: isCapturingForSave ? 0 : 150,
                     }}>
-                    {/* First photo with dhalf filter - 48.5% width, 125% height */}
+                    {/* First photo with dhalf filter - 48.5% width, 50% height */}
                     <View
                       style={{
                         width: '48.5%',
-                        height: '125%',
+                        height: '50%',
                         alignSelf: 'center',
                       }}>
                       {dhalfCapturedPhotos[0]?.uri ? (
@@ -2097,20 +2088,20 @@ const CameraComponent = ({navigation}) => {
                         />
                       )}
                     </View>
-                    {/* Black separator - 2% width, 125% height */}
+                    {/* Black separator - 2% width, 50% height */}
                     <View
                       style={{
                         width: '2%',
-                        height: '125%',
+                        height: '50%',
                         backgroundColor: '#000000',
                         alignSelf: 'center',
                       }}
                     />
-                    {/* Second photo with dhalf filter - 48.5% width, 125% height */}
+                    {/* Second photo with dhalf filter - 48.5% width, 50% height */}
                     <View
                       style={{
                         width: '48.5%',
-                        height: '125%',
+                        height: '50%',
                         alignSelf: 'center',
                       }}>
                       {dhalfCapturedPhotos[1]?.uri ? (
@@ -2140,8 +2131,6 @@ const CameraComponent = ({navigation}) => {
                   height: '100%',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  paddingTop: 150,
-                  paddingBottom: 150,
                 }}>
                 {getFilterComponent(
                   activeFilters[0] || 'default',

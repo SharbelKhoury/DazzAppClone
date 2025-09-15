@@ -1203,37 +1203,37 @@ export const createLUTFilterElement = async (
     );
     // Fallback to dynamic shader creation if cache is not initialized
     shader = Skia.RuntimeEffect.Make(`
-      uniform shader image;
-      uniform shader luts;
-    
-      // Simple noise function
-      float rand(float2 co) {
-        return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
-      }
-    
-      half4 main(float2 xy) {
-        // Original image processing
-        vec4 color = image.eval(xy);
-        
-        int r = int(color.r * 255.0 / 4);
-        int g = int(color.g * 255.0 / 4);
-        int b = int(color.b * 255.0 / 4);
-        
-        float lutX = float(int(mod(float(b), 8.0)) * 64 + r);
-        float lutY = float(int((b / 8) * 64 + g));
-        
-        vec4 lutsColor = luts.eval(float2(lutX, lutY));
-        
-        // Generate noise
-        float noiseIntensity = 0.04; // Adjust this to control noise strength
-        float noise = rand(xy) * noiseIntensity;
-        
-        // Blend noise with the image (simple additive blend)
-        vec4 noisyColor = lutsColor + vec4(noise, noise, noise, 0.0);
-        
-        return noisyColor;
-      }
-    `);
+    uniform shader image;
+    uniform shader luts;
+  
+    // Simple noise function
+    float rand(float2 co) {
+      return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+  
+    half4 main(float2 xy) {
+      // Original image processing
+      vec4 color = image.eval(xy);
+      
+      int r = int(color.r * 255.0 / 4);
+      int g = int(color.g * 255.0 / 4);
+      int b = int(color.b * 255.0 / 4);
+      
+      float lutX = float(int(mod(float(b), 8.0)) * 64 + r);
+      float lutY = float(int((b / 8) * 64 + g));
+      
+      vec4 lutsColor = luts.eval(float2(lutX, lutY));
+      
+      // Generate noise
+      float noiseIntensity = 0.04; // Adjust this to control noise strength
+      float noise = rand(xy) * noiseIntensity;
+      
+      // Blend noise with the image (simple additive blend)
+      vec4 noisyColor = lutsColor + vec4(noise, noise, noise, 0.0);
+      
+      return noisyColor;
+    }
+  `);
     if (!shader) {
       console.error('❌ Failed to create fallback shader');
       return null;
