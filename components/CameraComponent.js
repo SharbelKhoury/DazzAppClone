@@ -107,9 +107,83 @@ const CameraComponent = ({navigation}) => {
   const [dhalfCapturedPhotos, setDhalfCapturedPhotos] = useState([]); // Array to store the two photos
   const [dhalfInstructionText, setDhalfInstructionText] = useState(''); // Instruction text for user
 
+  // Triple photo capture states for 135ne filter
+  const [ne135PhotoCount, setNe135PhotoCount] = useState(0); // 0: ready, 1: first photo, 2: second photo, 3: all photos taken
+  const [ne135CapturedPhotos, setNe135CapturedPhotos] = useState([]); // Array to store the three photos
+  const [ne135InstructionText, setNe135InstructionText] = useState(''); // Instruction text for user
+
   // Function to navigate to subscription
   const openSubscription = () => {
     navigation.navigate('Subscription');
+  };
+
+  // Function to handle triple photo capture for 135ne filter
+  const handleNe135TriplePhoto = async () => {
+    try {
+      setIsProcessing(true);
+      setIsPhotoEnabled(true);
+
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      if (cameraPosition === 'front') {
+        await cameraRef.current?.setCameraPosition('front');
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      const photo = await cameraRef.current?.takePhoto({
+        qualityPrioritization: 'speed',
+        flash: 'off',
+        enableAutoStabilization: true,
+        enableAutoRedEyeReduction: true,
+        enableShutterSound: false,
+      });
+
+      if (!photo) {
+        throw new Error('Failed to capture photo');
+      }
+
+      console.log('🎯 135ne photo captured:', photo.path);
+
+      // Add photo to captured photos array
+      const newPhotos = [
+        ...ne135CapturedPhotos,
+        {
+          uri: photo.path.startsWith('file://')
+            ? photo.path
+            : `file://${photo.path}`,
+          path: photo.path,
+        },
+      ];
+
+      // Ensure we only keep the latest 3 photos
+      const trimmedPhotos = newPhotos.slice(-3);
+
+      console.log('🎯 135ne photos array updated:', trimmedPhotos);
+      console.log(
+        '🎯 Photo URIs:',
+        trimmedPhotos.map(p => p.uri),
+      );
+
+      setNe135CapturedPhotos(trimmedPhotos);
+      setNe135PhotoCount(trimmedPhotos.length);
+
+      // Update instruction text
+      if (trimmedPhotos.length === 1) {
+        setNe135InstructionText('Please take or import a photo (1/3)');
+      } else if (trimmedPhotos.length === 2) {
+        setNe135InstructionText('Please take or import a photo (2/3)');
+      } else if (trimmedPhotos.length === 3) {
+        setNe135InstructionText('All photos captured! Processing...');
+        // All photos captured, now merge them
+        await mergeNe135Photos(trimmedPhotos);
+      }
+    } catch (error) {
+      console.error('❌ handleNe135TriplePhoto failed:', error);
+      Alert.alert('Error', 'Failed to capture photo');
+    } finally {
+      setIsProcessing(false);
+      setIsPhotoEnabled(false);
+    }
   };
 
   // Function to handle dual photo capture for dhalf filter
@@ -142,22 +216,25 @@ const CameraComponent = ({navigation}) => {
         },
       ];
 
-      console.log('🎯 Dhalf photos array updated:', newPhotos);
+      // Ensure we only keep the latest 2 photos
+      const trimmedPhotos = newPhotos.slice(-2);
+
+      console.log('🎯 Dhalf photos array updated:', trimmedPhotos);
       console.log(
         '🎯 Photo URIs:',
-        newPhotos.map(p => p.uri),
+        trimmedPhotos.map(p => p.uri),
       );
 
-      setDhalfCapturedPhotos(newPhotos);
-      setDhalfPhotoCount(dhalfPhotoCount + 1);
+      setDhalfCapturedPhotos(trimmedPhotos);
+      setDhalfPhotoCount(trimmedPhotos.length);
 
       // Update instruction text
-      if (dhalfPhotoCount === 0) {
+      if (trimmedPhotos.length === 1) {
         setDhalfInstructionText('Please take or import a photo (1/2)');
-      } else if (dhalfPhotoCount === 1) {
+      } else if (trimmedPhotos.length === 2) {
         setDhalfInstructionText('Both photos captured! Processing...');
         // Both photos captured, now merge them
-        await mergeDhalfPhotos(newPhotos);
+        await mergeDhalfPhotos(trimmedPhotos);
       }
     } catch (error) {
       console.error('❌ handleDhalfDualPhoto failed:', error);
@@ -165,6 +242,58 @@ const CameraComponent = ({navigation}) => {
     } finally {
       setIsProcessing(false);
       setIsPhotoEnabled(false);
+    }
+  };
+
+  // Function to merge three 135ne photos with horizontal black separators
+  const mergeNe135Photos = async photos => {
+    try {
+      console.log('🎯 Merging 135ne photos:', photos);
+
+      if (photos.length !== 3) {
+        console.error(
+          '❌ Expected 3 photos for 135ne merge, got:',
+          photos.length,
+        );
+        return;
+      }
+
+      // Create a merged image with horizontal black separators
+      const mergedImageUri = await createNe135MergedImage(photos);
+
+      if (mergedImageUri) {
+        // Set the merged image and show modal
+        setSelectedImage(mergedImageUri);
+        setModalActive(true);
+
+        // Reset 135ne states (but keep photos for modal display)
+        setNe135PhotoCount(0);
+        setNe135InstructionText('');
+      }
+    } catch (error) {
+      console.error('❌ mergeNe135Photos failed:', error);
+      Alert.alert('Error', 'Failed to merge photos');
+    }
+  };
+
+  // Function to create merged image with horizontal black separators
+  const createNe135MergedImage = async photos => {
+    try {
+      console.log('🎯 Creating 135ne merged image with photos:', photos);
+
+      // Create a temporary merged image path
+      const mergedImagePath = `${
+        RNFS.TemporaryDirectoryPath
+      }/135ne_merged_${Date.now()}.jpg`;
+
+      // For now, we'll create a simple merged image by copying the first photo
+      // TODO: Implement actual vertical merging with horizontal separators
+      await RNFS.copyFile(photos[0].path, mergedImagePath);
+
+      return `file://${mergedImagePath}`;
+    } catch (error) {
+      console.error('❌ createNe135MergedImage failed:', error);
+      return null;
     }
   };
 
@@ -230,11 +359,27 @@ const CameraComponent = ({navigation}) => {
       // Then close the modal
       setModalActive(false);
       setSelectedImage(null);
+
+      // Reset photos after modal closes
+      if (activeFilters[0] === 'dhalf') {
+        setDhalfCapturedPhotos([]);
+      }
+      if (activeFilters[0] === '135ne') {
+        setNe135CapturedPhotos([]);
+      }
     } catch (error) {
       console.error('❌ Error saving image before close:', error);
       // Close modal even if save fails
       setModalActive(false);
       setSelectedImage(null);
+
+      // Reset photos after modal closes
+      if (activeFilters[0] === 'dhalf') {
+        setDhalfCapturedPhotos([]);
+      }
+      if (activeFilters[0] === '135ne') {
+        setNe135CapturedPhotos([]);
+      }
     }
   };
 
@@ -247,16 +392,48 @@ const CameraComponent = ({navigation}) => {
         // Wait for the component to render
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Capture the filtered image
-        const uri = await captureRef(modalFilterRef.current, {
-          format: 'jpg',
-          quality: 1,
-          result: 'tmpfile',
-        });
+        // Get the current active filter to determine naming
+        const currentFilter = activeFilters[0] || 'unknown';
+
+        // For dhalf and 135ne filters, capture the entire modal to include black backgrounds
+        let uri;
+        if (currentFilter === 'dhalf' || currentFilter === '135ne') {
+          // Find the main modal container (the one with black background)
+          const mainModalContainer = modalFilterRef.current.parent?.parent;
+          if (mainModalContainer) {
+            uri = await captureRef(mainModalContainer, {
+              format: 'jpg',
+              quality: 1,
+              result: 'tmpfile',
+            });
+          } else {
+            // Fallback: capture the modal container with black background
+            const modalContainer = modalFilterRef.current.parent;
+            if (modalContainer) {
+              uri = await captureRef(modalContainer, {
+                format: 'jpg',
+                quality: 1,
+                result: 'tmpfile',
+              });
+            } else {
+              // Final fallback to original method
+              uri = await captureRef(modalFilterRef.current, {
+                format: 'jpg',
+                quality: 1,
+                result: 'tmpfile',
+              });
+            }
+          }
+        } else {
+          // For other filters, use the original capture method
+          uri = await captureRef(modalFilterRef.current, {
+            format: 'jpg',
+            quality: 1,
+            result: 'tmpfile',
+          });
+        }
 
         if (uri) {
-          // Get the current active filter to determine naming
-          const currentFilter = activeFilters[0] || 'unknown';
           const tempPath = `${
             RNFS.TemporaryDirectoryPath
           }/skia_filtered_${currentFilter}_${Date.now()}.jpg`;
@@ -1051,6 +1228,15 @@ const CameraComponent = ({navigation}) => {
         setDhalfInstructionText('Please take or import a photo (1/2)');
       }
       await handleDhalfDualPhoto();
+      return;
+    }
+
+    if (activeFilters.includes('135ne')) {
+      // Initialize instruction text for first photo
+      if (ne135PhotoCount === 0) {
+        setNe135InstructionText('Please take or import a photo (1/3)');
+      }
+      await handleNe135TriplePhoto();
       return;
     }
 
@@ -1916,6 +2102,15 @@ const CameraComponent = ({navigation}) => {
         </View>
       )}
 
+      {/* 135ne triple photo instruction text */}
+      {ne135InstructionText && activeFilters.includes('135ne') && (
+        <View style={styles.dhalfInstructionContainer}>
+          <Text style={styles.dhalfInstructionText}>
+            {ne135InstructionText}
+          </Text>
+        </View>
+      )}
+
       {/* \ // */}
       {/* INSERT_YOUR_CODE */}
       {/* Image Modal */}
@@ -2043,7 +2238,122 @@ const CameraComponent = ({navigation}) => {
               left: 0,
               bottom: 150,
             }}>
-            {activeFilters[0] === 'dhalf' ? (
+            {activeFilters[0] === '135ne' ? (
+              // Special handling for 135ne - show triple photos vertically stacked with horizontal separators
+              (() => {
+                console.log('🎯 Modal rendering 135ne filter');
+                console.log('🎯 ne135CapturedPhotos:', ne135CapturedPhotos);
+                console.log(
+                  '🎯 ne135CapturedPhotos length:',
+                  ne135CapturedPhotos.length,
+                );
+                console.log('🎯 Photo 1 URI:', ne135CapturedPhotos[0]?.uri);
+                console.log('🎯 Photo 2 URI:', ne135CapturedPhotos[1]?.uri);
+                console.log('🎯 Photo 3 URI:', ne135CapturedPhotos[2]?.uri);
+
+                return (
+                  <View
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    {/* First photo with 135ne filter - 60% width, 30% height */}
+                    <View
+                      style={{
+                        width: '60%',
+                        height: '30%',
+                        alignSelf: 'center',
+                      }}>
+                      {ne135CapturedPhotos[0]?.uri ? (
+                        getFilterComponent(
+                          '135ne',
+                          ne135CapturedPhotos[0].uri,
+                          temperatureValue,
+                          tempActive,
+                        )
+                      ) : (
+                        <View
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: '#333',
+                          }}
+                        />
+                      )}
+                    </View>
+                    {/* First horizontal separator - 60% width, 2% height */}
+                    <View
+                      style={{
+                        width: '60%',
+                        height: '2%',
+                        backgroundColor: '#000000',
+                        alignSelf: 'center',
+                      }}
+                    />
+                    {/* Second photo with 135ne filter - 60% width, 57% height */}
+                    <View
+                      style={{
+                        width: '60%',
+                        height: '57%',
+                        alignSelf: 'center',
+                      }}>
+                      {ne135CapturedPhotos[1]?.uri ? (
+                        getFilterComponent(
+                          '135ne',
+                          ne135CapturedPhotos[1].uri,
+                          temperatureValue,
+                          tempActive,
+                        )
+                      ) : (
+                        <View
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: '#333',
+                          }}
+                        />
+                      )}
+                    </View>
+                    {/* Second horizontal separator - 60% width, 2% height */}
+                    <View
+                      style={{
+                        width: '60%',
+                        height: '2%',
+                        backgroundColor: '#000000',
+                        alignSelf: 'center',
+                      }}
+                    />
+                    {/* Third photo with 135ne filter - 60% width, 25% height */}
+                    <View
+                      style={{
+                        width: '60%',
+                        height: '25%',
+                        alignSelf: 'center',
+                      }}>
+                      {ne135CapturedPhotos[2]?.uri ? (
+                        getFilterComponent(
+                          '135ne',
+                          ne135CapturedPhotos[2].uri,
+                          temperatureValue,
+                          tempActive,
+                        )
+                      ) : (
+                        <View
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: '#333',
+                          }}
+                        />
+                      )}
+                    </View>
+                  </View>
+                );
+              })()
+            ) : activeFilters[0] === 'dhalf' ? (
               // Special handling for dhalf - show dual photos side by side with half height each
               (() => {
                 console.log('🎯 Modal rendering dhalf filter');
