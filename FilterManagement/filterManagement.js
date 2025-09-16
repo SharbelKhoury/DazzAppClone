@@ -10,7 +10,9 @@ import {
   contrast,
   saturate,
   sepia,
+  brightness,
   tint,
+  hueRotate,
   grayscale,
 } from 'react-native-color-matrix-image-filters';
 import {
@@ -318,7 +320,12 @@ export const getFilterComponent = (
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.3), saturate(1.4)),
+            concatColorMatrices(
+              contrast(0.9),
+              sepia(0.35),
+              saturate(1.7),
+              brightness(0.85),
+            ),
             temperatureValue,
             tempActive,
           )}>
@@ -602,30 +609,63 @@ export const getFilterComponent = (
       }
     case '135ne':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(
-              sepia(0.2),
-              contrast(0.9),
-              saturate(0.6),
-              [
-                0.9, 0.05, 0.05, 0, 0.05, 0.95, 0.05, 0, 0.05, 0.05, 0.85, 0, 0,
-                0, 0, 1, 0, 0, 0, 0,
-              ],
-            ),
-            temperatureValue,
-            tempActive,
-          )}>
-          <Image
-            source={{uri: imageUri}}
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                contrast(1), // Increased contrast for better visibility
+                brightness(0.95), // Increased brightness for natural exposure
+                sepia(0.15), // Slight saturation boost
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Simple View-based grain effect */}
+          <View
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
-              resizeMode: 'cover',
-            }}
-          />
-        </ColorMatrixFilter>
+              backgroundColor: 'transparent',
+            }}>
+            {Array.from({length: 12500}, (_, i) => {
+              const x = Math.random() * 100;
+              const y = Math.random() * 100;
+              const size = Math.random() * 0.616 + 0.153; // 0.153-0.769px (0.15x larger)
+              const opacity = Math.random() * 0.102 + 0.068; // 0.068-0.17 opacity (15% reduction)
+              const isBlack = Math.random() > 0.3; // 70% black, 30% white
+
+              return (
+                <View
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    width: size,
+                    height: size,
+                    backgroundColor: isBlack
+                      ? `rgba(0, 0, 0, ${opacity})`
+                      : `rgba(255, 255, 255, ${opacity * 0.5})`,
+                    borderRadius: size / 2,
+                    left: x + '%',
+                    top: y + '%',
+                  }}
+                />
+              );
+            })}
+          </View>
+        </View>
       );
     case '135sr':
       return (
@@ -743,22 +783,195 @@ export const getFilterComponent = (
       );
     case 'hoga':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.6), saturate(0.8)),
-            temperatureValue,
-            tempActive,
-          )}>
-          <Image
-            source={{uri: imageUri}}
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                contrast(1.1),
+                saturate(1.6),
+                brightness(0.8),
+                sepia(0.2),
+                tint(0.08), // Add subtle warm tone
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Diagonal fading lines with gradient from edge to center */}
+          <View
             style={{
-              width: '100%',
-              height: '100%',
-              resizeMode: 'cover',
-            }}
-          />
-        </ColorMatrixFilter>
+              position: 'absolute',
+              top: '-15%',
+              left: '-15%',
+              width: '30%',
+              height: '30%',
+              backgroundColor: 'transparent',
+            }}>
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'transparent',
+                transform: [{rotate: '45deg'}],
+              }}>
+              {/* 400 layers for ultra-smooth gradient effect toward center */}
+              {Array.from({length: 400}, (_, i) => {
+                const opacity = 2.5 - (i * 2.5) / 399; // Much darker opacity with linear fade
+                const finalOpacity =
+                  Math.min(opacity, 1.0) * (1.0 - Math.pow(i / 399, 1.5)); // More transparent at end
+                const leftPosition = i * 0.2; // Each layer is 0.2% width (400 layers total)
+                return (
+                  <View
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: leftPosition + '%',
+                      width: '0.8%',
+                      height: '80%',
+                      backgroundColor: `rgba(0,0,0,${finalOpacity})`,
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+          <View
+            style={{
+              position: 'absolute',
+              top: '-15%',
+              right: '-15%',
+              width: '30%',
+              height: '30%',
+              backgroundColor: 'transparent',
+            }}>
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'transparent',
+                transform: [{rotate: '-45deg'}],
+              }}>
+              {/* 400 layers for ultra-smooth gradient effect toward center */}
+              {Array.from({length: 400}, (_, i) => {
+                const opacity = 2.5 - (i * 2.5) / 399; // Much darker opacity with linear fade
+                const finalOpacity =
+                  Math.min(opacity, 1.0) * (1.0 - Math.pow(i / 399, 1.5)); // More transparent at end
+                const rightPosition = i * 0.2; // Each layer is 0.2% width (400 layers total)
+                return (
+                  <View
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: rightPosition + '%',
+                      width: '0.8%',
+                      height: '80%',
+                      backgroundColor: `rgba(0,0,0,${finalOpacity})`,
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+          <View
+            style={{
+              position: 'absolute',
+              bottom: '-15%',
+              left: '-15%',
+              width: '30%',
+              height: '30%',
+              backgroundColor: 'transparent',
+            }}>
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'transparent',
+                transform: [{rotate: '-45deg'}],
+              }}>
+              {/* 400 layers for ultra-smooth gradient effect toward center */}
+              {Array.from({length: 400}, (_, i) => {
+                const opacity = 2.5 - (i * 2.5) / 399; // Much darker opacity with linear fade
+                const finalOpacity =
+                  Math.min(opacity, 1.0) * (1.0 - Math.pow(i / 399, 1.5)); // More transparent at end
+                const leftPosition = i * 0.2; // Each layer is 0.2% width (400 layers total)
+                return (
+                  <View
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: leftPosition + '%',
+                      width: '0.8%',
+                      height: '80%',
+                      backgroundColor: `rgba(0,0,0,${finalOpacity})`,
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+          <View
+            style={{
+              position: 'absolute',
+              bottom: '-15%',
+              right: '-15%',
+              width: '30%',
+              height: '30%',
+              backgroundColor: 'transparent',
+            }}>
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'transparent',
+                transform: [{rotate: '45deg'}],
+              }}>
+              {/* 400 layers for ultra-smooth gradient effect toward center */}
+              {Array.from({length: 400}, (_, i) => {
+                const opacity = 2.5 - (i * 2.5) / 399; // Much darker opacity with linear fade
+                const finalOpacity =
+                  Math.min(opacity, 1.0) * (1.0 - Math.pow(i / 399, 1.5)); // More transparent at end
+                const rightPosition = i * 0.2; // Each layer is 0.2% width (400 layers total)
+                return (
+                  <View
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: rightPosition + '%',
+                      width: '0.8%',
+                      height: '80%',
+                      backgroundColor: `rgba(0,0,0,${finalOpacity})`,
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        </View>
       );
     case 's67':
       return (
