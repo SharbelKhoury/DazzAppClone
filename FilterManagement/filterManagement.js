@@ -12,6 +12,7 @@ import {
   sepia,
   brightness,
   tint,
+  gamma,
   hueRotate,
   grayscale,
 } from 'react-native-color-matrix-image-filters';
@@ -263,7 +264,14 @@ export const getFilterComponent = (
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(contrast(0.7)),
+            concatColorMatrices(
+              contrast(1),
+              sepia(0.15),
+              saturate(1),
+              brightness(0.9),
+              tint(-0.008),
+              //gamma(0.9),
+            ),
             temperatureValue,
             tempActive,
           )}>
@@ -630,41 +638,22 @@ export const getFilterComponent = (
               }}
             />
           </ColorMatrixFilter>
-          {/* Simple View-based grain effect */}
-          <View
+          {/* Noise overlay image */}
+          <Image
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               width: '100%',
               height: '100%',
-              backgroundColor: 'transparent',
-            }}>
-            {Array.from({length: 12500}, (_, i) => {
-              const x = Math.random() * 100;
-              const y = Math.random() * 100;
-              const size = Math.random() * 0.616 + 0.153; // 0.153-0.769px (0.15x larger)
-              const opacity = Math.random() * 0.102 + 0.068; // 0.068-0.17 opacity (15% reduction)
-              const isBlack = Math.random() > 0.3; // 70% black, 30% white
-
-              return (
-                <View
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    width: size,
-                    height: size,
-                    backgroundColor: isBlack
-                      ? `rgba(0, 0, 0, ${opacity})`
-                      : `rgba(255, 255, 255, ${opacity * 0.5})`,
-                    borderRadius: size / 2,
-                    left: x + '%',
-                    top: y + '%',
-                  }}
-                />
-              );
-            })}
-          </View>
+              resizeMode: 'cover',
+              opacity: 0.2, // Adjust opacity to control noise intensity
+              pointerEvents: 'none',
+            }}
+          />
         </View>
       );
     case '135sr':
@@ -1085,22 +1074,51 @@ export const getFilterComponent = (
       );
     case 'pafr':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.5), saturate(1.1)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'white',
+            paddingTop: 25,
+            paddingBottom: 25,
+            paddingLeft: 32,
+            paddingRight: 32,
+          }}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(grayscale(1.5), contrast(3), brightness(0.3)),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }} // Replace with your noise image path
             style={{
+              position: 'absolute',
+              top: 25,
+              left: 32,
+              right: 32,
+              bottom: 25,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.3, // Adjust opacity to control noise intensity
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+        </View>
       );
     default:
       // Default combination filter
