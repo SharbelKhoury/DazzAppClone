@@ -263,7 +263,7 @@ export const getFilterComponent = (
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.4), contrast(1.6)),
+            concatColorMatrices(contrast(0.7)),
             temperatureValue,
             tempActive,
           )}>
