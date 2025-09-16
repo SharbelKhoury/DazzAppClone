@@ -223,22 +223,46 @@ export const getFilterComponent = (
     // New filter IDs with various effects
     case 'classicu':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.6), tint(1.1), contrast(1.2)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                tint(-0.05),
+                contrast(1.2),
+                //hueRotate(9.5),
+                saturate(1.2),
+                brightness(1.4),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/black-abstract-texture-background_1373-500.jpg?semt=ais_incoming&w=740&q=80',
+            }}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.2, // Adjust opacity to control texture intensity
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+        </View>
       );
     case 'cpm35':
       return (
@@ -287,41 +311,83 @@ export const getFilterComponent = (
       );
     case 'nt16':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.8), saturate(0.6)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                contrast(1.2),
+                saturate(1.9),
+                brightness(0.95),
+                tint(-0.05),
+                hueRotate(0.4),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.2, // Adjust opacity to control noise intensity
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+        </View>
       );
     case 'dclassic':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.7), tint(1.2)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(brightness(1.1), contrast(1.45), saturate(1)),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.2, // Adjust opacity to control noise intensity
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+        </View>
       );
     case 'ccdr':
       return (
@@ -352,7 +418,12 @@ export const getFilterComponent = (
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.5), contrast(1.5)),
+            concatColorMatrices(
+              sepia(0.19),
+              saturate(1.4),
+              brightness(0.95),
+              contrast(0.9),
+            ),
             temperatureValue,
             tempActive,
           )}>
@@ -1087,7 +1158,11 @@ export const getFilterComponent = (
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
-              concatColorMatrices(grayscale(1.5), contrast(3), brightness(0.3)),
+              concatColorMatrices(
+                grayscale(1.5),
+                contrast(3),
+                brightness(0.29),
+              ),
               temperatureValue,
               tempActive,
             )}>
