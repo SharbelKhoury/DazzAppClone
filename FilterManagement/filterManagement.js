@@ -108,7 +108,29 @@ const createTemperatureMatrix = temperatureValue => {
     ];
   }
 };
-
+// Boost blue channel (amount: 0..0.5), optional blueBias: 0..0.1 to lift highlights
+const blueBoost = (amount = 0.15, blueBias = 0) => [
+  1,
+  0,
+  0,
+  0,
+  0.23, // R' = 1*R
+  0.15,
+  1,
+  0,
+  0,
+  0.17, // G' = 1*G
+  0,
+  0,
+  1 + amount,
+  0,
+  blueBias, // B' = (1+amount)*B + blueBias
+  0,
+  0,
+  0,
+  1,
+  0, // A' = A
+];
 // Helper function to combine filter matrix with temperature matrix
 export const combineWithTemperature = (
   filterMatrix,
@@ -228,11 +250,13 @@ export const getFilterComponent = (
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
               concatColorMatrices(
-                tint(-0.05),
-                contrast(1.2),
+                tint(-0.1),
+                contrast(1.45),
                 //hueRotate(9.5),
-                saturate(1.2),
-                brightness(1.4),
+                blueBoost(0.95, 0.01), // subtle cool breeze
+                hueRotate(-0.5),
+                saturate(1.1),
+                brightness(0.85),
               ),
               temperatureValue,
               tempActive,
@@ -254,11 +278,11 @@ export const getFilterComponent = (
             style={{
               position: 'absolute',
               top: 0,
-              left: 0,
+              left: -3,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
-              opacity: 0.2, // Adjust opacity to control texture intensity
+              opacity: 0.1, // Adjust opacity to control texture intensity
               pointerEvents: 'none',
             }}
           />
@@ -266,22 +290,45 @@ export const getFilterComponent = (
       );
     case 'cpm35':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.4), saturate(0.8)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                contrast(1),
+                saturate(2.8),
+                brightness(0.9),
+                tint(-0.06),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: -3,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.15, // Adjust opacity to control noise intensity
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+        </View>
       );
     case 'grdr':
       return (
@@ -342,7 +389,7 @@ export const getFilterComponent = (
             style={{
               position: 'absolute',
               top: 0,
-              left: 0,
+              left: -3,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
@@ -379,7 +426,7 @@ export const getFilterComponent = (
             style={{
               position: 'absolute',
               top: 0,
-              left: 0,
+              left: -3,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
@@ -717,7 +764,7 @@ export const getFilterComponent = (
             style={{
               position: 'absolute',
               top: 0,
-              left: 0,
+              left: -3,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
@@ -880,7 +927,7 @@ export const getFilterComponent = (
               style={{
                 position: 'absolute',
                 top: 0,
-                left: 0,
+                left: -3,
                 width: '100%',
                 height: '100%',
                 backgroundColor: 'transparent',
@@ -921,7 +968,7 @@ export const getFilterComponent = (
               style={{
                 position: 'absolute',
                 top: 0,
-                right: 0,
+                right: -9,
                 width: '100%',
                 height: '100%',
                 backgroundColor: 'transparent',
@@ -962,7 +1009,7 @@ export const getFilterComponent = (
               style={{
                 position: 'absolute',
                 bottom: 0,
-                left: 0,
+                left: -3,
                 width: '100%',
                 height: '100%',
                 backgroundColor: 'transparent',
@@ -1003,7 +1050,7 @@ export const getFilterComponent = (
               style={{
                 position: 'absolute',
                 bottom: 0,
-                right: 0,
+                right: -9,
                 width: '100%',
                 height: '100%',
                 backgroundColor: 'transparent',
@@ -1038,7 +1085,15 @@ export const getFilterComponent = (
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.6), contrast(1.4), saturate(1.1)),
+            concatColorMatrices(
+              sepia(0),
+              //blueBoost(0.85, 0.01),
+              tint(0.2), // Increased red tone
+              tint(-0.07), // Small green boost
+              contrast(1.1),
+              saturate(0.63),
+              brightness(0.9),
+            ),
             temperatureValue,
             tempActive,
           )}>
@@ -1054,22 +1109,323 @@ export const getFilterComponent = (
       );
     case 'kv88':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.3), saturate(1.2)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                contrast(1.2),
+                saturate(2.3),
+                tint(-0.15),
+                brightness(1.1),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: -3,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.3, // Adjust opacity to control noise intensity
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+          {/* Comb overlay using a single container */}
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: -3,
+              width: '100%',
+              height: '100%',
+              zIndex: 99999,
+            }}>
+            {/* Left side combs */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 40,
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '8%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '16%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '24%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '32%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '40%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '48%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '56%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '64%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '72%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '80%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '88%',
+                left: -3,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+
+            {/* Right side combs */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 40,
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '8%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '16%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '24%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '32%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '40%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '48%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '56%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '64%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '72%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '80%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '88%',
+                right: -9,
+                width: 17,
+                height: 16,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+          </View>
+        </View>
       );
     case 'instsqc':
       // Generate random color for background
