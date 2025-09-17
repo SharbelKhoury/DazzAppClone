@@ -776,22 +776,419 @@ export const getFilterComponent = (
       );
     case '135sr':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.5), contrast(1.3)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                contrast(1.7),
+                sepia(0.65),
+                saturate(2.1),
+                tint(-0.5),
+                tint(0.5),
+                tint(0.18), // Add subtle yellow tint
+                brightness(0.55),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0, // keep bottom exactly where it is now
+                height: '130%',
+                width: '100%', // make image 20% taller
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
-              width: '100%',
-              height: '100%',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0, // keep bottom exactly where it is now
+              height: '130%',
+              width: '100%', // make image 20% taller
               resizeMode: 'cover',
+              opacity: 0.3,
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+          {/* Comb overlay using a single container - shifted 15px inward to fully show */}
+          <View
+            style={{
+              position: 'absolute',
+              top: -150,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 99999,
+            }}>
+            {/* Left side combs (shifted 15px toward center) */}
+            <View
+              style={{
+                position: 'absolute',
+                top: '0%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '7.3%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '16.48%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '26.96%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '37.44%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '49.92%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '62.4%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '74.88%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '87.36%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '99.84%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '112.32%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '124.8%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '137.28%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            {/* <View
+              style={{
+                position: 'absolute',
+                top: '96%',
+                left: 12,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            /> */}
+
+            {/* Right side combs (shifted 15px toward center) */}
+            <View
+              style={{
+                position: 'absolute',
+                top: '0%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '7.3%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '16.48%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '26.96%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '37.44%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '49.92%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '62.4%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '74.88%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '87.36%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '99.84%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '112.32%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '124.8%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: '137.28%',
+                right: 18,
+                width: 34,
+                height: 23,
+                backgroundColor: 'black',
+                borderRadius: 7,
+              }}
+            />
+          </View>
+          {/* Graffiti images on left and right sides */}
+          <Image
+            source={require('../src/assets/graffity/graffity-135sr.jpg')}
+            style={{
+              transform: [{rotate: '180deg'}],
+              position: 'absolute',
+              left: -10,
+              bottom: 0,
+              width: 45,
+              height: '130%',
+              resizeMode: 'cover',
+              opacity: 0.7,
+            }}
+          />
+          <Image
+            source={require('../src/assets/graffity/graffity-135sr.jpg')}
+            style={{
+              position: 'absolute',
+              right: -10,
+              bottom: 0,
+              width: 45,
+              height: '130%',
+              resizeMode: 'cover',
+              opacity: 0.7,
+            }}
+          />
+          {/* Black shadow from bottom with fading opacity */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 150,
+              backgroundColor: 'transparent',
+            }}>
+            {/* Multiple layers for REAL gradient fade from bottom to top */}
+            {Array.from({length: 150}, (_, i) => {
+              const opacity = Math.max(0, 1 - (i * 1) / 149); // Fade from 0.8 to 0
+              const bottomPosition = i * 1; // Each layer is 1px height from bottom
+              return (
+                <View
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    bottom: bottomPosition,
+                    left: 0,
+                    right: 0,
+                    height: 1,
+                    backgroundColor: `rgba(0,0,0,${opacity})`,
+                  }}
+                />
+              );
+            })}
+          </View>
+        </View>
       );
     case 'dhalf':
       // Check if we have dual photos for dhalf filter
@@ -852,41 +1249,107 @@ export const getFilterComponent = (
       }
     case 'dslide':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.3), contrast(1.5)),
-            temperatureValue,
-            tempActive,
-          )}>
-          <Image
-            source={{uri: imageUri}}
+        <View
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'white',
+            padding: 28,
+            paddingTop: 123,
+          }}>
+          {/* Light gray photo frame */}
+          <View
             style={{
               width: '100%',
-              height: '100%',
-              resizeMode: 'cover',
-            }}
-          />
-        </ColorMatrixFilter>
+              height: '79%', // Reduced height by 40% (100% - 40% = 60%)
+              backgroundColor: 'lightgray',
+              borderRadius: 6,
+              borderWidth: 2,
+              transform: [{rotate: '1deg'}],
+              borderColor: 'rgba(93, 93, 93, 0.2)',
+              // Shadow around the lightgray cadre
+              shadowColor: '#000',
+              shadowOpacity: 0.8,
+              shadowOffset: {width: 0, height: 1},
+              shadowRadius: 3,
+              elevation: 3,
+              paddingTop: 45,
+              paddingBottom: 30,
+              paddingLeft: 55,
+              paddingRight: 55,
+              alignSelf: 'center', // Center the frame vertically
+            }}>
+            <ColorMatrixFilter
+              style={{
+                width: '70%',
+                marginLeft: 35,
+                height: '100%',
+              }} // Reduced image size
+              matrix={combineWithTemperature(
+                concatColorMatrices(
+                  sepia(-0.1),
+                  saturate(1),
+                  contrast(1.2),
+                  brightness(0.9),
+                ),
+                temperatureValue,
+                tempActive,
+              )}>
+              <Image
+                source={{uri: imageUri}}
+                style={{
+                  width: '100%',
+                  height: '95%',
+                  resizeMode: 'cover',
+                  borderWidth: 2,
+                  borderColor: 'rgba(93, 93, 93, 0.7)',
+                }}
+              />
+            </ColorMatrixFilter>
+          </View>
+        </View>
       );
     case 'sclassic':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.7), tint(1.1), contrast(1.2)),
-            temperatureValue,
-            tempActive,
-          )}>
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                tint(0.045),
+                contrast(1.3),
+                brightness(0.8),
+                saturate(1.75),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+          {/* Noise overlay image */}
           <Image
-            source={{uri: imageUri}}
+            source={{
+              uri: 'https://img.freepik.com/free-photo/noisy-background_1194-7547.jpg',
+            }}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
               resizeMode: 'cover',
+              opacity: 0.15,
+              pointerEvents: 'none',
             }}
           />
-        </ColorMatrixFilter>
+        </View>
       );
     case 'hoga':
       return (
