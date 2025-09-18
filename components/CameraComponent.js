@@ -606,6 +606,7 @@ const CameraComponent = ({navigation}) => {
   const [exposureValue, setExposureValue] = useState(0); // -1 .. +1 visual range
   const [isDraggingExposure, setIsDraggingExposure] = useState(false);
   const [cameraExposure, setCameraExposure] = useState(0); // Actual exposure value for camera
+  const [exposureControlActive, setExposureControlActive] = useState(false);
 
   // Reanimated shared value for exposure slider (from -1..0..1)
   const exposureSlider = useSharedValue(0);
@@ -3361,6 +3362,30 @@ const CameraComponent = ({navigation}) => {
               />
             </TouchableOpacity>
           )}
+          {exposureControlActive && (
+            <TouchableOpacity
+              style={styles.exposureControlItemClose}
+              onPress={() => setExposureControlActive(!exposureControlActive)}>
+              <Image
+                source={require('../src/assets/icons/arrow-down.png')}
+                style={{width: 14, height: 14, tintColor: '#fff'}}
+              />
+            </TouchableOpacity>
+          )}
+          {!exposureControlActive && (
+            <TouchableOpacity
+              style={styles.exposureControlItem}
+              onPress={() => setExposureControlActive(!exposureControlActive)}>
+              {/* <Text style={styles.controlValue}>Exposure</Text> */}
+              <Image
+                source={require('../src/assets/icons/sun-reticle.png')}
+                style={{width: 15, height: 15, tintColor: '#fff'}}
+              />
+              <Text style={styles.controlValue2}>
+                {Math.round(exposureValue)}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
       {/* Bottom Control Bar */}
@@ -4745,11 +4770,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
   },
+  exposureControlItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    width: 57,
+    height: 35,
+    borderRadius: 50,
+    justifyContent: 'flex-start',
+    marginLeft: 5,
+    paddingLeft: 11,
+    paddingVertical: 0,
+  },
+  exposureControlItemClose: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 6,
+    //backgroundColor: 'rgb(0, 0, 0)',
+    width: 57,
+    height: 37,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 5,
+    paddingVertical: 0,
+  },
   controlItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 6,
-    backgroundColor: 'rgb(0, 0, 0)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     width: 37,
     height: 37,
     borderRadius: 50,
@@ -4782,6 +4833,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  controlValue2: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   bottomControlBar: {
     position: 'absolute',
