@@ -155,16 +155,18 @@ export const getFilterComponent = (
   switch (filterId) {
     case 'grf':
       return (
-        <Grayscale>
-          <Image
-            source={{uri: imageUri}}
-            style={{
-              width: '100%',
-              height: '100%',
-              resizeMode: 'cover',
-            }}
-          />
-        </Grayscale>
+        <View style={{width: '100%', height: '100%', flex: 1}}>
+          <Grayscale>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </Grayscale>
+        </View>
       );
     case 'sepia':
       return (
@@ -781,13 +783,13 @@ export const getFilterComponent = (
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
               concatColorMatrices(
-                contrast(1.7),
+                contrast(3.5),
                 sepia(0.65),
-                saturate(2.1),
-                tint(-0.5),
+                saturate(1.6),
+                tint(-0.47),
                 tint(0.5),
                 tint(0.18), // Add subtle yellow tint
-                brightness(0.55),
+                brightness(0.48),
               ),
               temperatureValue,
               tempActive,
@@ -818,7 +820,7 @@ export const getFilterComponent = (
               height: '130%',
               width: '100%', // make image 20% taller
               resizeMode: 'cover',
-              opacity: 0.3,
+              opacity: 0.2,
               pointerEvents: 'none',
             }}
           />
@@ -1170,8 +1172,8 @@ export const getFilterComponent = (
               backgroundColor: 'transparent',
             }}>
             {/* Multiple layers for REAL gradient fade from bottom to top */}
-            {Array.from({length: 150}, (_, i) => {
-              const opacity = Math.max(0, 1 - (i * 1) / 149); // Fade from 0.8 to 0
+            {Array.from({length: 95}, (_, i) => {
+              const opacity = Math.max(0, 1 - (i * 1) / 94.9); // Fade from 0.8 to 0
               const bottomPosition = i * 1; // Each layer is 1px height from bottom
               return (
                 <View

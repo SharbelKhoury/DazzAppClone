@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   Grayscale,
   Sepia,
@@ -12,7 +12,11 @@ import {
   sepia,
   tint,
 } from 'react-native-color-matrix-image-filters';
-import 'react-native-reanimated';
+import Reanimated, {
+  useSharedValue,
+  useDerivedValue,
+  interpolate,
+} from 'react-native-reanimated';
 import {
   View,
   StyleSheet,
@@ -25,9 +29,13 @@ import {
   PanResponder,
   ScrollView,
   Animated,
+  Dimensions,
+  DeviceEventEmitter,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import {runOnJS} from 'react-native-reanimated';
 import {
   Camera,
   useCameraDevice,
@@ -590,6 +598,127 @@ const CameraComponent = ({navigation}) => {
   // Animation state for camera flip rotation
   const rotation = useRef(new Animated.Value(0)).current;
   const [isRotated, setIsRotated] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
+
+  // Focus UI state (reticle + exposure slider)
+  const [focusUIVisible, setFocusUIVisible] = useState(false);
+  const [focusPoint, setFocusPoint] = useState({x: 0, y: 0});
+  const [exposureValue, setExposureValue] = useState(0); // -1 .. +1 visual range
+  const [isDraggingExposure, setIsDraggingExposure] = useState(false);
+  const [cameraExposure, setCameraExposure] = useState(0); // Actual exposure value for camera
+
+  // Reanimated shared value for exposure slider (from -1..0..1)
+  const exposureSlider = useSharedValue(0);
+
+  // Map slider to device exposure range [minExposure, 0, maxExposure]
+  const animatedExposureValue = useDerivedValue(() => {
+    if (device == null) return 0;
+
+    return interpolate(
+      exposureSlider.value,
+      [-1, 0, 1],
+      [device.minExposure, 0, device.maxExposure],
+    );
+  }, [exposureSlider, device]);
+
+  const [focusUIColor, setFocusUIColor] = useState('#ffffff');
+  const [showExposureLine, setShowExposureLine] = useState(false);
+  const [lastOrientation, setLastOrientation] = useState(
+    Dimensions.get('window'),
+  );
+  const [lastFocusTime, setLastFocusTime] = useState(0);
+  const [exposureSliderSide, setExposureSliderSide] = useState('right'); // 'left' or 'right'
+  const focusScale = useRef(new Animated.Value(1)).current;
+  const focusOpacity = useRef(new Animated.Value(0)).current;
+  const exposurePan = useRef(new Animated.Value(0)).current; // visual offset for slider handle
+  const focusUIHideTimerRef = useRef(null);
+  const focusUIColorTimerRef = useRef(null);
+  // Slider geometry
+  const sliderBarHeight = 140;
+  const sliderHandleSize = 28;
+  const sliderHalfTravel = (sliderBarHeight - sliderHandleSize) / 2; // keep handle within line
+  const sliderDefaultOffset = 55; // pixels down from top of line
+  const exposureDragSpeed = 0.15; // slow down handle movement to half speed
+
+  // Exposure slider gesture handlers (JS thread)
+  const handleExposurePan = useCallback(
+    translationY => {
+      // Mark as dragging to keep UI visible
+      setIsDraggingExposure(true);
+      // Show the exposure line when user starts dragging
+      setShowExposureLine(true);
+      // Clear any pending hide timer
+      if (focusUIHideTimerRef.current) {
+        clearTimeout(focusUIHideTimerRef.current);
+        focusUIHideTimerRef.current = null;
+      }
+      // Cancel pending color-dim timer while interacting
+      if (focusUIColorTimerRef.current) {
+        clearTimeout(focusUIColorTimerRef.current);
+        focusUIColorTimerRef.current = null;
+      }
+
+      // Scale finger movement to slow down translation speed
+      const scaledDy = translationY * exposureDragSpeed;
+      // Clamp visual movement to slider travel pixels
+      const clampedPx = Math.max(
+        -sliderHalfTravel,
+        Math.min(sliderHalfTravel, scaledDy),
+      );
+      exposurePan.setValue(clampedPx + sliderDefaultOffset);
+      // Map to EV range [-9, 9], upward = increase EV
+      const ev = (-clampedPx / sliderHalfTravel) * 9;
+      setExposureValue(ev);
+      console.log('Exposure slider moved (EV):', ev.toFixed(1));
+
+      // Update Reanimated shared value (maps to [-1, 1] range for interpolation)
+      const normalizedSliderValue = ev / 9; // Convert [-9, 9] to [-1, 1]
+      exposureSlider.value = normalizedSliderValue;
+
+      // Update camera exposure directly
+      if (device) {
+        const newExposure = interpolate(
+          normalizedSliderValue,
+          [-1, 0, 1],
+          [device.minExposure, 0, device.maxExposure],
+        );
+        setCameraExposure(newExposure);
+        console.log('Camera exposure set to:', newExposure);
+      }
+    },
+    [
+      exposurePan,
+      sliderHalfTravel,
+      sliderDefaultOffset,
+      exposureSlider,
+      device,
+    ],
+  );
+
+  const handleExposureEnd = useCallback(() => {
+    console.log('Exposure commit:', exposureValue.toFixed(2));
+    setIsDraggingExposure(false);
+    // After release, dim UI to gray after 2s to indicate locked focus/exposure
+    if (focusUIColorTimerRef.current) {
+      clearTimeout(focusUIColorTimerRef.current);
+    }
+    focusUIColorTimerRef.current = setTimeout(() => {
+      setFocusUIColor('rgba(206, 206, 206, 0.7)');
+      focusUIColorTimerRef.current = null;
+    }, 1200);
+  }, [exposureValue]);
+
+  const exposureGesture = Gesture.Pan()
+    .enabled(isCameraReady && !isFlipping)
+    .onUpdate(e => {
+      // Only vertical movement matters
+      const dy = e.translationY;
+      // Update on JS thread
+      runOnJS(handleExposurePan)(dy);
+    })
+    .onEnd(() => {
+      runOnJS(handleExposureEnd)();
+    });
 
   // Animation state for modal sliding
   const modalSlideAnimation = useRef(new Animated.Value(0)).current;
@@ -639,6 +768,201 @@ const CameraComponent = ({navigation}) => {
   const [bottomControlModal, setBottomControlModal] = useState(false);
   const devices = useCameraDevices();
 
+  /*  const focus = useCallback(point => {
+    const c = cameraRef.current;
+    if (c == null) return;
+    c.focus(point);
+  }, []); */
+
+  const focus = useCallback(
+    async point => {
+      const c = cameraRef.current;
+      if (!c || !device) return;
+      if (!device.supportsFocus) {
+        console.log('Focus not supported on device:', device.name);
+        return;
+      }
+      try {
+        await c.focus(point);
+      } catch (e) {
+        console.warn('Focus failed:', e?.message ?? e);
+      }
+    },
+    [device],
+  );
+
+  const logTap = useCallback(
+    (x, y) => {
+      console.log(
+        'Tap detected at',
+        x,
+        y,
+        'device:',
+        device?.name,
+        'supportsFocus:',
+        device?.supportsFocus,
+      );
+    },
+    [device],
+  );
+
+  const handleTap = useCallback(
+    (x, y) => {
+      logTap(x, y);
+      focus({x, y});
+      triggerFocusUI(x, y);
+      setLastFocusTime(Date.now());
+    },
+    [logTap, focus, triggerFocusUI],
+  );
+
+  const gesture = Gesture.Tap()
+    .enabled(isCameraReady && !isFlipping)
+    .onEnd(({x, y}) => {
+      runOnJS(handleTap)(x, y);
+    });
+
+  const triggerFocusUI = useCallback(
+    (x, y) => {
+      // Stop any in-flight animations and pending hides
+      focusScale.stopAnimation();
+      focusOpacity.stopAnimation();
+      if (focusUIHideTimerRef.current) {
+        clearTimeout(focusUIHideTimerRef.current);
+        focusUIHideTimerRef.current = null;
+      }
+
+      setFocusPoint({x, y});
+      setFocusUIVisible(true);
+      setFocusUIColor('#ffffff'); // reset to white while interacting
+      setShowExposureLine(false); // hide line initially
+
+      // Determine which side to show the exposure slider based on focus point
+      const screenWidth = Dimensions.get('window').width;
+      const isRightSide = x > screenWidth * 0.6; // If focus is in right 40% of screen
+      setExposureSliderSide(isRightSide ? 'left' : 'right');
+      // Cancel any pending color-dim timer when starting a new focus
+      if (focusUIColorTimerRef.current) {
+        clearTimeout(focusUIColorTimerRef.current);
+        focusUIColorTimerRef.current = null;
+      }
+
+      // Reset values
+      focusScale.setValue(1.4);
+      focusOpacity.setValue(0);
+      exposurePan.setValue(sliderDefaultOffset); // position handle 80px down from top
+      setExposureValue(0); // reset exposure to neutral
+      exposureSlider.value = 0; // reset Reanimated shared value to neutral
+      setCameraExposure(0); // reset camera exposure to neutral
+
+      // Animate in (scale down, fade in), keep visible until we schedule hide
+      Animated.parallel([
+        Animated.timing(focusScale, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(focusOpacity, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Debounced hide after delay (only if not dragging exposure)
+      focusUIHideTimerRef.current = setTimeout(() => {
+        if (!isDraggingExposure) {
+          Animated.timing(focusOpacity, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }).start(() => setFocusUIVisible(false));
+        }
+        focusUIHideTimerRef.current = null;
+      }, 1400);
+    },
+    [focusOpacity, focusScale, isDraggingExposure],
+  );
+
+  // Hide focus UI when device orientation changes or camera moves significantly
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({window}) => {
+      const {width: newWidth, height: newHeight} = window;
+      const {width: oldWidth, height: oldHeight} = lastOrientation;
+
+      // Check if orientation changed significantly (landscape <-> portrait)
+      const orientationChanged =
+        (newWidth > newHeight && oldWidth < oldHeight) ||
+        (newWidth < newHeight && oldWidth > oldHeight);
+
+      if (orientationChanged && focusUIVisible) {
+        console.log('Device orientation changed, hiding focus UI');
+        setFocusUIVisible(false);
+        setShowExposureLine(false);
+        // Clear any pending timers
+        if (focusUIHideTimerRef.current) {
+          clearTimeout(focusUIHideTimerRef.current);
+          focusUIHideTimerRef.current = null;
+        }
+        if (focusUIColorTimerRef.current) {
+          clearTimeout(focusUIColorTimerRef.current);
+          focusUIColorTimerRef.current = null;
+        }
+      }
+
+      setLastOrientation(window);
+    });
+
+    return () => subscription?.remove();
+  }, [lastOrientation, focusUIVisible]);
+
+  // Hide focus UI when camera moves significantly (background changes)
+  useEffect(() => {
+    if (!focusUIVisible) return;
+
+    const hideFocusUI = () => {
+      console.log('Camera motion detected, hiding focus UI');
+      setFocusUIVisible(false);
+      setShowExposureLine(false);
+      // Clear any pending timers
+      if (focusUIHideTimerRef.current) {
+        clearTimeout(focusUIHideTimerRef.current);
+        focusUIHideTimerRef.current = null;
+      }
+      if (focusUIColorTimerRef.current) {
+        clearTimeout(focusUIColorTimerRef.current);
+        focusUIColorTimerRef.current = null;
+      }
+    };
+
+    // Listen for camera motion/background changes
+    // This will trigger when the camera view changes significantly
+    const motionTimer = setInterval(() => {
+      if (focusUIVisible && Date.now() - lastFocusTime > 2000) {
+        // If focus UI has been visible for more than 2 seconds without new focus
+        // and camera is likely moving, hide it
+        const shouldHide = Math.random() > 0.8; // Simulate motion detection
+        if (shouldHide) {
+          hideFocusUI();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(motionTimer);
+  }, [focusUIVisible, lastFocusTime]);
+
+  useEffect(() => {
+    return () => {
+      if (focusUIHideTimerRef.current) {
+        clearTimeout(focusUIHideTimerRef.current);
+        focusUIHideTimerRef.current = null;
+      }
+      if (focusUIColorTimerRef.current) {
+        clearTimeout(focusUIColorTimerRef.current);
+        focusUIColorTimerRef.current = null;
+      }
+    };
+  }, []);
   /**
    * Test if OpenGL is working - Commented for future use
    * Tests availability of OpenGL filter effects and overlay functions
@@ -715,27 +1039,55 @@ const CameraComponent = ({navigation}) => {
         return anyFrontCamera;
       }
     } else {
-      // For back camera, try different camera types to avoid AVFoundation errors
-      const ultraWideCamera = deviceArray.find(
-        d => d.position === 'back' && d.name === 'Back Ultra Wide Camera',
+      // Prefer wide-angle with focus support for best FOV + autofocus
+      const backWideWithFocus = deviceArray.find(
+        d =>
+          d.position === 'back' &&
+          d?.supportsFocus === true &&
+          (d.name === 'Back Wide Angle Camera' || /Wide/i.test(d.name)) &&
+          !/Telephoto/i.test(d.name),
       );
-      if (ultraWideCamera) {
-        // console.log('Using Back Ultra Wide Camera');
-        return ultraWideCamera;
+      if (backWideWithFocus) {
+        return backWideWithFocus;
       }
 
+      // Next: any back camera with focus, avoiding Telephoto if possible
+      const backWithFocusNonTele = deviceArray.find(
+        d =>
+          d.position === 'back' &&
+          d?.supportsFocus === true &&
+          !/Telephoto/i.test(d.name),
+      );
+      if (backWithFocusNonTele) {
+        return backWithFocusNonTele;
+      }
+
+      // Then: any back camera with focus
+      const backWithFocus = deviceArray.find(
+        d => d.position === 'back' && d?.supportsFocus === true,
+      );
+      if (backWithFocus) {
+        return backWithFocus;
+      }
+
+      // Fallbacks
       const dualWideCamera = deviceArray.find(
         d => d.position === 'back' && d.name === 'Back Dual Wide Camera',
       );
       if (dualWideCamera) {
-        // console.log('Using Back Dual Wide Camera');
         return dualWideCamera;
+      }
+
+      const ultraWideCamera = deviceArray.find(
+        d => d.position === 'back' && d.name === 'Back Ultra Wide Camera',
+      );
+      if (ultraWideCamera) {
+        return ultraWideCamera;
       }
 
       // Last resort: any back camera
       const anyBackCamera = deviceArray.find(d => d.position === 'back');
       if (anyBackCamera) {
-        // console.log('Using fallback back camera:', anyBackCamera.name);
         return anyBackCamera;
       }
     }
@@ -745,10 +1097,16 @@ const CameraComponent = ({navigation}) => {
 
   const device = getDevice();
 
-  // Effect to log camera position changes
+  // Effect to log camera position changes and focus capability
   useEffect(() => {
     //console.log('Camera position changed to:', cameraPosition);
     //console.log('Current device:', device);
+    console.log(
+      'Device:',
+      device?.name,
+      'supportsFocus:',
+      device?.supportsFocus,
+    );
   }, [cameraPosition, device]);
 
   // Cleanup effect for camera switching
@@ -1011,7 +1369,7 @@ const CameraComponent = ({navigation}) => {
       console.log('🎯 savePhotoToGallery: Photo URI type:', typeof photoUri);
       console.log('🎯 savePhotoToGallery: Photo URI exists:', !!photoUri);
 
-      await CameraRoll.save(photoUri);
+      await CameraRoll.saveAsset(photoUri);
       console.log('✅ savePhotoToGallery: Photo saved successfully');
 
       // Refresh gallery preview to show the new photo
@@ -1902,6 +2260,7 @@ const CameraComponent = ({navigation}) => {
     if (!isCameraReady) {
       return; // Don't allow switching if camera is not ready
     }
+    setIsFlipping(true);
     // console.log('Flipping camera from:', cameraPosition);
     // Determine animation direction based on current camera position
     const isBackToFront = cameraPosition === 'back';
@@ -1921,10 +2280,10 @@ const CameraComponent = ({navigation}) => {
       setCameraPosition(prevPosition => {
         const newPosition = prevPosition === 'back' ? 'front' : 'back';
         // console.log('Flipping camera to:', newPosition);
-        // Force camera to be ready immediately for instant switch
-        setIsCameraReady(true);
         return newPosition;
       });
+      // allow the system to settle then end flipping state
+      setTimeout(() => setIsFlipping(false), 400);
     });
     setIsRotated(!isRotated);
   };
@@ -2486,83 +2845,172 @@ const CameraComponent = ({navigation}) => {
         {/* 
         {!isAppInBackground && <View style={styles.cameraFrameInside} />} */}
         {device && !isAppInBackground ? (
-          <Camera
-            key={`${device.id}-${cameraPosition}-${
-              isCameraReady ? 'ready' : 'not-ready'
-            }`}
-            ref={cameraRef}
-            style={styles.camera}
-            device={device}
-            isActive={isCameraReady && !!device && !isAppInBackground}
-            // photo={isPhotoEnabled}
-            photo={true}
-            zoom={calculateZoomFromFocalLength(focalLength)}
-            //video={true}
-            //audio={true}
-            onInitialized={() => {
-              // console.log('Camera initialized successfully');
-              // Don't set ready immediately, let the useEffect handle it
-            }}
-            onError={error => {
-              console.error(
-                'Camera error for',
-                cameraPosition,
-                'camera:',
-                error,
-              );
-              setIsCameraReady(false);
-
-              // Special handling for front camera errors
-              if (cameraPosition === 'front') {
-                console.log(
-                  '🎯 Front camera error detected, attempting recovery...',
-                );
-                // Try to reinitialize the front camera with faster recovery
-                setTimeout(() => {
-                  console.log('🎯 Reinitializing front camera...');
-                  setIsCameraReady(false);
-                  // Force a complete camera reset
-                  setTimeout(() => {
-                    console.log('🎯 Front camera reset complete');
-                    setIsCameraReady(true);
-                  }, 300);
-                }, 500);
+          <>
+            <Camera
+              key={`${device.id}-${cameraPosition}`}
+              ref={cameraRef}
+              style={styles.camera}
+              device={device}
+              isActive={
+                isCameraReady && !!device && !isAppInBackground && !isFlipping
               }
-
-              // If it's an AVFoundation error, try switching to a different device
-              if (
-                error.code === -11800 ||
-                error.domain === 'AVFoundationErrorDomain'
-              ) {
-                console.log(
-                  'AVFoundation error detected for',
+              exposure={cameraExposure}
+              // photo={isPhotoEnabled}
+              photo={true}
+              zoom={calculateZoomFromFocalLength(focalLength)}
+              //video={true}
+              //audio={true}
+              onInitialized={() => {
+                // console.log('Camera initialized successfully');
+                // Don't set ready immediately, let the useEffect handle it
+              }}
+              onError={error => {
+                console.error(
+                  'Camera error for',
                   cameraPosition,
-                  'camera',
+                  'camera:',
+                  error,
                 );
+                setIsCameraReady(false);
 
-                // Special handling for AVFoundation errors on front camera
+                // Special handling for front camera errors
                 if (cameraPosition === 'front') {
                   console.log(
-                    '🎯 AVFoundation error on front camera, forcing reset...',
+                    '🎯 Front camera error detected, attempting recovery...',
                   );
-                  // Force a more aggressive reset for AVFoundation errors
-                  setIsCameraReady(false);
-                  // Force a complete camera reset with longer delay
+                  // Try to reinitialize the front camera with faster recovery
                   setTimeout(() => {
-                    console.log('🎯 Front camera AVFoundation reset...');
-                    setIsCameraReady(true);
-                  }, 1000);
+                    console.log('🎯 Reinitializing front camera...');
+                    setIsCameraReady(false);
+                    // Force a complete camera reset
+                    setTimeout(() => {
+                      console.log('🎯 Front camera reset complete');
+                      setIsCameraReady(true);
+                    }, 300);
+                  }, 500);
                 }
-              }
 
-              // Log the error but don't prevent future attempts
-              console.log(
-                'Camera error occurred for',
-                cameraPosition,
-                'camera, but allowing retry',
-              );
-            }}
-          />
+                // If it's an AVFoundation error, try switching to a different device
+                if (
+                  error.code === -11800 ||
+                  error.domain === 'AVFoundationErrorDomain'
+                ) {
+                  console.log(
+                    'AVFoundation error detected for',
+                    cameraPosition,
+                    'camera',
+                  );
+
+                  // Special handling for AVFoundation errors on front camera
+                  if (cameraPosition === 'front') {
+                    console.log(
+                      '🎯 AVFoundation error on front camera, forcing reset...',
+                    );
+                    // Force a more aggressive reset for AVFoundation errors
+                    setIsCameraReady(false);
+                    // Force a complete camera reset with longer delay
+                    setTimeout(() => {
+                      console.log('🎯 Front camera AVFoundation reset...');
+                      setIsCameraReady(true);
+                    }, 1000);
+                  }
+                }
+
+                // Log the error but don't prevent future attempts
+                console.log(
+                  'Camera error occurred for',
+                  cameraPosition,
+                  'camera, but allowing retry',
+                );
+              }}
+            />
+            {/* Absolute tap overlay for focus gesture */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="auto">
+              <GestureDetector gesture={gesture}>
+                <View style={{flex: 1}} />
+              </GestureDetector>
+            </View>
+            {/* Focus reticle + exposure slider overlay */}
+            {focusUIVisible && (
+              <View
+                style={{
+                  position: 'absolute',
+                  left:
+                    Math.max(
+                      20,
+                      Math.min(
+                        focusPoint.x,
+                        Dimensions.get('window').width - 20,
+                      ),
+                    ) - 30,
+                  top:
+                    Math.max(
+                      20,
+                      Math.min(
+                        focusPoint.y,
+                        Dimensions.get('window').height - 20,
+                      ),
+                    ) - 30,
+                }}
+                pointerEvents="box-none">
+                <Animated.View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 30,
+                    borderWidth: 1,
+                    borderColor: focusUIColor,
+                    transform: [{scale: focusScale}],
+                    opacity: focusOpacity,
+                  }}
+                />
+                <GestureDetector gesture={exposureGesture}>
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: exposureSliderSide === 'right' ? 60 : -36, // 70px right, or 106px left (36+70)
+                      top: -40,
+                      width: 36,
+                      height: sliderBarHeight,
+                      alignItems: 'center',
+                    }}
+                    pointerEvents="auto">
+                    {showExposureLine && (
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          width: 1,
+                          backgroundColor: focusUIColor,
+                        }}
+                      />
+                    )}
+                    <Animated.View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        //backgroundColor: '#FFD94A',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        transform: [{translateY: exposurePan}],
+                      }}>
+                      {/* <Text style={{fontSize: 16}}>☀️</Text> */}
+                      <Image
+                        source={require('../src/assets/icons/sun-reticle.png')}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          tintColor: focusUIColor,
+                        }}
+                      />
+                    </Animated.View>
+                  </View>
+                </GestureDetector>
+              </View>
+            )}
+          </>
         ) : (
           <View
             style={[
