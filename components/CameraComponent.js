@@ -607,6 +607,63 @@ const CameraComponent = ({navigation}) => {
   const [isDraggingExposure, setIsDraggingExposure] = useState(false);
   const [cameraExposure, setCameraExposure] = useState(0); // Actual exposure value for camera
   const [exposureControlActive, setExposureControlActive] = useState(false);
+  const [autoExposure, setAutoExposure] = useState(false);
+
+  // Effect to handle autoExposure state changes
+  useEffect(() => {
+    if (!autoExposure) {
+      // Apply these 4 functions when autoExposure becomes false
+      setExposureValue(0);
+      setCameraExposure(0);
+      setHorizontalSliderPosition(122.5); // Reset horizontal slider to center
+      exposurePan.setValue(sliderDefaultOffset);
+    }
+  }, [autoExposure, exposurePan, sliderDefaultOffset]);
+
+  // Centralized function to handle control state transitions
+  const handleControlToggle = useCallback(controlType => {
+    // First, close all other controls
+    if (controlType !== 'temp') {
+      setTempActive(false);
+    }
+    if (controlType !== 'view') {
+      setViewControlActive(false);
+    }
+    if (controlType !== 'exposure') {
+      setExposureControlActive(false);
+    }
+
+    // Then toggle the selected control and update hideControls
+    switch (controlType) {
+      case 'temp':
+        setTempActive(prev => {
+          const newValue = !prev;
+          setHideControls(newValue);
+          return newValue;
+        });
+        break;
+      case 'view':
+        setViewControlActive(prev => {
+          const newValue = !prev;
+          setHideControls(newValue);
+          return newValue;
+        });
+        break;
+      case 'exposure':
+        setExposureControlActive(prev => {
+          const newValue = !prev;
+          setHideControls(newValue);
+          return newValue;
+        });
+        break;
+    }
+  }, []);
+
+  // Horizontal exposure slider state
+  const [horizontalSliderPosition, setHorizontalSliderPosition] =
+    useState(122.5); // Center of 245px width
+  const [isDraggingHorizontalSlider, setIsDraggingHorizontalSlider] =
+    useState(false);
 
   // Reanimated shared value for exposure slider (from -1..0..1)
   const exposureSlider = useSharedValue(0);
@@ -719,6 +776,37 @@ const CameraComponent = ({navigation}) => {
     })
     .onEnd(() => {
       runOnJS(handleExposureEnd)();
+    });
+
+  // Horizontal exposure slider gesture handlers
+  const handleHorizontalSliderPan = useCallback(translationX => {
+    setIsDraggingHorizontalSlider(true);
+
+    // Calculate new position with natural 1:1 finger movement (center is 122.5, slider width is 245)
+    const newPosition = Math.max(0, Math.min(245, 122.5 + translationX));
+    setHorizontalSliderPosition(newPosition);
+
+    // Map position to exposure value (-9.0 to +9.0 range)
+    const normalizedPosition = (newPosition - 122.5) / 122.5; // -1 to 1
+    const exposureVal = normalizedPosition * 9; // -9.0 to 9.0
+    setExposureValue(exposureVal);
+    setCameraExposure(exposureVal);
+  }, []);
+
+  const handleHorizontalSliderEnd = useCallback(() => {
+    setIsDraggingHorizontalSlider(false);
+    console.log('Horizontal exposure slider commit:', exposureValue.toFixed(2));
+  }, [exposureValue]);
+
+  const horizontalSliderGesture = Gesture.Pan()
+    .minDistance(0)
+    .activeOffsetX([-10, 10])
+    .onUpdate(e => {
+      const dx = e.translationX;
+      runOnJS(handleHorizontalSliderPan)(dx);
+    })
+    .onEnd(() => {
+      runOnJS(handleHorizontalSliderEnd)();
     });
 
   // Animation state for modal sliding
@@ -3272,25 +3360,14 @@ const CameraComponent = ({navigation}) => {
                 styles.controlItem,
                 {
                   backgroundColor: 'rgb(255, 255, 255)',
-                  width: 37,
-                  height: 37,
+                  width: 34,
+                  height: 34,
                   alignContent: 'center',
                   justifyContent: 'center',
                   borderRadius: 50,
                 },
               ]}
-              onPress={() => {
-                // If viewControlActive is active, switch to tempActive
-                if (viewControlActive) {
-                  setViewControlActive(!viewControlActive);
-                  setTempActive(!tempActive);
-                  setHideControls(!hideControls);
-                } else {
-                  // Toggle tempActive normally
-                  setTempActive(!tempActive);
-                  setHideControls(!hideControls);
-                }
-              }}>
+              onPress={() => handleControlToggle('temp')}>
               {/* <Text style={styles.tempIcon}>🌡️</Text> */}
               <Image
                 source={require('../src/assets/icons/temp.png')}
@@ -3304,6 +3381,7 @@ const CameraComponent = ({navigation}) => {
               style={{
                 marginRight: 20,
                 marginLeft: 15,
+                width: 14,
                 justifyContent: 'center',
                 alignContent: 'center',
               }}
@@ -3327,18 +3405,7 @@ const CameraComponent = ({navigation}) => {
                   alignContent: 'center',
                 },
               ]}
-              onPress={() => {
-                // If tempActive is active, switch to viewControlActive
-                if (tempActive) {
-                  setTempActive(!tempActive);
-                  setViewControlActive(!viewControlActive);
-                  setHideControls(!hideControls);
-                } else {
-                  // Toggle viewControlActive normally
-                  setViewControlActive(!viewControlActive);
-                  setHideControls(!hideControls);
-                }
-              }}>
+              onPress={() => handleControlToggle('view')}>
               {/* <Text style={styles.brightnessIcon}>☀️</Text> */}
               <Text style={styles.controlValue}>{focalLength}</Text>
             </TouchableOpacity>
@@ -3350,11 +3417,20 @@ const CameraComponent = ({navigation}) => {
                 marginRight: 15,
                 justifyContent: 'center',
                 alignContent: 'center',
+                width: 14,
               }}
               onPress={() => {
                 // Close viewControlActive and show controls
                 setViewControlActive(!viewControlActive);
                 setHideControls(!hideControls);
+                if (exposureControlActive) {
+                  setExposureControlActive(!exposureControlActive);
+                  setHideControls(!hideControls);
+                }
+                if (tempActive) {
+                  setTempActive(!tempActive);
+                  setHideControls(!hideControls);
+                }
               }}>
               <Image
                 source={require('../src/assets/icons/arrow-down.png')}
@@ -3365,7 +3441,7 @@ const CameraComponent = ({navigation}) => {
           {exposureControlActive && (
             <TouchableOpacity
               style={styles.exposureControlItemClose}
-              onPress={() => setExposureControlActive(!exposureControlActive)}>
+              onPress={() => handleControlToggle('exposure')}>
               <Image
                 source={require('../src/assets/icons/arrow-down.png')}
                 style={{width: 14, height: 14, tintColor: '#fff'}}
@@ -3375,7 +3451,7 @@ const CameraComponent = ({navigation}) => {
           {!exposureControlActive && (
             <TouchableOpacity
               style={styles.exposureControlItem}
-              onPress={() => setExposureControlActive(!exposureControlActive)}>
+              onPress={() => handleControlToggle('exposure')}>
               {/* <Text style={styles.controlValue}>Exposure</Text> */}
               <Image
                 source={require('../src/assets/icons/sun-reticle.png')}
@@ -3407,86 +3483,89 @@ const CameraComponent = ({navigation}) => {
         {/* Center Controls */}
         <View style={styles.centerControls}>
           {/* Top Row Controls */}
-          {!hideControls && !tempActive && !viewControlActive && (
-            <View style={styles.topControls}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={selectPhotosFromGalleryToApplyFilters}>
-                <View style={styles.galleryButtonIcon}>
-                  {/* <View style={styles.cameraOutline} /> */}
-                  <Image
-                    source={require('../src/assets/icons/gallery-plus.png')}
-                    style={styles.galleryPlus}
-                  />
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  isCombinationMode && styles.controlButtonActive,
-                ]}
-                onPress={takeCombinedImages}>
-                <View style={styles.gridIcon}>
-                  <View
-                    style={[
-                      styles.gridSquare1,
-                      isCombinationMode && styles.gridSquareActive,
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.gridSquare2,
-                      isCombinationMode && styles.gridSquareActive,
-                    ]}
-                  />
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={toggleTimer}>
-                <Image
-                  source={require('../src/assets/icons/clock.png')}
+          {!hideControls &&
+            !tempActive &&
+            !viewControlActive &&
+            !exposureControlActive && (
+              <View style={styles.topControls}>
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={selectPhotosFromGalleryToApplyFilters}>
+                  <View style={styles.galleryButtonIcon}>
+                    {/* <View style={styles.cameraOutline} /> */}
+                    <Image
+                      source={require('../src/assets/icons/gallery-plus.png')}
+                      style={styles.galleryPlus}
+                    />
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[
-                    styles.clock,
-                    timerMode !== 'off' && styles.clockActive,
+                    styles.controlButton,
+                    isCombinationMode && styles.controlButtonActive,
                   ]}
-                />
-                {timerMode !== 'off' && (
-                  <Text style={styles.timerModeText}>{timerMode}</Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={toggleFlash}>
-                <Text style={styles.flashIcon}>
-                  {flashMode === 'off' ? (
-                    <Image
-                      source={require('../src/assets/icons/flash-off.png')}
-                      style={styles.flashIcon2}
+                  onPress={takeCombinedImages}>
+                  <View style={styles.gridIcon}>
+                    <View
+                      style={[
+                        styles.gridSquare1,
+                        isCombinationMode && styles.gridSquareActive,
+                      ]}
                     />
-                  ) : flashMode === 'on' ? (
-                    <Image
-                      source={require('../src/assets/icons/flash-off.png')}
-                      style={styles.flashIcon3}
+                    <View
+                      style={[
+                        styles.gridSquare2,
+                        isCombinationMode && styles.gridSquareActive,
+                      ]}
                     />
-                  ) : (
-                    <Image
-                      source={require('../src/assets/icons/flash-off.png')}
-                      style={styles.flashIcon4}
-                    />
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={toggleTimer}>
+                  <Image
+                    source={require('../src/assets/icons/clock.png')}
+                    style={[
+                      styles.clock,
+                      timerMode !== 'off' && styles.clockActive,
+                    ]}
+                  />
+                  {timerMode !== 'off' && (
+                    <Text style={styles.timerModeText}>{timerMode}</Text>
                   )}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={flipCamera}>
-                <Image
-                  style={styles.cameraSwitchArrow}
-                  source={require('../src/assets/icons/flip-camera.png')}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={toggleFlash}>
+                  <Text style={styles.flashIcon}>
+                    {flashMode === 'off' ? (
+                      <Image
+                        source={require('../src/assets/icons/flash-off.png')}
+                        style={styles.flashIcon2}
+                      />
+                    ) : flashMode === 'on' ? (
+                      <Image
+                        source={require('../src/assets/icons/flash-off.png')}
+                        style={styles.flashIcon3}
+                      />
+                    ) : (
+                      <Image
+                        source={require('../src/assets/icons/flash-off.png')}
+                        style={styles.flashIcon4}
+                      />
+                    )}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={flipCamera}>
+                  <Image
+                    style={styles.cameraSwitchArrow}
+                    source={require('../src/assets/icons/flip-camera.png')}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           {/* Combination Mode Overlay */}
           {isCombinationMode && (
             <View style={styles.combinationModeOverlay}>
@@ -3507,6 +3586,7 @@ const CameraComponent = ({navigation}) => {
                   borderRadius: 8,
                   justifyContent: 'center',
                   alignItems: 'center',
+                  marginLeft: -59,
                   marginRight: 18,
                   position: 'relative',
                 }}>
@@ -3946,12 +4026,92 @@ const CameraComponent = ({navigation}) => {
               </TouchableOpacity>
             </View>
           )}
+          {/* Exposure Control */}
+          {exposureControlActive && (
+            <View style={styles.exposureControl}>
+              {/* the Rewind Exposure Button */}
+              <TouchableOpacity
+                style={{
+                  width: 35,
+                  height: 35,
+                  borderRadius: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                }}
+                onPress={() => {
+                  setExposureValue(0);
+                  setCameraExposure(0);
+                  setHorizontalSliderPosition(122.5); // Reset horizontal slider to center
+                  exposurePan.setValue(sliderDefaultOffset); // Reset sun-reticle to center of exposure line
+                }}>
+                <Image
+                  source={require('../src/assets/icons/rewind.png')}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    marginBottom: 1,
+                    tintColor: '#fff',
+                  }}
+                />
+              </TouchableOpacity>
+              {/* the Auto Exposure Button */}
+              <TouchableOpacity
+                style={{
+                  width: 35,
+                  height: 35,
+                  borderRadius: 50,
+                  backgroundColor: autoExposure ? '#000' : '#fff',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginLeft: 10,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                }}
+                onPress={() => setAutoExposure(!autoExposure)}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 'extrabold',
+                    marginBottom: 1,
+                    color: autoExposure ? '#fff' : '#000',
+                  }}>
+                  A
+                </Text>
+              </TouchableOpacity>
+              {/* the Exposure Selection Line */}
+              <View style={styles.exposureControlSelection}>
+                {/* Exposure value text indicator */}
+                <View
+                  style={[
+                    styles.exposureValueIndicator,
+                    {left: horizontalSliderPosition - 16.5}, // Center text above slider button
+                  ]}>
+                  <Text style={styles.exposureValueText}>
+                    {exposureValue.toFixed(1)}
+                  </Text>
+                </View>
 
+                {/* Draggable slider button */}
+                <GestureDetector gesture={horizontalSliderGesture}>
+                  <View
+                    style={[
+                      styles.sliderButton,
+                      {left: horizontalSliderPosition - 10}, // Center button on slider
+                    ]}
+                  />
+                </GestureDetector>
+              </View>
+            </View>
+          )}
           {/* Shutter Button */}
           <TouchableOpacity
             style={[
               styles.shutterButton,
               isProcessing && styles.shutterButtonProcessing,
+              viewControlActive && {marginLeft: 22},
+              exposureControlActive && {marginLeft: 65},
             ]}
             onPress={isTimerActive ? cancelTimer : startTimer}
             disabled={!isCameraReady || isProcessing}>
@@ -3971,7 +4131,12 @@ const CameraComponent = ({navigation}) => {
 
         {/* Right Side - Selected Camera Icon */}
         <TouchableOpacity
-          style={styles.selectedCameraContainer}
+          style={[
+            styles.selectedCameraContainer,
+            viewControlActive && {marginLeft: 22},
+            tempActive && {paddingLeft: 2},
+            exposureControlActive && {marginLeft: 65},
+          ]}
           onPress={openFilterControl}>
           {getSelectedCameraIcon(global, activeFilters) ? (
             <Image
@@ -4573,6 +4738,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
   },
+  exposureControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: 200,
+    marginTop: 30,
+    marginBottom: 30,
+    marginLeft: -80,
+    marginRight: 15,
+  },
+  exposureControlSelection: {
+    width: 245,
+    height: 25,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#000',
+    backgroundColor: 'rgb(63, 63, 63)',
+    marginLeft: 20,
+    position: 'relative',
+  },
+  exposureValueIndicator: {
+    position: 'absolute',
+    top: -25,
+    width: 30,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exposureValueText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  sliderButton: {
+    position: 'absolute',
+    top: 0,
+    width: 17,
+    height: 24,
+    borderRadius: 7,
+    backgroundColor: 'black',
+    borderWidth: 1.3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   dhalfInstructionText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -4718,7 +4935,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 30,
     marginBottom: 30,
-    marginLeft: -50,
+    marginLeft: 10,
   },
   topSection: {
     position: 'absolute',
@@ -4819,8 +5036,8 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
   }, */
   tempIcon: {
-    width: 20,
-    height: 20,
+    width: 19,
+    height: 19,
     //marginRight: 8,
     tintColor: 'black',
   },
@@ -4881,6 +5098,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     marginLeft: -50,
+    zIndex: 9999,
   },
   controlButton: {
     width: 40,
