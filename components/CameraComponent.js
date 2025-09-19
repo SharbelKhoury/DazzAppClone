@@ -615,10 +615,32 @@ const CameraComponent = ({navigation}) => {
       // Apply these 4 functions when autoExposure becomes false
       setExposureValue(0);
       setCameraExposure(0);
-      setHorizontalSliderPosition(122.5); // Reset horizontal slider to center
-      exposurePan.setValue(sliderDefaultOffset);
+      syncSlidersWithExposureValue(0); // Synchronize both sliders
     }
-  }, [autoExposure, exposurePan, sliderDefaultOffset]);
+  }, [autoExposure, syncSlidersWithExposureValue]);
+
+  // Function to synchronize both sliders when exposure value changes
+  const syncSlidersWithExposureValue = useCallback(
+    exposureVal => {
+      // Update horizontal slider position based on exposure value (-9 to +9)
+      const normalizedPosition = exposureVal / 9; // -1 to 1
+      const horizontalPosition = 122.5 + normalizedPosition * 122.5; // 0 to 245
+      setHorizontalSliderPosition(
+        Math.max(0, Math.min(245, horizontalPosition)),
+      );
+
+      // Update vertical sun-reticle position based on exposure value
+      const verticalPosition =
+        sliderDefaultOffset - normalizedPosition * sliderHalfTravel;
+      exposurePan.setValue(
+        Math.max(
+          sliderDefaultOffset - sliderHalfTravel,
+          Math.min(sliderDefaultOffset + sliderHalfTravel, verticalPosition),
+        ),
+      );
+    },
+    [exposurePan, sliderDefaultOffset, sliderHalfTravel],
+  );
 
   // Centralized function to handle control state transitions
   const handleControlToggle = useCallback(controlType => {
@@ -729,6 +751,13 @@ const CameraComponent = ({navigation}) => {
       setExposureValue(ev);
       console.log('Exposure slider moved (EV):', ev.toFixed(1));
 
+      // Synchronize horizontal slider position
+      const normalizedPosition = ev / 9; // -1 to 1
+      const horizontalPosition = 122.5 + normalizedPosition * 122.5; // 0 to 245
+      setHorizontalSliderPosition(
+        Math.max(0, Math.min(245, horizontalPosition)),
+      );
+
       // Update Reanimated shared value (maps to [-1, 1] range for interpolation)
       const normalizedSliderValue = ev / 9; // Convert [-9, 9] to [-1, 1]
       exposureSlider.value = normalizedSliderValue;
@@ -779,19 +808,32 @@ const CameraComponent = ({navigation}) => {
     });
 
   // Horizontal exposure slider gesture handlers
-  const handleHorizontalSliderPan = useCallback(translationX => {
-    setIsDraggingHorizontalSlider(true);
+  const handleHorizontalSliderPan = useCallback(
+    translationX => {
+      setIsDraggingHorizontalSlider(true);
 
-    // Calculate new position with natural 1:1 finger movement (center is 122.5, slider width is 245)
-    const newPosition = Math.max(0, Math.min(245, 122.5 + translationX));
-    setHorizontalSliderPosition(newPosition);
+      // Calculate new position with natural 1:1 finger movement (center is 122.5, slider width is 245)
+      const newPosition = Math.max(0, Math.min(245, 122.5 + translationX));
+      setHorizontalSliderPosition(newPosition);
 
-    // Map position to exposure value (-9.0 to +9.0 range)
-    const normalizedPosition = (newPosition - 122.5) / 122.5; // -1 to 1
-    const exposureVal = normalizedPosition * 9; // -9.0 to 9.0
-    setExposureValue(exposureVal);
-    setCameraExposure(exposureVal);
-  }, []);
+      // Map position to exposure value (-9.0 to +9.0 range)
+      const normalizedPosition = (newPosition - 122.5) / 122.5; // -1 to 1
+      const exposureVal = normalizedPosition * 9; // -9.0 to 9.0
+      setExposureValue(exposureVal);
+      setCameraExposure(exposureVal);
+
+      // Synchronize vertical sun-reticle position
+      const verticalPosition =
+        sliderDefaultOffset - normalizedPosition * sliderHalfTravel;
+      exposurePan.setValue(
+        Math.max(
+          sliderDefaultOffset - sliderHalfTravel,
+          Math.min(sliderDefaultOffset + sliderHalfTravel, verticalPosition),
+        ),
+      );
+    },
+    [exposurePan, sliderDefaultOffset, sliderHalfTravel],
+  );
 
   const handleHorizontalSliderEnd = useCallback(() => {
     setIsDraggingHorizontalSlider(false);
@@ -936,13 +978,25 @@ const CameraComponent = ({navigation}) => {
         focusUIColorTimerRef.current = null;
       }
 
-      // Reset values
+      // Reset focus UI values (but preserve exposure settings)
       focusScale.setValue(1.4);
       focusOpacity.setValue(0);
-      exposurePan.setValue(sliderDefaultOffset); // position handle 80px down from top
-      setExposureValue(0); // reset exposure to neutral
-      exposureSlider.value = 0; // reset Reanimated shared value to neutral
-      setCameraExposure(0); // reset camera exposure to neutral
+
+      // Sync sun-reticle position with current exposure value
+      const normalizedPosition = exposureValue / 9; // -1 to 1
+      const verticalPosition =
+        sliderDefaultOffset - normalizedPosition * sliderHalfTravel;
+      exposurePan.setValue(
+        Math.max(
+          sliderDefaultOffset - sliderHalfTravel,
+          Math.min(sliderDefaultOffset + sliderHalfTravel, verticalPosition),
+        ),
+      );
+
+      // Keep current exposure values when tapping new focus point
+      // setExposureValue(0); // Don't reset exposure value
+      // exposureSlider.value = 0; // Don't reset Reanimated shared value
+      // setCameraExposure(0); // Don't reset camera exposure
 
       // Animate in (scale down, fade in), keep visible until we schedule hide
       Animated.parallel([
@@ -3360,11 +3414,12 @@ const CameraComponent = ({navigation}) => {
                 styles.controlItem,
                 {
                   backgroundColor: 'rgb(255, 255, 255)',
-                  width: 34,
-                  height: 34,
+                  width: 35,
+                  height: 35,
                   alignContent: 'center',
                   justifyContent: 'center',
                   borderRadius: 50,
+                  ...(exposureControlActive && {marginBottom: 1}),
                 },
               ]}
               onPress={() => handleControlToggle('temp')}>
@@ -3379,9 +3434,11 @@ const CameraComponent = ({navigation}) => {
           {tempActive && (
             <TouchableOpacity
               style={{
-                marginRight: 20,
-                marginLeft: 15,
-                width: 14,
+                //marginRight: 20,
+                marginLeft: 12,
+                width: 35,
+                height: 35,
+                borderRadius: 50,
                 justifyContent: 'center',
                 alignContent: 'center',
               }}
@@ -3403,6 +3460,7 @@ const CameraComponent = ({navigation}) => {
                 {
                   justifyContent: 'center',
                   alignContent: 'center',
+                  ...(exposureControlActive && {marginBottom: 1}),
                 },
               ]}
               onPress={() => handleControlToggle('view')}>
@@ -3413,11 +3471,12 @@ const CameraComponent = ({navigation}) => {
           {viewControlActive && (
             <TouchableOpacity
               style={{
-                marginLeft: 20,
-                marginRight: 15,
+                marginLeft: 15,
+                marginRight: -3,
+                //marginRight: 15,
                 justifyContent: 'center',
                 alignContent: 'center',
-                width: 14,
+                width: 35,
               }}
               onPress={() => {
                 // Close viewControlActive and show controls
@@ -4043,8 +4102,7 @@ const CameraComponent = ({navigation}) => {
                 onPress={() => {
                   setExposureValue(0);
                   setCameraExposure(0);
-                  setHorizontalSliderPosition(122.5); // Reset horizontal slider to center
-                  exposurePan.setValue(sliderDefaultOffset); // Reset sun-reticle to center of exposure line
+                  syncSlidersWithExposureValue(0); // Synchronize both sliders to center
                 }}>
                 <Image
                   source={require('../src/assets/icons/rewind.png')}
@@ -5012,14 +5070,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 5,
     paddingVertical: 0,
+    marginBottom: -1,
   },
   controlItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 6,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    width: 37,
-    height: 37,
+    width: 35,
+    height: 35,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
