@@ -2775,6 +2775,7 @@ const CameraComponent = ({navigation}) => {
                           ne135CapturedPhotos[0].uri,
                           temperatureValue,
                           tempActive,
+                          timestamp,
                         )
                       ) : (
                         <View
@@ -2808,6 +2809,7 @@ const CameraComponent = ({navigation}) => {
                           ne135CapturedPhotos[1].uri,
                           temperatureValue,
                           tempActive,
+                          timestamp,
                         )
                       ) : (
                         <View
@@ -2841,6 +2843,7 @@ const CameraComponent = ({navigation}) => {
                           ne135CapturedPhotos[2].uri,
                           temperatureValue,
                           tempActive,
+                          timestamp,
                         )
                       ) : (
                         <View
@@ -2889,6 +2892,7 @@ const CameraComponent = ({navigation}) => {
                           dhalfCapturedPhotos[0].uri,
                           temperatureValue,
                           tempActive,
+                          timestamp,
                         )
                       ) : (
                         <View
@@ -2922,6 +2926,7 @@ const CameraComponent = ({navigation}) => {
                           dhalfCapturedPhotos[1].uri,
                           temperatureValue,
                           tempActive,
+                          timestamp,
                         )
                       ) : (
                         <View
@@ -2949,6 +2954,7 @@ const CameraComponent = ({navigation}) => {
                   selectedImage,
                   temperatureValue,
                   tempActive,
+                  timestamp,
                 )}
               </View>
             )}

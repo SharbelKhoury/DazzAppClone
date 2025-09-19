@@ -1,5 +1,41 @@
 import React from 'react';
 import {Image, View, Text} from 'react-native';
+
+// Helper function to generate date text based on timestamp
+const generateDateText = timestamp => {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const year = String(now.getFullYear()).slice(-2); // Get last 2 digits of year
+
+  return `${month} ${day} '${year}`;
+};
+
+// Helper function to wrap ColorMatrixFilter with date text overlay
+const wrapWithDateOverlay = (filterComponent, timestamp) => {
+  if (timestamp === 'none') {
+    return filterComponent;
+  }
+
+  return (
+    <View style={{width: '100%', height: '100%', position: 'relative'}}>
+      {filterComponent}
+      <Text
+        style={{
+          position: 'absolute',
+          bottom: '22%',
+          left: '5%',
+          color: '#fff',
+          fontSize: 10,
+          opacity: 0.9,
+          transform: [{rotate: '90deg'}],
+        }}>
+        {generateDateText(timestamp)}
+      </Text>
+    </View>
+  );
+};
+
 import {
   Grayscale,
   Sepia,
@@ -151,6 +187,7 @@ export const getFilterComponent = (
   imageUri,
   temperatureValue = 50,
   tempActive = false,
+  timestamp = 'none',
 ) => {
   switch (filterId) {
     case 'grf':
@@ -169,7 +206,7 @@ export const getFilterComponent = (
         </View>
       );
     case 'sepia':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -185,10 +222,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'invert':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -204,10 +242,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'contrast':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -223,7 +262,8 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'saturate':
       return (
@@ -408,9 +448,9 @@ export const getFilterComponent = (
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
               concatColorMatrices(
-                brightness(1),
-                tint(-0.035),
-                contrast(1.1),
+                brightness(0.95),
+                tint(-0.005),
+                contrast(1.35),
                 saturate(1.1),
               ),
               temperatureValue,
@@ -644,7 +684,7 @@ export const getFilterComponent = (
         </ColorMatrixFilter>
       );
     case 'golf':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -665,7 +705,8 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'infrared':
       return (
@@ -1700,6 +1741,20 @@ export const getFilterComponent = (
             }}>
             FILM PRO PLUS
           </Text>
+          {timestamp !== 'none' && (
+            <Text
+              style={{
+                position: 'absolute',
+                bottom: '22%',
+                left: '5%',
+                color: 'rgba(255, 149, 142, 0.95)',
+                fontSize: 15,
+                opacity: 0.9,
+                transform: [{rotate: '90deg'}],
+              }}>
+              {generateDateText(timestamp)}
+            </Text>
+          )}
         </View>
       );
     case 'kv88':
