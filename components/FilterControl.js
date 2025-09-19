@@ -398,19 +398,14 @@ const FilterControl = ({navigation}) => {
         title: 'ACCESSORY',
         accessories: [
           {
-            id: 'ndfilter',
-            name: 'ND Filter',
-            icon: require('../src/assets/accessory/ndfilter.png'),
-          },
-          {
-            id: 'fisheyef',
-            name: 'Fisheye F',
-            icon: require('../src/assets/accessory/fisheyef.png'),
-          },
-          {
             id: 'fisheyew',
             name: 'Fisheye W',
             icon: require('../src/assets/accessory/fisheyew.png'),
+          },
+          {
+            id: 'star',
+            name: 'Star',
+            icon: require('../src/assets/accessory/star.png'),
           },
           {
             id: 'prism',
@@ -418,14 +413,19 @@ const FilterControl = ({navigation}) => {
             icon: require('../src/assets/accessory/prism.png'),
           },
           {
+            id: 'fisheyef',
+            name: 'Fisheye F',
+            icon: require('../src/assets/accessory/fisheyef.png'),
+          },
+          {
+            id: 'ndfilter',
+            name: 'ND Filter',
+            icon: require('../src/assets/accessory/ndfilter.png'),
+          },
+          {
             id: 'flashc',
             name: 'Flash C',
             icon: require('../src/assets/accessory/flashc.png'),
-          },
-          {
-            id: 'star',
-            name: 'Star',
-            icon: require('../src/assets/accessory/star.png'),
           },
         ],
       },
@@ -532,11 +532,6 @@ const FilterControl = ({navigation}) => {
       // Fallback: if no accessory section found, create default accessories
       const defaultAccessories = [
         {
-          id: 'ndfilter',
-          name: 'ND Filter',
-          icon: require('../src/assets/accessory/ndfilter.png'),
-        },
-        {
           id: 'fisheyef',
           name: 'Fisheye F',
           icon: require('../src/assets/accessory/fisheyef.png'),
@@ -545,6 +540,11 @@ const FilterControl = ({navigation}) => {
           id: 'fisheyew',
           name: 'Fisheye W',
           icon: require('../src/assets/accessory/fisheyew.png'),
+        },
+        {
+          id: 'ndfilter',
+          name: 'ND Filter',
+          icon: require('../src/assets/accessory/ndfilter.png'),
         },
         {
           id: 'prism',
@@ -704,9 +704,7 @@ const FilterControl = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Banner */}
-      <TouchableOpacity
-        style={styles.banner}
-        onPress={() => navigation.navigate('CamerasScreen')}>
+      <TouchableOpacity style={styles.banner} onPress={openSubscription}>
         <LinearGradient
           colors={['#007AFF', '#FF3B30']}
           start={{x: 0, y: 0}}

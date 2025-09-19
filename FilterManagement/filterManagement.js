@@ -1,5 +1,5 @@
 import React from 'react';
-import {Image, View} from 'react-native';
+import {Image, View, Text} from 'react-native';
 import {
   Grayscale,
   Sepia,
@@ -407,7 +407,12 @@ export const getFilterComponent = (
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
-              concatColorMatrices(brightness(1.1), contrast(1.45), saturate(1)),
+              concatColorMatrices(
+                brightness(1),
+                tint(-0.035),
+                contrast(1.1),
+                saturate(1.1),
+              ),
               temperatureValue,
               tempActive,
             )}>
@@ -643,7 +648,12 @@ export const getFilterComponent = (
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(contrast(1.2), saturate(1.5)),
+            concatColorMatrices(
+              contrast(1.5),
+              saturate(1.3),
+              brightness(0.7),
+              tint(0.2, 0.6, -0.4),
+            ),
             temperatureValue,
             tempActive,
           )}>
@@ -844,6 +854,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -855,6 +867,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -866,6 +880,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -877,6 +893,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -888,6 +906,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -899,6 +919,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -910,6 +932,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -921,6 +945,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -932,6 +958,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -943,6 +971,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -954,6 +984,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -965,6 +997,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -976,6 +1010,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             {/* <View
@@ -987,6 +1023,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             /> */}
 
@@ -1000,6 +1038,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1011,6 +1051,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1022,6 +1064,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1033,6 +1077,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1044,6 +1090,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1055,6 +1103,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1066,6 +1116,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1077,6 +1129,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1088,6 +1142,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1099,6 +1155,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1110,6 +1168,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1121,6 +1181,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1132,6 +1194,8 @@ export const getFilterComponent = (
                 height: 23,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
           </View>
@@ -1547,30 +1611,96 @@ export const getFilterComponent = (
       );
     case 's67':
       return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(
-              sepia(0),
-              //blueBoost(0.85, 0.01),
-              tint(0.2), // Increased red tone
-              tint(-0.07), // Small green boost
-              contrast(1.1),
-              saturate(0.63),
-              brightness(0.9),
-            ),
-            temperatureValue,
-            tempActive,
-          )}>
-          <Image
-            source={{uri: imageUri}}
+        <View style={{width: '100%', height: '100%', backgroundColor: 'black'}}>
+          <ColorMatrixFilter
             style={{
-              width: '100%',
-              height: '100%',
-              resizeMode: 'cover',
+              width: '90%',
+              height: '79%',
+              alignSelf: 'center',
+              marginTop: '15%',
             }}
-          />
-        </ColorMatrixFilter>
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                sepia(0),
+                //blueBoost(0.85, 0.01),
+                tint(0.2), // Increased red tone
+                tint(-0.07), // Small green boost
+                contrast(0.9),
+                saturate(0.85),
+                brightness(0.9),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          </ColorMatrixFilter>
+
+          {/* Left side texts */}
+          <Text
+            style={{
+              position: 'absolute',
+              left: '1%',
+              bottom: '21.5%',
+              color: 'rgba(220, 163, 94, 0.7)',
+              fontSize: 10,
+              transform: [{rotate: '-90deg'}],
+            }}>
+            20
+          </Text>
+          <Text
+            style={{
+              position: 'absolute',
+              left: '1%',
+              top: '30%',
+              color: 'rgba(220, 163, 94, 0.7)',
+              fontSize: 10,
+              transform: [{rotate: '-90deg'}],
+            }}>
+            19
+          </Text>
+
+          {/* Right side texts */}
+          <Text
+            style={{
+              position: 'absolute',
+              right: '2%',
+              top: '7%',
+              color: 'rgba(220, 163, 94, 0.7)',
+              fontSize: 10,
+              transform: [{rotate: '90deg'}],
+            }}>
+            7
+          </Text>
+          <Text
+            style={{
+              position: 'absolute',
+              right: '-1%',
+              bottom: '15%',
+              color: 'rgba(220, 163, 94, 0.7)',
+              fontSize: 10,
+              transform: [{rotate: '-90deg'}],
+            }}>
+            4454
+          </Text>
+          <Text
+            style={{
+              position: 'absolute',
+              right: '-7%',
+              top: '45%',
+              color: 'rgba(220, 163, 94, 0.7)',
+              fontSize: 10,
+              transform: [{rotate: '-90deg'}],
+            }}>
+            FILM PRO PLUS
+          </Text>
+        </View>
       );
     case 'kv88':
       return (
@@ -1632,6 +1762,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1643,6 +1775,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1654,6 +1788,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1665,6 +1801,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1676,6 +1814,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1687,6 +1827,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1698,6 +1840,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1709,6 +1853,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1720,6 +1866,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1731,6 +1879,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1742,6 +1892,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1753,6 +1905,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
 
@@ -1766,6 +1920,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1777,6 +1933,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1788,6 +1946,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1799,6 +1959,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1810,6 +1972,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1821,6 +1985,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1832,6 +1998,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1843,6 +2011,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1854,6 +2024,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1865,6 +2037,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1876,6 +2050,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
             <View
@@ -1887,6 +2063,8 @@ export const getFilterComponent = (
                 height: 16,
                 backgroundColor: 'black',
                 borderRadius: 7,
+                borderWidth: 0.4,
+                borderColor: 'rgba(220, 163, 94, 0.7)',
               }}
             />
           </View>
