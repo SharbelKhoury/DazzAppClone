@@ -27,6 +27,186 @@ const FilterControl = ({navigation}) => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [activeFilters, setActiveFilters] = useState([]);
 
+  // Mapping of filter IDs to allowed accessories
+  const getFilterAccessoryMapping = () => {
+    return {
+      // instsq filterid - nd filter, fisheyew, star, and prism
+      instsq: ['ndfilter', 'fisheyew', 'star', 'prism'],
+
+      // grf filterid - nd filter, fisheyew, fisheyef, star and prism
+      grf: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism'],
+
+      // ir filter - same as grf filter exactly
+      ir: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism'],
+
+      // fqsr filter - none are allowed (0)
+      fqsr: [],
+
+      // dqs filter - all 6 lenses
+      dqs: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // original filter - all but fisheye f
+      original: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // instsqc - same as original filter
+      instsqc: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // collage filter - none are allowed (0)
+      collage: [],
+
+      // 135ne filter - same as original filter
+      '135ne': ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // hoga filter - same as 135ne and original
+      hoga: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // pafr filter - none are allowed (0)
+      pafr: [],
+
+      // nt16 filter - all 6
+      nt16: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // classicu - all 6
+      classicu: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // kv88 - all 6
+      kv88: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // dfuns - all 6
+      dfuns: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // dslide - same like original
+      dslide: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // sclassic - same as original
+      sclassic: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // dexp - all 6
+      dexp: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // 135sr - only 1 which is flashc
+      '135sr': ['flashc'],
+
+      // s67 - same like original
+      s67: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // puli filter - prism and star and nd filter and flash c
+      puli: ['prism', 'star', 'ndfilter', 'flashc'],
+
+      // dclassic - all 6
+      dclassic: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // golf - none allowed (0)
+      golf: [],
+
+      // grdr - flash c and star those 2 only
+      grdr: ['flashc', 'star'],
+
+      // ccdr filter - flash c and fisheye w
+      ccdr: ['flashc', 'fisheyew'],
+
+      // dhalf filter - same as original
+      dhalf: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // cpm35 - none are allowed (0)
+      cpm35: [],
+
+      // ct2f - all 6 allowed all
+      ct2f: ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'],
+
+      // instc filter - same as original
+      instc: ['ndfilter', 'fisheyew', 'star', 'prism', 'flashc'],
+
+      // both d3d and fxnr filters - prism, star, nd filter and flash c
+      d3d: ['prism', 'star', 'ndfilter', 'flashc'],
+      fxnr: ['prism', 'star', 'ndfilter', 'flashc'],
+    };
+  };
+
+  // Function to get allowed accessories for current filter
+  const getAllowedAccessories = () => {
+    const mapping = getFilterAccessoryMapping();
+    const currentFilter = selectedCamera;
+
+    // If current filter is in second row, get its allowed accessories
+    if (mapping[currentFilter]) {
+      console.log(
+        `🎯 FilterControl: Filter '${currentFilter}' allows accessories:`,
+        mapping[currentFilter],
+      );
+      return mapping[currentFilter];
+    }
+
+    // If no mapping found, return all accessories (fallback)
+    console.log(
+      `🎯 FilterControl: No mapping found for '${currentFilter}', using all accessories as fallback`,
+    );
+    return ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'];
+  };
+
+  // Function to get allowed fixed buttons for current filter
+  const getFixedButtonMapping = () => {
+    return {
+      instsq: [5, 4], // Rainbow Square, Gradient Button (4th before 5th)
+      grf: [6, 7, 1], // Framing, Frame Rate, Triple C
+      ir: [6, 1], // Framing, Triple C
+      fqsr: [], // none
+      dqs: [6], // Framing only
+      original: [6, 7], // Framing, Frame Rate
+      instsqc: [5, 4], // Rainbow Square, Gradient Button
+      collage: [], // none
+      '135ne': [3], // Overlapping Squares only
+      hoga: [], // none
+      pafr: [1], // Triple C only
+      nt16: [6, 1, 4, 7], // Framing, Triple C, Gradient, Frame Rate
+      classicu: [6, 7], // Framing, Frame Rate
+      kv88: [6, 1, 8], // Framing, Triple C, Halation
+      dfuns: [6], // Framing only
+      dslide: [5], // Rainbow Square only
+      sclassic: [1, 3], // Triple C, Overlapping Squares
+      '135sr': [6], // Framing only
+      dexp: [6, 1, 4, 7], // Framing, Triple C, Gradient, Frame Rate
+      s67: [1, 3], // Triple C, Overlapping Squares
+      puli: [], // none
+      dclassic: [6, 4, 7], // Framing, Gradient, Frame Rate
+      golf: [1], // Only Triple C (9,10 don't exist in our 8 buttons)
+      grdr: [6], // Framing only
+      ccdr: [7], // Frame Rate only
+      dhalf: [3, 1], // Overlapping Squares, Triple C
+      cpm35: [6, 7], // Framing, Frame Rate
+      ct2f: [6, 4, 7], // Framing, Gradient, Frame Rate
+      instc: [5], // Rainbow Square only
+      d3d: [1], // Only Triple C (11 doesn't exist)
+      fxnr: [6], // Framing only
+    };
+  };
+
+  const getAllowedFixedButtons = () => {
+    const mapping = getFixedButtonMapping();
+    const currentFilter = selectedCamera;
+
+    // If current filter is in second row, get its allowed fixed buttons
+    if (mapping[currentFilter]) {
+      //console.log(
+      //  `🎯 FilterControl: Filter '${currentFilter}' allows fixed buttons:`,
+      // mapping[currentFilter],
+      // );
+
+      // Special ordering for instsq and instsqc: button 4 should come before button 5
+      if (currentFilter === 'instsq' || currentFilter === 'instsqc') {
+        return [4, 5]; // 4th before 5th as specified
+      }
+
+      return mapping[currentFilter];
+    }
+
+    // If no mapping found, return all fixed buttons (fallback)
+    console.log(
+      `🎯 FilterControl: No mapping found for '${currentFilter}', using all fixed buttons as fallback`,
+    );
+    return [1, 2, 3, 4, 5, 6, 7, 8];
+  };
+
   // Initialize active filters based on selected camera
   useEffect(() => {
     if (selectedCamera) {
@@ -823,30 +1003,43 @@ const FilterControl = ({navigation}) => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.bottomScrollContainer}
           style={{flexGrow: 0}}>
-          <View style={styles.circularButtons}>
-            {/* Accessory Icons - Shows all selected accessories from CamerasScreen, only ONE active as filter */}
+          <View
+            style={[
+              styles.circularButtons,
+              {minWidth: getAllowedAccessories().length > 4 ? 300 : 'auto'},
+            ]}>
+            {/* Accessory Icons - Shows filtered accessories based on current 2nd row filter selection */}
             {selectedAccessories && selectedAccessories.length > 0 ? (
-              selectedAccessories.slice(0, 6).map((accessory, index) => (
-                <TouchableOpacity
-                  key={accessory.id}
-                  style={[
-                    styles.circleButton,
-                    styles.accessoryButton,
-                    selectedCamera === accessory.id &&
-                      styles.activeFilterButton,
-                  ]}
-                  onPress={() => handleFilterToggle(accessory.id)}>
-                  <Image source={accessory.icon} style={styles.accessoryIcon} />
-                  {selectedCamera === accessory.id && (
-                    <View style={styles.activeFilterIndicator} />
-                  )}
-                  {selectedCamera === accessory.id && (
-                    <View style={styles.selectedCameraIndicator}>
-                      <Text style={styles.selectedCameraText}>✓</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))
+              selectedAccessories
+                .filter(accessory => {
+                  const allowedAccessories = getAllowedAccessories();
+                  return allowedAccessories.includes(accessory.id);
+                })
+                .slice(0, 6)
+                .map((accessory, index) => (
+                  <TouchableOpacity
+                    key={accessory.id}
+                    style={[
+                      styles.circleButton,
+                      styles.accessoryButton,
+                      selectedCamera === accessory.id &&
+                        styles.activeFilterButton,
+                    ]}
+                    onPress={() => handleFilterToggle(accessory.id)}>
+                    <Image
+                      source={accessory.icon}
+                      style={styles.accessoryIcon}
+                    />
+                    {selectedCamera === accessory.id && (
+                      <View style={styles.activeFilterIndicator} />
+                    )}
+                    {selectedCamera === accessory.id && (
+                      <View style={styles.selectedCameraIndicator}>
+                        <Text style={styles.selectedCameraText}>✓</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))
             ) : (
               // Fallback empty buttons if no accessories selected
               <>
@@ -865,31 +1058,405 @@ const FilterControl = ({navigation}) => {
               </>
             )}
 
+            {/* Only show divider if there are allowed accessories for current filter */}
+            {getAllowedAccessories().length > 0 && (
+              <TouchableOpacity style={styles.circleDotDivider} />
+            )}
+
+            {/* fixed 8 buttons after divider */}
+
+            {/* Triple C Icon 1 */}
+            {getAllowedFixedButtons().includes(1) && (
+              <TouchableOpacity
+                style={[styles.circleButton, styles.circleButton3]}>
+                <Image
+                  source={require('../src/assets/icons/tripleC.png')}
+                  style={styles.tripleCIcon}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* FPS Icon 2 */}
+          {getAllowedFixedButtons().includes(2) && (
+            <TouchableOpacity style={[styles.fpsContainer, {marginLeft: 0}]}>
+              <Text style={styles.fpsText}>FPS</Text>
+              <Text style={styles.fpsNumber}>24</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Overlapping Squares Icon 3 */}
+          {getAllowedFixedButtons().includes(3) && (
             <TouchableOpacity
-              style={styles.circleDotDivider}></TouchableOpacity>
+              onPress={() => {}}
+              style={[styles.fpsContainer, {marginRight: 10, width: 39}]}>
+              <View style={styles.overlappingSquares}>
+                <View style={styles.square1} />
+                <View style={styles.square2} />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* FPS Icon 4 */}
+          {getAllowedFixedButtons().includes(4) && (
             <TouchableOpacity
-              style={[styles.circleButton, styles.circleButton3]}>
-              <Image
-                source={require('../src/assets/icons/tripleC.png')}
-                style={styles.tripleCIcon}
+              style={{
+                marginRight: 10,
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden', // Ensure gradient stays within bounds
+              }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  width: '78%',
+                  height: '100%',
+                  left: 0,
+                  borderTopLeftRadius: 20,
+                  borderBottomLeftRadius: 20,
+                  overflow: 'hidden',
+                }}>
+                <LinearGradient
+                  colors={[
+                    'rgb(255, 165, 132)',
+                    'rgb(255, 81, 17)',
+                    'rgba(251, 97, 41, 0.69)',
+                    'rgba(255, 107, 53, 0.3)',
+                    '#000000',
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    width: '90%',
+                    height: '100%',
+                    marginLeft: '-10%',
+                  }}
+                />
+                {/* Black overlay to create the exact inverse curve effect */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: -6,
+                    width: 16,
+                    height: '100%',
+                    backgroundColor: '#000000',
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                  }}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: '#fff',
+                  zIndex: 1,
+                }}>
+                10
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Rainbow Square Outline Icon 5 */}
+          {getAllowedFixedButtons().includes(5) && (
+            <TouchableOpacity
+              style={{
+                //marginLeft: 10,
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+                backgroundColor: '#000000',
+                shadowColor: '#FFFFFF',
+                shadowOpacity: 0.3,
+                shadowOffset: {width: 0, height: 0},
+                shadowRadius: 2,
+                elevation: 2,
+              }}>
+              {/* Rainbow Square Outline */}
+              <View
+                style={{
+                  width: 25,
+                  height: 28,
+                  borderWidth: 2.5,
+                  borderRadius: 5,
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                {/* Top edge - Red to Orange to Yellow */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                  }}
+                />
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 0, 0, 0.85)',
+                    'rgba(255, 166, 0, 0.82)',
+                    'rgba(255, 255, 0, 0.82)',
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                  }}
+                />
+
+                {/* Right edge - Yellow to Green to Blue */}
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 0, 0.82)',
+                    'rgba(0, 255, 0, 0.84)',
+                    'rgba(0, 128, 255, 0.82)',
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 0, y: 1}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 2.5,
+                  }}
+                />
+
+                {/* Bottom edge - Blue to Purple to Magenta */}
+                <LinearGradient
+                  colors={[
+                    'rgba(0, 128, 255, 0.81)',
+                    'rgba(128, 0, 255, 0.8)',
+                    'rgba(255, 0, 255, 0.81)',
+                  ]}
+                  start={{x: 1, y: 0}}
+                  end={{x: 0, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 6,
+                  }}
+                />
+
+                {/* Left edge - Magenta to Red */}
+                <LinearGradient
+                  colors={['rgba(255, 0, 255, 0.83)', 'rgba(255, 0, 0, 0.8)']}
+                  start={{x: 0, y: 1}}
+                  end={{x: 0, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: 2.5,
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Framing/Screen Selection Icon 6 */}
+          {getAllowedFixedButtons().includes(6) && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+                backgroundColor: '#000000',
+                shadowColor: '#FFFFFF',
+                shadowOpacity: 0.3,
+                shadowOffset: {width: 0, height: 0},
+                shadowRadius: 2,
+                elevation: 2,
+              }}>
+              {/* Framing/Screen Selection Icon */}
+              <View
+                style={{
+                  width: 22,
+                  height: 15,
+                  borderWidth: 1.25,
+                  borderColor: 'rgba(250, 250, 250, 0.9)',
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  position: 'relative',
+                }}>
+                {/* Top-right corner bracket */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 1.75,
+                    right: 1.75,
+                    width: 4,
+                    height: 4,
+                    borderTopWidth: 1.25,
+                    borderRightWidth: 1.25,
+                    borderTopColor: 'rgba(250, 250, 250, 0.9)',
+                    borderRightColor: 'rgba(255, 255, 255, 0.9)',
+                  }}
+                />
+                {/* Bottom-left corner bracket */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: 1.75,
+                    left: 1.75,
+                    width: 4,
+                    height: 4,
+                    borderBottomWidth: 1.25,
+                    borderLeftWidth: 1.25,
+                    borderBottomColor: 'rgba(255, 255, 255, 0.9)',
+                    borderLeftColor: 'rgba(255, 255, 255, 0.9)',
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Frame Rate Icon 7 */}
+          {getAllowedFixedButtons().includes(7) && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                paddingLeft: 2,
+                alignItems: 'center',
+                overflow: 'hidden',
+                backgroundColor: '#000000',
+                shadowColor: '#FFFFFF',
+                shadowOpacity: 0.3,
+                shadowOffset: {width: 0, height: 0},
+                shadowRadius: 2,
+                elevation: 2,
+              }}>
+              {/* Disabled "31" Frame Rate Icon */}
+              <View
+                style={{
+                  position: 'relative',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                {/* "31" Text */}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    color: '#FFFFFF',
+                    fontFamily: 'Courier New',
+                    letterSpacing: 1,
+                  }}>
+                  31
+                </Text>
+                {/* Diagonal Slash */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: 19,
+                    height: 2,
+                    backgroundColor: '#FFFFFF',
+                    transform: [
+                      {rotate: '45deg'},
+                      {translateX: -15},
+                      {translateY: 13.75},
+                    ],
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Halation Icon 8 */}
+          {getAllowedFixedButtons().includes(8) && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: ' #000000',
+                shadowColor: '#FFFFFF',
+                shadowOpacity: 0.3,
+                shadowOffset: {width: 0, height: 0},
+                shadowRadius: 2,
+                elevation: 2,
+              }}>
+              {/* Central White Circle */}
+              <View
+                style={{
+                  width: 9.7,
+                  height: 9.7,
+                  borderRadius: 6,
+                  backgroundColor: '#FFFFFF',
+                  shadowColor: '#FFFFFF',
+                  shadowOpacity: 0.3,
+                  shadowOffset: {width: 0, height: 0},
+                  shadowRadius: 2,
+                  zIndex: 2,
+                }}
+              />
+              {/* Red Glow Ring */}
+              <View
+                style={{
+                  position: 'absolute',
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(255, 0, 0, 0.3)',
+                  shadowColor: '#FF0000',
+                  shadowOpacity: 0.9,
+                  shadowOffset: {width: 0, height: 0},
+                  shadowRadius: 12,
+                  elevation: 3,
+                  zIndex: 1,
+                }}
               />
             </TouchableOpacity>
-          </View>
+          )}
+          {/* speedometer Icon 9 */}
+          <TouchableOpacity></TouchableOpacity>
+          {/* map Icon 10 */}
+          <TouchableOpacity></TouchableOpacity>
+          {/* zoom inspect icon 11 */}
+          <TouchableOpacity></TouchableOpacity>
 
-          <TouchableOpacity style={[styles.fpsContainer, {marginLeft: -20}]}>
-            <Text style={styles.fpsText}>FPS</Text>
-            <Text style={styles.fpsNumber}>24</Text>
-          </TouchableOpacity>
-
-          <View style={[styles.fpsContainer, {marginRight: 20, width: 39}]}>
-            <TouchableOpacity style={styles.overlappingSquares}>
-              <View style={styles.square1} />
-              <View style={styles.square2} />
-            </TouchableOpacity>
-          </View>
+          {/* Fixed Buttons Section End */}
         </ScrollView>
       </View>
-
       {/* Chevron Down */}
       <TouchableOpacity
         style={styles.chevronContainer}
@@ -1118,10 +1685,10 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 0, // Remove extra margin for consistent spacing
     zIndex: 1000,
-    minWidth: 300, // Ensure enough width for multiple accessories
-    paddingRight: 20, // Add extra padding to ensure scrolling
+    // minWidth will be set dynamically based on accessory count
+    paddingRight: 0, // Remove extra padding for consistent spacing
   },
   circleButton: {
     width: 40,
