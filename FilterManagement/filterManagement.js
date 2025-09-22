@@ -25,8 +25,9 @@ const wrapWithDateOverlay = (filterComponent, timestamp) => {
           position: 'absolute',
           bottom: '22%',
           left: '5%',
-          color: '#fff',
-          fontSize: 10,
+          color: 'rgba(220, 102, 94, 0.7)',
+          fontSize: 15,
+          fontWeight: 'bold',
           opacity: 0.9,
           transform: [{rotate: '90deg'}],
         }}>
@@ -191,7 +192,7 @@ export const getFilterComponent = (
 ) => {
   switch (filterId) {
     case 'grf':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', flex: 1}}>
           <Grayscale>
             <Image
@@ -203,7 +204,8 @@ export const getFilterComponent = (
               }}
             />
           </Grayscale>
-        </View>
+        </View>,
+        timestamp,
       );
     case 'sepia':
       return wrapWithDateOverlay(
@@ -266,7 +268,7 @@ export const getFilterComponent = (
         timestamp,
       );
     case 'saturate':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -282,11 +284,12 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     // New filter IDs with various effects
     case 'classicu':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -328,10 +331,11 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
+        timestamp,
       );
     case 'cpm35':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -370,18 +374,19 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
+        timestamp,
       );
     case 'grdr':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
             concatColorMatrices(
-              contrast(1),
+              contrast(1.8),
               sepia(0.15),
               saturate(1),
-              brightness(0.9),
+              brightness(0.5),
               tint(-0.008),
               //gamma(0.9),
             ),
@@ -396,10 +401,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'nt16':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -439,10 +445,11 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
+        timestamp,
       );
     case 'dclassic':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -481,10 +488,10 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
       );
     case 'ccdr':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -505,10 +512,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'puli':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -529,10 +537,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'fqsr':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -548,10 +557,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'collage':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -567,10 +577,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'fxn':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -586,10 +597,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'fxnr':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -605,10 +617,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'dqs':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -624,14 +637,19 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'ct2f':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.8), tint(1.1)),
+            concatColorMatrices(
+              /* sepia(0.8), */ tint(0.1),
+              tint(-0.17),
+              saturate(0.9),
+            ),
             temperatureValue,
             tempActive,
           )}>
@@ -643,10 +661,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'd3d':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -662,26 +681,67 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'instc':
-      return (
-        <ColorMatrixFilter
-          style={{width: '100%', height: '100%'}}
-          matrix={combineWithTemperature(
-            concatColorMatrices(sepia(0.4), contrast(1.3), saturate(1.2)),
-            temperatureValue,
-            tempActive,
-          )}>
-          <Image
-            source={{uri: imageUri}}
+      return wrapWithDateOverlay(
+        <View
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'white',
+            padding: 28,
+            paddingTop: 33,
+          }}>
+          {/* Light gray photo frame */}
+          <View
             style={{
               width: '100%',
-              height: '100%',
-              resizeMode: 'cover',
-            }}
-          />
-        </ColorMatrixFilter>
+              height: '100%', // Same frame height as dslide
+              backgroundColor: 'rgba(237, 237, 237, 0.93)',
+              borderRadius: 6,
+              borderWidth: 0.25,
+              //transform: [{rotate: '1deg'}],
+              borderColor: 'rgba(93, 93, 93, 0.2)',
+              // Shadow around the lightgray cadre
+              shadowColor: '#000',
+              shadowOpacity: 0.8,
+              shadowOffset: {width: 0, height: 1},
+              shadowRadius: 3,
+              elevation: 3,
+              paddingTop: -125,
+              paddingBottom: 30,
+              paddingLeft: 55,
+              paddingRight: 55,
+              alignSelf: 'center', // Center the frame vertically
+            }}>
+            <ColorMatrixFilter
+              style={{
+                width: '220%', // 2x bigger width than dslide (70% * 2)
+                marginLeft: -20, // Adjust margin to center the larger image
+                height: '154%', // 95% bigger height than dslide (79% * 1.95)
+                marginTop: 47, // Adjust margin to center the larger image
+              }}
+              matrix={combineWithTemperature(
+                concatColorMatrices(sepia(0.4), contrast(1.3), saturate(1.2)),
+                temperatureValue,
+                tempActive,
+              )}>
+              <Image
+                source={{uri: imageUri}}
+                style={{
+                  width: '55%',
+                  height: '55%',
+                  resizeMode: 'cover',
+                  borderWidth: 2,
+                  borderColor: 'rgba(93, 93, 93, 0.7)',
+                }}
+              />
+            </ColorMatrixFilter>
+          </View>
+        </View>,
+        timestamp,
       );
     case 'golf':
       return wrapWithDateOverlay(
@@ -709,7 +769,7 @@ export const getFilterComponent = (
         timestamp,
       );
     case 'infrared':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -725,10 +785,11 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'vintage':
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -744,7 +805,8 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
     case 'monochrome':
       if (tempActive && temperatureValue !== 50) {
@@ -758,7 +820,7 @@ export const getFilterComponent = (
           temperatureValue,
           tempActive,
         );
-        return (
+        return wrapWithDateOverlay(
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
             matrix={combinedMatrix}>
@@ -770,10 +832,11 @@ export const getFilterComponent = (
                 resizeMode: 'cover',
               }}
             />
-          </ColorMatrixFilter>
+          </ColorMatrixFilter>,
+          timestamp,
         );
       } else {
-        return (
+        return wrapWithDateOverlay(
           <Grayscale>
             <Image
               source={{uri: imageUri}}
@@ -783,11 +846,12 @@ export const getFilterComponent = (
                 resizeMode: 'cover',
               }}
             />
-          </Grayscale>
+          </Grayscale>,
+          timestamp,
         );
       }
     case '135ne':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -825,10 +889,11 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
+        timestamp,
       );
     case '135sr':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -1295,13 +1360,14 @@ export const getFilterComponent = (
               );
             })}
           </View>
-        </View>
+        </View>,
+        timestamp,
       );
     case 'dhalf':
       // Check if we have dual photos for dhalf filter
       if (imageUri && imageUri.includes('dhalf_merged')) {
         // This is a merged dual photo - show it as is
-        return (
+        return wrapWithDateOverlay(
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
@@ -1324,11 +1390,12 @@ export const getFilterComponent = (
                 resizeMode: 'cover',
               }}
             />
-          </ColorMatrixFilter>
+          </ColorMatrixFilter>,
+          timestamp,
         );
       } else {
         // Regular single photo with dhalf filter
-        return (
+        return wrapWithDateOverlay(
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
@@ -1351,11 +1418,12 @@ export const getFilterComponent = (
                 resizeMode: 'cover',
               }}
             />
-          </ColorMatrixFilter>
+          </ColorMatrixFilter>,
+          timestamp,
         );
       }
     case 'dslide':
-      return (
+      return wrapWithDateOverlay(
         <View
           style={{
             width: '100%',
@@ -1414,10 +1482,11 @@ export const getFilterComponent = (
               />
             </ColorMatrixFilter>
           </View>
-        </View>
+        </View>,
+        timestamp,
       );
     case 'sclassic':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -1456,10 +1525,11 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
+        timestamp,
       );
     case 'hoga':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -1648,10 +1718,11 @@ export const getFilterComponent = (
               })}
             </View>
           </View>
-        </View>
+        </View>,
+        timestamp,
       );
     case 's67':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', backgroundColor: 'black'}}>
           <ColorMatrixFilter
             style={{
@@ -1755,10 +1826,10 @@ export const getFilterComponent = (
               {generateDateText(timestamp)}
             </Text>
           )}
-        </View>
+        </View>,
       );
     case 'kv88':
-      return (
+      return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', position: 'relative'}}>
           <ColorMatrixFilter
             style={{width: '100%', height: '100%'}}
@@ -2123,7 +2194,8 @@ export const getFilterComponent = (
               }}
             />
           </View>
-        </View>
+        </View>,
+        timestamp,
       );
     case 'instsqc':
       // Generate random color for background
@@ -2198,7 +2270,7 @@ export const getFilterComponent = (
         </View>
       );
     case 'pafr':
-      return (
+      return wrapWithDateOverlay(
         <View
           style={{
             width: '100%',
@@ -2247,11 +2319,12 @@ export const getFilterComponent = (
               pointerEvents: 'none',
             }}
           />
-        </View>
+        </View>,
+        timestamp,
       );
     default:
       // Default combination filter
-      return (
+      return wrapWithDateOverlay(
         <ColorMatrixFilter
           style={{width: '100%', height: '100%'}}
           matrix={combineWithTemperature(
@@ -2267,7 +2340,8 @@ export const getFilterComponent = (
               resizeMode: 'cover',
             }}
           />
-        </ColorMatrixFilter>
+        </ColorMatrixFilter>,
+        timestamp,
       );
   }
 };
