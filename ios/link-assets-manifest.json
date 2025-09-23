@@ -1,0 +1,89 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/Doto/Doto.ttf",
+      "sha1": "012da9c248176e2d749649e3f3409533c4e9bf48"
+    },
+    {
+      "path": "src/assets/fonts/Doto/OFL.txt",
+      "sha1": "5f05e358368f0373753ff28b1855e240245a3122"
+    },
+    {
+      "path": "src/assets/fonts/Doto/README.txt",
+      "sha1": "db34f5913380ffe8e4d92629e9d3b8d2fa5b182f"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-Black.ttf",
+      "sha1": "cdc291c6401acb3f82862cf2220effd05598a62a"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-Bold.ttf",
+      "sha1": "d77f7349c2d37d35691ec506a7c2206a4bf74e4e"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-ExtraBold.ttf",
+      "sha1": "fd150450b80809bc94cf13bf310d19bb2892ac47"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-ExtraLight.ttf",
+      "sha1": "fc5837a537acefa2ae387a930c6342344fba7d4c"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-Light.ttf",
+      "sha1": "7924ea3a2bfa547098086ae8bc6c0042b6140ddf"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-Medium.ttf",
+      "sha1": "0306149691b178668dd389fcafa1a3e1bb226bd3"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-Regular.ttf",
+      "sha1": "0d995a7ea5545b8b6def1cd09e4952845720baa8"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-SemiBold.ttf",
+      "sha1": "8de6159c57f7d40728661a355188ff3a42f1ecc1"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto-Thin.ttf",
+      "sha1": "18a1912d3be05e1bf709ca1515843aa1bfc3985a"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-Black.ttf",
+      "sha1": "58ba5981c335b2a20196342814f5c5cc3a5d22c7"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-Bold.ttf",
+      "sha1": "a0627dbc37d584de47bee4b3ea21d2d8f3f69e0d"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-ExtraBold.ttf",
+      "sha1": "f64608253545b1c3c45597eea6a0934996d6f607"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-ExtraLight.ttf",
+      "sha1": "9fc368b7e7a33997d5c4d3254a626fd9842042f5"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-Light.ttf",
+      "sha1": "df696d0dafd6688d3d8812bd05101814c26cd7ff"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-Medium.ttf",
+      "sha1": "ce8490651392ff731b9694ec4b44c43ed1def102"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-Regular.ttf",
+      "sha1": "b7f7e6c1e86e0ab63c63905240161389658ebbdc"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-SemiBold.ttf",
+      "sha1": "6598058baee7c3f92e187b7001b894a89bc1638d"
+    },
+    {
+      "path": "src/assets/fonts/Doto/static/Doto_Rounded-Thin.ttf",
+      "sha1": "468a035023dc5bc1a049a7078f576a55bf326e30"
+    }
+  ]
+}

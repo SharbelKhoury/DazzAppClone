@@ -28,6 +28,7 @@ const wrapWithDateOverlay = (filterComponent, timestamp) => {
           color: 'rgba(220, 102, 94, 0.7)',
           fontSize: 15,
           fontWeight: 'bold',
+          fontFamily: 'Doto',
           opacity: 0.9,
           transform: [{rotate: '90deg'}],
         }}>
@@ -68,6 +69,7 @@ import {
   ImageFormat,
 } from '@shopify/react-native-skia';
 import {Skia} from '@shopify/react-native-skia';
+import LinearGradient from 'react-native-linear-gradient';
 import RNFS from 'react-native-fs';
 import {Buffer} from 'buffer';
 import {
@@ -191,6 +193,85 @@ export const getFilterComponent = (
   timestamp = 'none',
 ) => {
   switch (filterId) {
+    case 'dexp':
+      return wrapWithDateOverlay(
+        <View style={{width: '100%', height: '100%', position: 'relative'}}>
+          <ColorMatrixFilter
+            style={{width: '100%', height: '100%'}}
+            matrix={combineWithTemperature(
+              concatColorMatrices(
+                tint(-0.1),
+                contrast(1.45),
+                //hueRotate(9.5),
+                blueBoost(0.95, 0.01), // subtle cool breeze
+                hueRotate(-0.5),
+                saturate(1.1),
+                brightness(0.85),
+              ),
+              temperatureValue,
+              tempActive,
+            )}>
+            <Image
+              source={{uri: imageUri}}
+              style={{width: '100%', height: '100%', resizeMode: 'cover'}}
+            />
+          </ColorMatrixFilter>
+          {/* Red vignette overlays (simulate radial using four linear gradients) */}
+          <LinearGradient
+            colors={['rgba(255,0,0,0.16)', 'transparent']}
+            start={{x: 0.5, y: 0}}
+            end={{x: 0.5, y: 1}}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '12%',
+              pointerEvents: 'none',
+            }}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(255,0,0,0.16)']}
+            start={{x: 0.5, y: 0}}
+            end={{x: 0.5, y: 1}}
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '12%',
+              pointerEvents: 'none',
+            }}
+          />
+          <LinearGradient
+            colors={['rgba(255,0,0,0.14)', 'transparent']}
+            start={{x: 0, y: 0.5}}
+            end={{x: 1, y: 0.5}}
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: '10%',
+              pointerEvents: 'none',
+            }}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(255,0,0,0.14)']}
+            start={{x: 0, y: 0.5}}
+            end={{x: 1, y: 0.5}}
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: '10%',
+              pointerEvents: 'none',
+            }}
+          />
+        </View>,
+        timestamp,
+      );
     case 'grf':
       return wrapWithDateOverlay(
         <View style={{width: '100%', height: '100%', flex: 1}}>
@@ -2819,7 +2900,7 @@ export const applySkiaFilterToPhoto = async (
     // Apply LUT-based filtering for 'ir', 'dexp', 'dfuns', 'cpm35', 'classicu', 'grdr', 'nt16', 'dclassic', 'ccdr', 'puli', and 'fqsr' filters
     else if (
       filterId === 'ir' ||
-      filterId === 'dexp' ||
+      /* filterId === 'dexp' || */
       filterId === 'dfuns' ||
       filterId === 'cpm35' ||
       filterId === 'classicu' ||

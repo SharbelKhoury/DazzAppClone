@@ -34,7 +34,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to camera to take photos and videos</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to microphone to record videos</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -55,5 +55,27 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Doto.ttf</string>
+		<string>Doto-Black.ttf</string>
+		<string>Doto-Bold.ttf</string>
+		<string>Doto-ExtraBold.ttf</string>
+		<string>Doto-ExtraLight.ttf</string>
+		<string>Doto-Light.ttf</string>
+		<string>Doto-Medium.ttf</string>
+		<string>Doto-Regular.ttf</string>
+		<string>Doto-SemiBold.ttf</string>
+		<string>Doto-Thin.ttf</string>
+		<string>Doto_Rounded-Black.ttf</string>
+		<string>Doto_Rounded-Bold.ttf</string>
+		<string>Doto_Rounded-ExtraBold.ttf</string>
+		<string>Doto_Rounded-ExtraLight.ttf</string>
+		<string>Doto_Rounded-Light.ttf</string>
+		<string>Doto_Rounded-Medium.ttf</string>
+		<string>Doto_Rounded-Regular.ttf</string>
+		<string>Doto_Rounded-SemiBold.ttf</string>
+		<string>Doto_Rounded-Thin.ttf</string>
+	</array>
 </dict>
 </plist>
