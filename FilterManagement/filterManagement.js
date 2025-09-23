@@ -203,25 +203,47 @@ export const getFilterComponent = (
             style={{width: '100%', height: '100%'}}
             matrix={combineWithTemperature(
               concatColorMatrices(
-                tint(-0.1),
-                contrast(1.45),
+                tint(-0.13),
+                contrast(0.95),
+                // sepia(-0.5),
                 //hueRotate(9.5),
-                blueBoost(0.95, 0.01), // subtle cool breeze
+                //blueBoost(0.95, 0.01), // subtle cool breeze
                 hueRotate(-0.5),
                 saturate(1.1),
-                brightness(0.85),
+                brightness(1.4),
               ),
               temperatureValue,
               tempActive,
             )}>
             <Image
               source={{uri: imageUri}}
-              style={{width: '100%', height: '100%', resizeMode: 'cover'}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+                opacity: 0.8,
+              }}
             />
           </ColorMatrixFilter>
-          {/* Red vignette overlays (simulate radial using four linear gradients) */}
+          {/* Noise overlay image */}
+          <Image
+            source={{
+              uri: 'https://img.freepik.com/free-photo/black-abstract-texture-background_1373-500.jpg?semt=ais_incoming&w=740&q=80',
+            }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: -3,
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+              opacity: 0.2, // Adjust opacity to control texture intensity
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Barely-visible green vignette at edges; keep ~40% center clean */}
           <LinearGradient
-            colors={['rgba(255,0,0,0.16)', 'transparent']}
+            colors={['rgba(0, 150, 60, 0.14)', 'transparent']}
             start={{x: 0.5, y: 0}}
             end={{x: 0.5, y: 1}}
             style={{
@@ -229,14 +251,14 @@ export const getFilterComponent = (
               top: 0,
               left: 0,
               right: 0,
-              height: '12%',
+              height: '30%',
               pointerEvents: 'none',
             }}
           />
           <LinearGradient
-            colors={['transparent', 'rgba(255,0,0,0.16)']}
-            start={{x: 0.5, y: 0}}
-            end={{x: 0.5, y: 1}}
+            colors={['transparent', 'rgba(56, 84, 0, 0.05)']}
+            start={{x: 0.5, y: 10}}
+            end={{x: 0.5, y: 0}}
             style={{
               position: 'absolute',
               bottom: 0,
@@ -247,7 +269,7 @@ export const getFilterComponent = (
             }}
           />
           <LinearGradient
-            colors={['rgba(255,0,0,0.14)', 'transparent']}
+            colors={['rgba(0, 150, 60, 0.142)', 'transparent']}
             start={{x: 0, y: 0.5}}
             end={{x: 1, y: 0.5}}
             style={{
@@ -255,12 +277,12 @@ export const getFilterComponent = (
               top: 0,
               bottom: 0,
               left: 0,
-              width: '10%',
+              width: '30%',
               pointerEvents: 'none',
             }}
           />
           <LinearGradient
-            colors={['transparent', 'rgba(255,0,0,0.14)']}
+            colors={['transparent', 'rgba(0, 150, 60, 0.172)']}
             start={{x: 0, y: 0.5}}
             end={{x: 1, y: 0.5}}
             style={{
@@ -268,7 +290,7 @@ export const getFilterComponent = (
               top: 0,
               bottom: 0,
               right: 0,
-              width: '10%',
+              width: '30%',
               pointerEvents: 'none',
             }}
           />
@@ -2980,6 +3002,13 @@ export const applySkiaFilterToPhoto = async (
         canvas.drawImage(skiaImage, 0, 0, paint);
       }
     } else {
+      if (filterId === 'dexp') {
+        console.log(
+          '🎨 Skipping Skia matrix path for dexp; use ColorMatrixFilter rendering path',
+        );
+        // Return original URI so the React ColorMatrixFilter path is used elsewhere
+        return photoUri;
+      }
       // Use original matrix-based filtering for all other filters
       console.log('🎨 Using matrix-based filtering for', filterId);
 
@@ -3303,7 +3332,7 @@ export const applySkiaFilterToPhoto = async (
     }
 
     // Apply special effects for dexp filter
-    if (filterId === 'dexp') {
+    /*  if (filterId === 'dexp') {
       console.log('🎨 Applying vignette effect for dexp filter');
 
       // 1. Yellow weak background overlay
@@ -3354,7 +3383,7 @@ export const applySkiaFilterToPhoto = async (
         Skia.XYWHRect(0, topStartY, width, topHeight),
         blackVignettePaint,
       );
-    }
+    } */
 
     // Apply corner vignette effect for dfuns filter
     if (filterId === 'dfuns') {
