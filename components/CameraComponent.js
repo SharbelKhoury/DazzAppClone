@@ -4407,7 +4407,14 @@ const CameraComponent = ({navigation}) => {
           {getSelectedCameraIcon(global, activeFilters) ? (
             <Image
               source={getSelectedCameraIcon(global, activeFilters)}
-              style={styles.selectedCameraIcon}
+              style={[
+                styles.selectedCameraIcon,
+                activeFilters[0] === 'original' && {
+                  borderTopLeftRadius: 9,
+                  borderTopRightRadius: 9,
+                  width: 43,
+                },
+              ]}
             />
           ) : (
             <View style={styles.defaultCameraIcon}>
@@ -5552,7 +5559,9 @@ const styles = StyleSheet.create({
   },
   selectedCameraContainer: {
     width: 60,
-    height: 60,
+    height: 60 /* 
+    borderWidth: 1,
+    borderColor: 'rgba(250, 250, 250, 1)', */,
     borderRadius: 8,
     //backgroundColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: 'transparent',
@@ -5574,7 +5583,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     marginBottom: 29,
+    marginHorizontal: 0,
+    paddingHorizontal: 0,
     borderRadius: 6,
+    // borderWidth: 1,
+    // borderColor: 'rgba(250, 250, 250, 1)',
     resizeMode: 'contain',
   },
   defaultCameraIcon: {

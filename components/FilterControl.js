@@ -877,6 +877,8 @@ const FilterControl = ({navigation}) => {
                 height: 50,
                 width: 32,
                 zIndex: 9999,
+                borderTopLeftRadius: 9,
+                borderTopRightRadius: 9,
               },
             ]}
           />
