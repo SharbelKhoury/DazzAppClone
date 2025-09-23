@@ -56,7 +56,11 @@ const Sample = () => {
         <TouchableOpacity
           style={styles.closeButton}
           onPress={() => navigation.goBack()}>
-          <Text style={styles.closeButtonText}>✕</Text>
+          {/* <Text style={styles.closeButtonText}>✕</Text> */}
+          <Image
+            source={require('../src/assets/icons/close.png')}
+            style={styles.closeButtonText}
+          />
         </TouchableOpacity>
       </View>
 
@@ -105,7 +109,7 @@ const styles = StyleSheet.create({
   },
   fixedButtonsContainer: {
     position: 'absolute',
-    bottom: 120, // Position above the Dazz Pro container
+    bottom: 100, // Position above the Dazz Pro container
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -123,29 +127,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
+    height: 30,
     marginRight: 20,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   tryButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginTop: -3,
+    textTransform: 'uppercase',
   },
   closeButton: {
-    backgroundColor: '#333',
+    // backgroundColor: '#333',
     borderRadius: 20,
     width: 30,
     height: 30,
     paddingTop: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 20,
-    marginBottom: 20,
+    marginRight: 0,
+    marginBottom: 11,
   },
   closeButtonText: {
-    color: '#fff',
+    color: 'rgba(130, 130, 130, 0.69)',
     fontSize: 20,
-    fontWeight: '600',
+    tintColor: 'rgba(130, 130, 130, 0.94)',
+    fontWeight: '700',
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
   },
   scrollView: {
     flex: 1,
@@ -184,6 +195,7 @@ const styles = StyleSheet.create({
   banner: {
     borderRadius: 12,
     overflow: 'hidden',
+    height: 65,
   },
   gradientBanner: {
     padding: 20,
@@ -199,12 +211,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bannerLogo: {
-    width: 40,
-    height: 40,
+    width: 33,
+    height: 33,
     marginRight: 15,
+    marginTop: -9,
+    borderTopRightRadius: 17,
+    borderBottomRightRadius: 17,
   },
   bannerText: {
     flex: 1,
+    marginTop: -8,
   },
   bannerTitle: {
     color: '#fff',
@@ -222,10 +238,12 @@ const styles = StyleSheet.create({
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -21,
+    marginRight: -17,
   },
   arrowText: {
-    color: '#fff',
-    fontSize: 24,
+    color: 'rgba(87, 87, 87, 0.36)',
+    fontSize: 30,
     fontWeight: '600',
   },
 });

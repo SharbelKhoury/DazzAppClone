@@ -31,8 +31,10 @@ import {
   Animated,
   Dimensions,
   DeviceEventEmitter,
+  Vibration,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {runOnJS} from 'react-native-reanimated';
@@ -3468,7 +3470,16 @@ const CameraComponent = ({navigation}) => {
           {/* 3 dots More Options Button */}
           <TouchableOpacity
             style={styles.moreOptionsButton}
-            onPress={() => setModalActive(!modalActive)}>
+            onPress={() => {
+              const willOpen = !modalActive;
+              if (willOpen) {
+                ReactNativeHapticFeedback.trigger('impactLight', {
+                  enableVibrateFallback: true,
+                  ignoreAndroidSystemSettings: false,
+                });
+              }
+              setModalActive(willOpen);
+            }}>
             <View style={styles.moreOptionsDots}>
               <View style={styles.dot} />
               <View style={styles.dot} />

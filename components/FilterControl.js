@@ -868,7 +868,18 @@ const FilterControl = ({navigation}) => {
         style={[styles.cameraIcon, isSelected && styles.selectedCameraIcon]}>
         {/* Use the actual camera icon from CamerasScreen */}
         {item.icon ? (
-          <Image source={item.icon} style={styles.cameraIconImage} />
+          <Image
+            source={item.icon}
+            style={[
+              styles.cameraIconImage,
+              (item.id === 'original' || item.id === 'sclassic') && {
+                marginTop: 9,
+                height: 50,
+                width: 32,
+                zIndex: 9999,
+              },
+            ]}
+          />
         ) : (
           <Text style={styles.cameraIconText}>📷</Text>
         )}
