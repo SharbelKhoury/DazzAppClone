@@ -25,12 +25,15 @@ const wrapWithDateOverlay = (filterComponent, timestamp) => {
           position: 'absolute',
           bottom: '23.5%',
           left: '5%',
-          color: 'rgba(255, 169, 169, 0.75)',
+          color: 'rgba(255, 177, 177, 0.97)',
           fontSize: 20,
           fontWeight: 'extra-bold',
           fontFamily: 'Jersey10-Regular',
-          opacity: 0.75,
+          opacity: 0.65,
           transform: [{rotate: '90deg'}],
+          textShadowColor: 'rgba(255, 177, 177, 0.6)',
+          textShadowOffset: {width: 0, height: 0},
+          textShadowRadius: 6,
         }}>
         {generateDateText(timestamp)}
       </Text>
