@@ -138,9 +138,10 @@ const FilterControl = ({navigation}) => {
     }
 
     // If no mapping found, return all accessories (fallback)
-    console.log(
+    /* console.log(
       `🎯 FilterControl: No mapping found for '${currentFilter}', using all accessories as fallback`,
     );
+     */
     return ['ndfilter', 'fisheyew', 'fisheyef', 'star', 'prism', 'flashc'];
   };
 
@@ -169,14 +170,14 @@ const FilterControl = ({navigation}) => {
       s67: [1, 3], // Triple C, Overlapping Squares
       puli: [], // none
       dclassic: [6, 4, 7], // Framing, Gradient, Frame Rate
-      golf: [1], // Only Triple C (9,10 don't exist in our 8 buttons)
+      golf: [1, 9, 10], // Triple C , 9 and 10
       grdr: [6], // Framing only
       ccdr: [7], // Frame Rate only
       dhalf: [3, 1], // Overlapping Squares, Triple C
       cpm35: [6, 7], // Framing, Frame Rate
       ct2f: [6, 4, 7], // Framing, Gradient, Frame Rate
       instc: [5], // Rainbow Square only
-      d3d: [1], // Only Triple C (11 doesn't exist)
+      d3d: [1, 11], // Only Triple C
       fxnr: [6], // Framing only
     };
   };
@@ -204,7 +205,7 @@ const FilterControl = ({navigation}) => {
     console.log(
       `🎯 FilterControl: No mapping found for '${currentFilter}', using all fixed buttons as fallback`,
     );
-    return [1, 2, 3, 4, 5, 6, 7, 8];
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   };
 
   // Initialize active filters based on selected camera
@@ -1003,11 +1004,7 @@ const FilterControl = ({navigation}) => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.bottomScrollContainer}
           style={{flexGrow: 0}}>
-          <View
-            style={[
-              styles.circularButtons,
-              {minWidth: getAllowedAccessories().length > 4 ? 300 : 'auto'},
-            ]}>
+          <View style={[styles.circularButtons]}>
             {/* Accessory Icons - Shows filtered accessories based on current 2nd row filter selection */}
             {selectedAccessories && selectedAccessories.length > 0 ? (
               selectedAccessories
@@ -1059,16 +1056,23 @@ const FilterControl = ({navigation}) => {
             )}
 
             {/* Only show divider if there are allowed accessories for current filter */}
-            {getAllowedAccessories().length > 0 && (
-              <TouchableOpacity style={styles.circleDotDivider} />
-            )}
+            {getAllowedAccessories().length > 0 &&
+              getAllowedFixedButtons().length > 0 && (
+                <TouchableOpacity
+                  style={[styles.circleDotDivider, {marginRight: 0}]}
+                />
+              )}
 
             {/* fixed 8 buttons after divider */}
 
             {/* Triple C Icon 1 */}
             {getAllowedFixedButtons().includes(1) && (
               <TouchableOpacity
-                style={[styles.circleButton, styles.circleButton3]}>
+                style={[
+                  styles.circleButton,
+                  styles.circleButton3,
+                  {marginLeft: 10, marginRight: 0},
+                ]}>
                 <Image
                   source={require('../src/assets/icons/tripleC.png')}
                   style={styles.tripleCIcon}
@@ -1079,7 +1083,7 @@ const FilterControl = ({navigation}) => {
 
           {/* FPS Icon 2 */}
           {getAllowedFixedButtons().includes(2) && (
-            <TouchableOpacity style={[styles.fpsContainer, {marginLeft: 0}]}>
+            <TouchableOpacity style={[styles.fpsContainer, {marginLeft: 10}]}>
               <Text style={styles.fpsText}>FPS</Text>
               <Text style={styles.fpsNumber}>24</Text>
             </TouchableOpacity>
@@ -1089,7 +1093,7 @@ const FilterControl = ({navigation}) => {
           {getAllowedFixedButtons().includes(3) && (
             <TouchableOpacity
               onPress={() => {}}
-              style={[styles.fpsContainer, {marginRight: 10, width: 39}]}>
+              style={[styles.fpsContainer, {marginLeft: 10, width: 39}]}>
               <View style={styles.overlappingSquares}>
                 <View style={styles.square1} />
                 <View style={styles.square2} />
@@ -1101,7 +1105,7 @@ const FilterControl = ({navigation}) => {
           {getAllowedFixedButtons().includes(4) && (
             <TouchableOpacity
               style={{
-                marginRight: 10,
+                marginLeft: 10,
                 borderRadius: 20,
                 borderWidth: 1.25,
                 borderColor: 'rgb(72, 72, 72)',
@@ -1167,7 +1171,7 @@ const FilterControl = ({navigation}) => {
           {getAllowedFixedButtons().includes(5) && (
             <TouchableOpacity
               style={{
-                //marginLeft: 10,
+                marginLeft: 10,
                 borderRadius: 20,
                 borderWidth: 1.25,
                 borderColor: 'rgb(72, 72, 72)',
@@ -1447,12 +1451,66 @@ const FilterControl = ({navigation}) => {
               />
             </TouchableOpacity>
           )}
+
           {/* speedometer Icon 9 */}
-          <TouchableOpacity></TouchableOpacity>
-          {/* map Icon 10 */}
-          <TouchableOpacity></TouchableOpacity>
+          {getAllowedFixedButtons().includes(9) && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+              }}>
+              <Image
+                source={require('../src/assets/icons/speedometer.png')}
+                style={{width: 20, height: 20, tintColor: '#fff'}}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* background Icon 10 */}
+          {getAllowedFixedButtons().includes(10) && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+              }}>
+              <Image
+                source={require('../src/assets/icons/background.png')}
+                style={{width: 20, height: 20, tintColor: '#fff'}}
+              />
+            </TouchableOpacity>
+          )}
+
           {/* zoom inspect icon 11 */}
-          <TouchableOpacity></TouchableOpacity>
+          {getAllowedFixedButtons().includes(11) && (
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                width: 39,
+                height: 39,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 20,
+                borderWidth: 1.25,
+                borderColor: 'rgb(72, 72, 72)',
+              }}>
+              <Image
+                source={require('../src/assets/icons/zoom.png')}
+                style={{width: 20, height: 20, tintColor: '#fff'}}
+              />
+            </TouchableOpacity>
+          )}
 
           {/* Fixed Buttons Section End */}
         </ScrollView>
@@ -1648,8 +1706,8 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: 'rgb(53, 53, 53)',
     borderRadius: 30,
-    margin: 16,
     marginLeft: 0,
+    marginRight: 0,
   },
   cameraIconImage: {
     width: 50,
@@ -1677,6 +1735,7 @@ const styles = StyleSheet.create({
   },
   bottomScrollContainer: {
     alignItems: 'center',
+    justifyContent: 'flex-end',
     paddingRight: 20,
     minWidth: '100%',
   },
@@ -1766,7 +1825,7 @@ const styles = StyleSheet.create({
   fpsContainer: {
     paddingHorizontal: 9,
     paddingVertical: 6,
-    marginRight: 10,
+    marginRight: 0,
     borderRadius: 50,
     borderWidth: 1.25,
     borderColor: 'rgb(72, 72, 72)',
