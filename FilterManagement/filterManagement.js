@@ -8,7 +8,7 @@ const generateDateText = timestamp => {
   const day = now.getDate();
   const year = String(now.getFullYear()).slice(-2); // Get last 2 digits of year
 
-  return `${month} ${day} '${year}`;
+  return `${month}  ${day}  '${year}`;
 };
 
 // Helper function to wrap ColorMatrixFilter with date text overlay
@@ -23,13 +23,13 @@ const wrapWithDateOverlay = (filterComponent, timestamp) => {
       <Text
         style={{
           position: 'absolute',
-          bottom: '22%',
+          bottom: '23.5%',
           left: '5%',
-          color: 'rgba(220, 102, 94, 0.7)',
-          fontSize: 15,
-          fontWeight: 'bold',
-          fontFamily: 'Jersey10',
-          opacity: 0.9,
+          color: 'rgba(255, 169, 169, 0.75)',
+          fontSize: 20,
+          fontWeight: 'extra-bold',
+          fontFamily: 'Jersey10-Regular',
+          opacity: 0.75,
           transform: [{rotate: '90deg'}],
         }}>
         {generateDateText(timestamp)}
