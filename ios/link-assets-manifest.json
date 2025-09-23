@@ -84,6 +84,14 @@
     {
       "path": "src/assets/fonts/Doto/static/Doto_Rounded-Thin.ttf",
       "sha1": "468a035023dc5bc1a049a7078f576a55bf326e30"
+    },
+    {
+      "path": "src/assets/fonts/Jersey10.ttf",
+      "sha1": "847b2c66f35130cc14e303403c19f1bbbdb62074"
+    },
+    {
+      "path": "src/assets/fonts/Jersey_10/Jersey10-Regular.ttf",
+      "sha1": "847b2c66f35130cc14e303403c19f1bbbdb62074"
     }
   ]
 }

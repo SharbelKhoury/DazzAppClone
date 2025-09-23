@@ -28,7 +28,7 @@ const wrapWithDateOverlay = (filterComponent, timestamp) => {
           color: 'rgba(220, 102, 94, 0.7)',
           fontSize: 15,
           fontWeight: 'bold',
-          fontFamily: 'Doto',
+          fontFamily: 'Jersey10',
           opacity: 0.9,
           transform: [{rotate: '90deg'}],
         }}>
