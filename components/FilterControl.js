@@ -1817,8 +1817,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   tripleCIcon: {
-    width: 40,
-    height: 40,
+    width: 39,
+    height: 39,
     borderRadius: 20,
     resizeMode: 'contain',
   },
