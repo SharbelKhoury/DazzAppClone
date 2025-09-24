@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   cameraGridIconImage: {
     width: 50,
     height: 50,
-    borderRadius: 50,
+    borderRadius: 5,
     resizeMode: 'contain',
   },
   cameraGridName: {

@@ -969,6 +969,7 @@ const FilterControl = ({navigation}) => {
               styles.cameraRow,
               {
                 borderBottomWidth: 1.5,
+                marginBottom: 10,
                 borderBottomColor: 'rgb(35, 35, 35)',
                 paddingBottom: 24,
               },
@@ -1683,7 +1684,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cameraRow: {
-    height: 90,
+    height: 100,
     flexDirection: 'row',
     justifyContent: 'flex-start',
     marginBottom: 20,
@@ -1786,8 +1787,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   accessoryIcon: {
-    width: 30,
-    height: 30,
+    width: 39,
+    height: 39,
     borderRadius: 15,
     resizeMode: 'contain',
   },
