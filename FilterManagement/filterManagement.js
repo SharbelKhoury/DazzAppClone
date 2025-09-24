@@ -10,7 +10,28 @@ const generateDateText = timestamp => {
 
   return `${month}  ${day}  '${year}`;
 };
-
+const boostYellowMatrix = [
+  1.4075,
+  0.0,
+  0.0,
+  0,
+  0, // Red slightly increased
+  0.0,
+  1.2345,
+  0.0,
+  0,
+  0, // Green slightly increased
+  0.0,
+  0.0,
+  1.0,
+  0,
+  0, // Blue unchanged
+  0.0,
+  0.0,
+  0.0,
+  1,
+  0, // Alpha unchanged
+];
 // Helper function to wrap ColorMatrixFilter with date text overlay
 const wrapWithDateOverlay = (filterComponent, timestamp) => {
   if (timestamp === 'none') {
@@ -25,9 +46,9 @@ const wrapWithDateOverlay = (filterComponent, timestamp) => {
           position: 'absolute',
           bottom: '23.5%',
           left: '5%',
-          color: 'rgba(255, 177, 177, 0.97)',
+          color: 'rgba(252, 171, 171, 0.97)',
           fontSize: 20,
-          fontWeight: 'extra-bold',
+          fontWeight: 'bold',
           fontFamily: 'Jersey10-Regular',
           opacity: 0.65,
           transform: [{rotate: '90deg'}],
@@ -210,7 +231,8 @@ export const getFilterComponent = (
                 //blueBoost(0.95, 0.01), // subtle cool breeze
                 hueRotate(-0.5),
                 saturate(1.1),
-                brightness(1.4),
+                brightness(0.95),
+                boostYellowMatrix,
               ),
               temperatureValue,
               tempActive,
@@ -243,7 +265,7 @@ export const getFilterComponent = (
           />
           {/* Barely-visible green vignette at edges; keep ~40% center clean */}
           <LinearGradient
-            colors={['rgba(0, 150, 60, 0.14)', 'transparent']}
+            colors={['rgba(0, 0, 0, 0.14)', 'transparent']}
             start={{x: 0.5, y: 0}}
             end={{x: 0.5, y: 1}}
             style={{
@@ -256,7 +278,7 @@ export const getFilterComponent = (
             }}
           />
           <LinearGradient
-            colors={['transparent', 'rgba(56, 84, 0, 0.05)']}
+            colors={['transparent', 'rgba(0, 0, 0, 0.05)']}
             start={{x: 0.5, y: 10}}
             end={{x: 0.5, y: 0}}
             style={{
@@ -269,7 +291,7 @@ export const getFilterComponent = (
             }}
           />
           <LinearGradient
-            colors={['rgba(0, 150, 60, 0.142)', 'transparent']}
+            colors={['rgba(0, 76, 30, 0.14)', 'transparent']}
             start={{x: 0, y: 0.5}}
             end={{x: 1, y: 0.5}}
             style={{
@@ -282,7 +304,7 @@ export const getFilterComponent = (
             }}
           />
           <LinearGradient
-            colors={['transparent', 'rgba(0, 150, 60, 0.172)']}
+            colors={['transparent', 'rgba(0, 74, 30, 0.14)']}
             start={{x: 0, y: 0.5}}
             end={{x: 1, y: 0.5}}
             style={{
